@@ -1,0 +1,14 @@
+dist: xenial
+language: python
+
+python:
+  - "3.6"
+
+env: CUDA=9.2.148-1 CUDA_SHORT=9.2 UBUNTU_VERSION=ubuntu1604
+
+install:
+  - pip install flake8 yapf --show-source
+
+script:
+  - flake8
+  - yapf -r -d --style .style.yapf ./ 

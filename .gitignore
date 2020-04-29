@@ -1,0 +1,13 @@
+# Detection
+data/
+checkpoint/
+work_space/log
+Yolo_v2_pytorch/trained_models/
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
