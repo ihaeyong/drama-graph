@@ -2,7 +2,7 @@ import os
 import argparse
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from .src.anotherMissOh_dataset import MissOhDataset, MissOhDatasetTest
+from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect
 from .src.utils import *
 from .src.loss import YoloLoss
 from .src.yolo_net import Yolo
@@ -22,7 +22,7 @@ def get_args():
     parser.add_argument("--image_size", type=int,
                         default=448,
                         help="The common width and height for all images")
-    parser.add_argument("--batch_size", type=int, default=10,
+    parser.add_argument("--batch_size", type=int, default=1,
                         help="The number of images per batch")
 
     # Training base Setting
@@ -52,6 +52,12 @@ def get_args():
                         default="./checkpoint") # saved training path
     parser.add_argument("--conf_threshold", type=float, default=0.35)
     parser.add_argument("--nms_threshold", type=float, default=0.5)
+
+    parser.add_argument("--img_path", type=str,
+                        default="./data/AnotherMissOh/AnotherMissOh_images/")
+    parser.add_argument("--json_path", type=str,
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual/")
+
     args = parser.parse_args()
     return args
 
@@ -60,6 +66,18 @@ CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
            'car', 'cat', 'chair', 'cow', 'diningtable', 'dog',
            'horse', 'motorbike', 'person', 'pottedplant', 'sheep',
            'sofa', 'train', 'tvmonitor']
+
+# get args.
+opt = get_args()
+print(opt)
+
+# splits the episodes int train, val, test
+train, val, test = Splits(num_episodes=9)
+
+# load datasets
+train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
+val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
+test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 def train(opt):
     if torch.cuda.is_available():
@@ -79,8 +97,7 @@ def train(opt):
                    "drop_last": False,
                    "collate_fn": custom_collate_fn}
 
-    training_set = MissOhDataset(opt.image_size)
-    training_generator = DataLoader(training_set, **training_params)
+    train_loader = DataLoader(train_set, **training_params)
 
     pre_model = Yolo(20).cuda()
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
@@ -90,12 +107,12 @@ def train(opt):
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(1, model.anchors, opt.reduction)
+    criterion = YoloLoss(20, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
     model.train()
-    num_iter_per_epoch = len(training_generator)
+    num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
 
@@ -103,15 +120,21 @@ def train(opt):
         if str(epoch) in learning_rate_schedule.keys():
             for param_group in optimizer.param_groups:
                 param_group['lr'] = learning_rate_schedule[str(epoch)]
-        for iter, batch in enumerate(training_generator):
-            image, label = batch
+        for iter, batch in enumerate(train_loader):
+
+            image, info = batch
+
+            # sort label info on fullrect
+            label=SortFullRect(info)
+
             if torch.cuda.is_available():
-                image = image.cuda()
+                image = image[0].cuda()
             else:
-                image = image
+                image = image[0]
 
             optimizer.zero_grad()
             logits = model(image)
+            
             loss, loss_coord, loss_conf, loss_cls = criterion(logits, label)
             loss.backward()
             optimizer.step()
@@ -152,5 +175,4 @@ def visdom_loss(visdom, loss_step, loss_dict):
     )
 
 if __name__ == "__main__":
-    opt = get_args()
     train(opt)
