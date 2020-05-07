@@ -13,7 +13,8 @@ def custom_collate_fn(batch):
     return items
 
 
-def post_processing(logits, image_size, gt_classes, anchors, conf_threshold, nms_threshold):
+def post_processing(logits, image_size, gt_classes,
+                    anchors, conf_threshold, nms_threshold):
     num_anchors = len(anchors)
     anchors = torch.Tensor(anchors)
     if isinstance(logits, Variable):
@@ -90,7 +91,8 @@ def post_processing(logits, image_size, gt_classes, anchors, conf_threshold, nms
         scores, order = scores.sort(0, descending=True)
         x1, y1, x2, y2 = bboxes[order].split(1, 1)
 
-        # Compute dx and dy between each pair of boxes (these mat contain every pair twice...)
+        # Compute dx and dy between each pair of boxes
+        # (these mat contain every pair twice...)
         dx = (x2.min(x2.t()) - x1.max(x1.t())).clamp(min=0)
         dy = (y2.min(y2.t()) - y1.max(y1.t())).clamp(min=0)
 
@@ -110,8 +112,8 @@ def post_processing(logits, image_size, gt_classes, anchors, conf_threshold, nms
         keep_len = len(keep) - 1
         for i in range(1, keep_len):
             if keep[i] > 0:
-                # keep -= conflicting[i]
-                keep = keep - torch.Tensor([int(conflicting[x]=='true') for x in conflicting[i]])
+                keep -= conflicting[i]
+                #keep = keep - torch.Tensor([int(conflicting[x]=='true') for x in conflicting[i]])
         if torch.cuda.is_available():
             keep = keep.cuda()
 

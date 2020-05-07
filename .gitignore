@@ -1,4 +1,5 @@
 # Detection
+results/
 data/
 checkpoint/
 work_space/log
