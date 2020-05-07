@@ -1,0 +1,18 @@
+graph G {
+	graph [dpi=300 rankdir=TB rotate=0 size="4,2"]
+	node [fontsize=10 height=0.1]
+	edge [fontsize=10]
+	"Event Graph"
+	subgraph clusterA {
+		livingroom
+		none
+	}
+	subgraph clusterB {
+		livingroom
+		none
+	}
+	subgraph clusterC {
+		livingroom
+		none
+	}
+}

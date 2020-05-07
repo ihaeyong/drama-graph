@@ -33,12 +33,10 @@ class YoloLoss(nn.modules.loss._Loss):
         # Get x,y,w,h,conf,cls
         output = output.view(batch_size, self.num_anchors, -1, height * width)
         coord = torch.zeros_like(output[:, :, :4, :])
-        coord[:, :, :2, :] = output[:, :, :2, :].sigmoid()  
+        coord[:, :, :2, :] = output[:, :, :2, :].sigmoid()
         coord[:, :, 2:4, :] = output[:, :, 2:4, :]
         conf = output[:, :, 4, :].sigmoid()
-        cls = output[:, :, 5:, :].contiguous().view(batch_size * self.num_anchors, self.num_classes,
-                                                    height * width).transpose(1, 2).contiguous().view(-1,
-                                                                                                      self.num_classes)
+        cls = output[:, :, 5:, :].contiguous().view(batch_size * self.num_anchors, self.num_classes,height * width).transpose(1, 2).contiguous().view(-1,self.num_classes)
 
         # Create prediction boxes
         pred_boxes = torch.FloatTensor(batch_size * self.num_anchors * height * width, 4)
@@ -83,6 +81,7 @@ class YoloLoss(nn.modules.loss._Loss):
 
         self.loss_coord = self.coord_scale * mse(coord * coord_mask, tcoord * coord_mask) / batch_size
         self.loss_conf = mse(conf * conf_mask, tconf * conf_mask) / batch_size
+
         self.loss_cls = self.class_scale * 2 * ce(cls, tcls) / batch_size
         self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
 

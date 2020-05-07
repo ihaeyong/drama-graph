@@ -84,6 +84,9 @@ You could find all trained models in [this link](https://drive.google.com/drive/
 
 And make 'pre_model' folder and put the models.
 
+We finetuned YOLOv2 w.r.t 20 persons for about 10 epoches.
+You can download [the trained model](https://drive.google.com/open?id=1BWcohLrttyY4dmqhqB6mGxD4BLNNPREa) 
+
 
 # Person identification using face and body
 

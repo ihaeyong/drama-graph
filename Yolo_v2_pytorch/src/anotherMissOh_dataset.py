@@ -7,14 +7,16 @@ from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import json
 
-
+# define person classes
 PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
             'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'Unknown']
 
+# define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'Unknown']
 
+# define object classes
 ObjectCLS = ['Phone', 'Stick']
 P2ORelCLS = ['Holding', 'Wearing', 'Unknown']
 
@@ -28,7 +30,7 @@ def Splits(num_episodes):
 
     return [*train], [val], [*test]
 
-def SortFullRect(label, scale=True):
+def SortFullRect(image,label, is_train=True):
 
     width, height = (1024, 768)
     width_ratio = 448 / width
@@ -36,27 +38,57 @@ def SortFullRect(label, scale=True):
 
     fullrect_list = []
     num_batch = len(label[0]) # per 1 video clip
-    for frm in range(num_batch):
+
+    # set sequence length
+    s_frm = 0
+    e_frm = num_batch
+
+    max_batch = 10
+    if num_batch > max_batch and is_train:
+        s_frm = np.random.choice(num_batch-max_batch, 1)[0]
+        e_frm = s_frm + max_batch
+    elif is_train is False:
+        s_frm = 0
+        e_frm = max_batch
+
+    image_list = []
+    frame_id_list = []
+    for frm in range(s_frm, e_frm):
         try:
             label_list = []
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
+
+                frame_id = label[0][frm]['frame_id']
+                frame_id_list.append(frame_id)
+
                 p_label = PersonCLS.index(p_id)
+                if p_label > 20:
+                    print("sort full rect index error{}".format(p_label))
+
                 full_rect = label[0][frm]['persons']['full_rect'][p]
 
-                if scale:
-                    xmin = max(full_rect[0] * width_ratio, 0)
-                    ymin = max(full_rect[1] * height_ratio, 0)
-                    xmax = min((full_rect[2]) * width_ratio, 448)
-                    ymax = min((full_rect[3]) * height_ratio, 448)
-                    full_rect = [xmin,ymin,xmax,ymax]
+                #scale:
+                xmin = max(full_rect[0] * width_ratio, 0)
+                ymin = max(full_rect[1] * height_ratio, 0)
+                xmax = min((full_rect[2]) * width_ratio, 448)
+                ymax = min((full_rect[3]) * height_ratio, 448)
+                full_rect = [xmin,ymin,xmax,ymax]
+
                 temp_label = np.concatenate((full_rect, [p_label]), 0)
                 label_list.append(temp_label)
         except:
             continue
 
-        fullrect_list.append(label_list)
+        if len(label_list) > 0 and is_train:
+            fullrect_list.append(label_list)
+            image_list.append(image[frm])
+        else: # for test
+            fullrect_list.append(label_list)
+            image_list.append(image[frm])
 
-    return fullrect_list
+    if is_train:
+        return image_list, fullrect_list
+    return image_list, fullrect_list, frame_id_list
 
 class AnotherMissOh(Dataset):
     def __init__(self, dataset, img_path, json_path, display_log=True):
@@ -157,6 +189,7 @@ class AnotherMissOh(Dataset):
                 clip['vid'].append(json_data['visual_results']
                                    [i]['vid'].replace('_', '/'))
 
+                num_persons = 0
                 for j, info in enumerate(json_data['visual_results'][i]['image_info']):
                     image_info = {}
                     image_info['frame_id'] = []
@@ -207,6 +240,7 @@ class AnotherMissOh(Dataset):
                         else:
                             full_rect = [
                                 full_bbox['min_x'], full_bbox['min_y'], full_bbox['max_x'], full_bbox['max_y']]
+                            num_persons+=1
                         image_info['persons']['full_rect'].append(full_rect)
                         image_info['persons']['behavior'].append(
                             person['person_info']['behavior'])
@@ -220,7 +254,9 @@ class AnotherMissOh(Dataset):
                             person['person_info']['full_rect_score'])
 
                     clip['image_info'].append(image_info)
-                self.clips.append(clip)
+
+                if num_persons > 0:
+                    self.clips.append(clip)
 
     def __len__(self):
         return len(self.clips)

@@ -61,7 +61,7 @@ def get_args():
     args = parser.parse_args()
     return args
 
-# not use this classes
+# not use this classes should be removed ???
 CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
            'car', 'cat', 'chair', 'cow', 'diningtable', 'dog',
            'horse', 'motorbike', 'person', 'pottedplant', 'sheep',
@@ -103,7 +103,7 @@ def train(opt):
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    model = YoloD(pre_model, 1).cuda()
+    model = YoloD(pre_model, 20).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
@@ -125,16 +125,21 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            label=SortFullRect(info)
+            image, label=SortFullRect(image, info)
+
+            if len(image) == 0 or len(label)==0:
+                print("iter:{}_{}image_{}label".format(
+                    iter, len(image), len(label)))
+                continue
 
             if torch.cuda.is_available():
-                image = image[0].cuda()
+                image = torch.cat(image).cuda()
             else:
-                image = image[0]
+                image = torch.cat(image)
 
             optimizer.zero_grad()
-            logits = model(image)
-            
+            logits = model(image) # [b, 30, 14, 14]
+
             loss, loss_coord, loss_conf, loss_cls = criterion(logits, label)
             loss.backward()
             optimizer.step()
