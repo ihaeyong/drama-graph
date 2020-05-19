@@ -13,6 +13,18 @@ PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
             'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'Unknown']
 
+# define behavior
+PBeHavCLS = ["stand up","sit down","walk","hold","hug",
+             "look at/back on",
+             "drink","eat",
+             "point out","dance", "look for","watch",
+             "push away", "wave hands",
+             "cook", "sing", "play instruments",
+             "call", "destroy",
+             "put arms around each other's shoulder",
+             "open", "shake hands", "wave hands",
+             "kiss", "high-five", "write", "Unknown"]
+
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'Unknown']
 
@@ -37,6 +49,7 @@ def SortFullRect(image,label, is_train=True):
     height_ratio = 448 / height
 
     fullrect_list = []
+    fullbehav_list = []
     num_batch = len(label[0]) # per 1 video clip
 
     # set sequence length
@@ -56,6 +69,7 @@ def SortFullRect(image,label, is_train=True):
     for frm in range(s_frm, e_frm):
         try:
             label_list = []
+            behavior_list = []
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
 
                 frame_id = label[0][frm]['frame_id']
@@ -67,6 +81,10 @@ def SortFullRect(image,label, is_train=True):
 
                 full_rect = label[0][frm]['persons']['full_rect'][p]
 
+                # behavior label
+                behavior = label[0][frm]['persons']['behavior'][p]
+                behavior_label = PBeHavCLS.index(behavior)
+
                 #scale:
                 xmin = max(full_rect[0] * width_ratio, 0)
                 ymin = max(full_rect[1] * height_ratio, 0)
@@ -76,19 +94,22 @@ def SortFullRect(image,label, is_train=True):
 
                 temp_label = np.concatenate((full_rect, [p_label]), 0)
                 label_list.append(temp_label)
+                behavior_list.append(behavior_label)
         except:
             continue
 
         if len(label_list) > 0 and is_train:
             fullrect_list.append(label_list)
+            fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
         else: # for test
             fullrect_list.append(label_list)
+            fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
 
     if is_train:
-        return image_list, fullrect_list
-    return image_list, fullrect_list, frame_id_list
+        return image_list, fullrect_list, fullbehav_list
+    return image_list, fullrect_list, fullbehav_list, frame_id_list
 
 class AnotherMissOh(Dataset):
     def __init__(self, dataset, img_path, json_path, display_log=True):

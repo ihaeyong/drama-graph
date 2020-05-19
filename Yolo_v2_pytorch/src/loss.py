@@ -9,8 +9,10 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class YoloLoss(nn.modules.loss._Loss):
     # The loss I borrow from LightNet repo.
-    def __init__(self, num_classes, anchors, reduction=32, coord_scale=1.0, noobject_scale=1.0,
+    def __init__(self, num_classes, anchors, reduction=32,
+                 coord_scale=1.0, noobject_scale=1.0,
                  object_scale=5.0, class_scale=1.0, thresh=0.6):
+
         super(YoloLoss, self).__init__()
         self.num_classes = num_classes
         self.num_anchors = len(anchors)
@@ -24,24 +26,46 @@ class YoloLoss(nn.modules.loss._Loss):
         self.class_scale = class_scale
         self.thresh = thresh
 
+        # define loss functions
+        self.mse = nn.MSELoss(size_average=False)
+        self.ce = nn.CrossEntropyLoss(size_average=False)
+
     def forward(self, output, target):
 
-        batch_size = output.data.size(0)
-        height = output.data.size(2)
-        width = output.data.size(3)
+        # output : [b, 125, 14, 14]
+        batch, channel, height, width = output.size()
 
-        # Get x,y,w,h,conf,cls
-        output = output.view(batch_size, self.num_anchors, -1, height * width)
+        # --------- Get x,y,w,h,conf,cls----------------
+        # output : [b, 5, 25, 196]
+        output = output.view(batch, self.num_anchors, -1, height * width)
+
+        # coord : [b, 5, 4, 196]
         coord = torch.zeros_like(output[:, :, :4, :])
         coord[:, :, :2, :] = output[:, :, :2, :].sigmoid()
         coord[:, :, 2:4, :] = output[:, :, 2:4, :]
-        conf = output[:, :, 4, :].sigmoid()
-        cls = output[:, :, 5:, :].contiguous().view(batch_size * self.num_anchors, self.num_classes,height * width).transpose(1, 2).contiguous().view(-1,self.num_classes)
 
-        # Create prediction boxes
-        pred_boxes = torch.FloatTensor(batch_size * self.num_anchors * height * width, 4)
-        lin_x = torch.range(0, width - 1).repeat(height, 1).view(height * width)
-        lin_y = torch.range(0, height - 1).repeat(width, 1).t().contiguous().view(height * width)
+        # conf : [b, 5, 196]
+        conf = output[:, :, 4, :].sigmoid()
+
+        # cls : [b * 5, 20, 196]
+        # cls : [7840, 20] = [batch * num_anchors * height * width, num_cls]
+        cls = output[:, :, 5:, :].contiguous().view(
+            batch * self.num_anchors, self.num_classes,
+            height * width).transpose(1, 2).contiguous().view(
+                -1,self.num_classes)
+
+        # -------- Create prediction boxes--------------
+        # pred_boxes : [7840, 4]
+        pred_boxes = torch.FloatTensor(
+            batch * self.num_anchors * height * width, 4)
+
+        # lin_x, y : [196]
+        lin_x = torch.range(0, width - 1).repeat(
+            height, 1).view(height * width)
+        lin_y = torch.range(0, height - 1).repeat(
+            width, 1).t().contiguous().view(height * width)
+
+        # anchor_w, h : [5, 1]
         anchor_w = self.anchors[:, 0].contiguous().view(self.num_anchors, 1)
         anchor_h = self.anchors[:, 1].contiguous().view(self.num_anchors, 1)
 
@@ -58,10 +82,14 @@ class YoloLoss(nn.modules.loss._Loss):
         pred_boxes[:, 3] = (coord[:, :, 3].detach().exp() * anchor_h).view(-1)
         pred_boxes = pred_boxes.cpu()
 
-        # Get target values
-        coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls = self.build_targets(pred_boxes, target, height, width)
+        # --------- Get target values ------------------
+        coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls = self.build_targets(
+            pred_boxes, target, height, width)
+        # coord_mask : [b, 5, 4, 196]
         coord_mask = coord_mask.expand_as(tcoord)
+        # tcls : [16], cls_mask : [b, 5, 196]
         tcls = tcls[cls_mask].view(-1).long()
+        # cls_mask : [7840, 20]
         cls_mask = cls_mask.view(-1, 1).repeat(1, self.num_classes)
 
         if torch.cuda.is_available():
@@ -75,40 +103,79 @@ class YoloLoss(nn.modules.loss._Loss):
         conf_mask = conf_mask.sqrt()
         cls = cls[cls_mask].view(-1, self.num_classes)
 
-        # Compute losses
-        mse = nn.MSELoss(size_average=False)
-        ce = nn.CrossEntropyLoss(size_average=False)
+        # --------- Compute losses --------------------
+        # losses for person detection coordinates
+        self.loss_coord = self.coord_scale * self.mse(
+            coord * coord_mask, tcoord * coord_mask) / batch
 
-        self.loss_coord = self.coord_scale * mse(coord * coord_mask, tcoord * coord_mask) / batch_size
-        self.loss_conf = mse(conf * conf_mask, tconf * conf_mask) / batch_size
+        # losses for person detection confidence
+        self.loss_conf = self.mse(conf * conf_mask, tconf * conf_mask) / batch
 
-        self.loss_cls = self.class_scale * 2 * ce(cls, tcls) / batch_size
+        # losses for person detection
+        self.loss_cls = self.class_scale * 2 * self.ce(cls, tcls) / batch
+
+        # total losses
         self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
 
         return self.loss_tot, self.loss_coord, self.loss_conf, self.loss_cls
 
     def build_targets(self, pred_boxes, ground_truth, height, width):
-        batch_size = len(ground_truth)
 
-        conf_mask = torch.ones(batch_size, self.num_anchors, height * width, requires_grad=False) * self.noobject_scale
-        coord_mask = torch.zeros(batch_size, self.num_anchors, 1, height * width, requires_grad=False)
-        cls_mask = torch.zeros(batch_size, self.num_anchors, height * width, requires_grad=False).byte()
-        tcoord = torch.zeros(batch_size, self.num_anchors, 4, height * width, requires_grad=False)
-        tconf = torch.zeros(batch_size, self.num_anchors, height * width, requires_grad=False)
-        tcls = torch.zeros(batch_size, self.num_anchors, height * width, requires_grad=False)
+        # pred_boxes : [7840, 4]
+        # ground_truth : [b, 5]
+        # height : 14
+        # width : 14
 
-        for b in range(batch_size):
+        # batch : [8]
+        batch = len(ground_truth)
+
+        # conf_mask : [b, 5, 196]
+        conf_mask = torch.ones(
+            batch, self.num_anchors, height * width,
+            requires_grad=False) * self.noobject_scale
+
+        # coord_mask : [b, 5, 1, 196]
+        coord_mask = torch.zeros(
+            batch, self.num_anchors, 1, height * width,
+            requires_grad=False)
+
+        # cls_mask : [b,5,196]
+        cls_mask = torch.zeros(
+            batch, self.num_anchors, height * width,
+            requires_grad=False).byte()
+
+        # tcoord : [b, 5, 4, 196]
+        tcoord = torch.zeros(
+            batch, self.num_anchors, 4, height * width,
+            requires_grad=False)
+
+        # tconf : [b, 5, 196]
+        tconf = torch.zeros(
+            batch, self.num_anchors, height * width,
+            requires_grad=False)
+
+        # tcls : [b, 5, 196]
+        tcls = torch.zeros(
+            batch, self.num_anchors, height * width,
+            requires_grad=False)
+
+        for b in range(batch):
             if len(ground_truth[b]) == 0:
                 continue
 
-            # Build up tensors
-            cur_pred_boxes = pred_boxes[
-                             b * (self.num_anchors * height * width):(b + 1) * (self.num_anchors * height * width)]
+            # ------- Build up tensors --------------------------------
+            # cur_pred_boxes : [980, 4]
+            cur_pred_boxes = pred_boxes[b * (self.num_anchors * height * width):(
+                                 b + 1) * (self.num_anchors * height * width)]
+
+            # anchors : [5, 4]
             if self.anchor_step == 4:
                 anchors = self.anchors.clone()
                 anchors[:, :2] = 0
             else:
-                anchors = torch.cat([torch.zeros_like(self.anchors), self.anchors], 1)
+                anchors = torch.cat(
+                    [torch.zeros_like(self.anchors), self.anchors], 1)
+            # gt : [:, 4]
             gt = torch.zeros(len(ground_truth[b]), 4)
             for i, anno in enumerate(ground_truth[b]):
                 gt[i, 0] = (anno[0] + anno[2] / 2) / self.reduction
@@ -116,18 +183,22 @@ class YoloLoss(nn.modules.loss._Loss):
                 gt[i, 2] = anno[2] / self.reduction
                 gt[i, 3] = anno[3] / self.reduction
 
-            # Set confidence mask of matching detections to 0
+            # ------ Set confidence mask of matching detections to 0
+            # iou_gt_pred : [:, 980]
             iou_gt_pred = bbox_ious(gt, cur_pred_boxes)
+
+            # mask : [:, 980]
             mask = (iou_gt_pred > self.thresh).sum(0) >= 1
+            # conf_mask[b] : [5, 196]
             conf_mask[b][mask.view_as(conf_mask[b])] = 0
 
-            # Find best anchor for each ground truth
+            # ------ Find best anchor for each ground truth -------------
             gt_wh = gt.clone()
             gt_wh[:, :2] = 0
             iou_gt_anchors = bbox_ious(gt_wh, anchors)
             _, best_anchors = iou_gt_anchors.max(1)
 
-            # Set masks and target values for each ground truth
+            # ------ Set masks and target values for each ground truth --
             for i, anno in enumerate(ground_truth[b]):
                 gi = min(width - 1, max(0, int(gt[i, 0])))
                 gj = min(height - 1, max(0, int(gt[i, 1])))
@@ -138,8 +209,10 @@ class YoloLoss(nn.modules.loss._Loss):
                 conf_mask[b][best_n][gj * width + gi] = self.object_scale
                 tcoord[b][best_n][0][gj * width + gi] = gt[i, 0] - gi
                 tcoord[b][best_n][1][gj * width + gi] = gt[i, 1] - gj
-                tcoord[b][best_n][2][gj * width + gi] = math.log(max(gt[i, 2], 1.0) / self.anchors[best_n, 0])
-                tcoord[b][best_n][3][gj * width + gi] = math.log(max(gt[i, 3], 1.0) / self.anchors[best_n, 1])
+                tcoord[b][best_n][2][gj * width + gi] = math.log(
+                    max(gt[i, 2], 1.0) / self.anchors[best_n, 0])
+                tcoord[b][best_n][3][gj * width + gi] = math.log(
+                    max(gt[i, 3], 1.0) / self.anchors[best_n, 1])
                 tconf[b][best_n][gj * width + gi] = iou
                 tcls[b][best_n][gj * width + gi] = int(anno[4])
 

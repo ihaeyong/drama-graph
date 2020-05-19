@@ -14,7 +14,7 @@ import pickle
 import numpy as np
 
 loss_data = {'X': [], 'Y': [], 'legend_U':['total', 'coord', 'conf', 'cls']}
-visdom = visdom.Visdom(port=6005)
+visdom = visdom.Visdom(port=6006)
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -79,6 +79,7 @@ train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
+
 def train(opt):
     if torch.cuda.is_available():
         torch.cuda.manual_seed(123)
@@ -103,11 +104,13 @@ def train(opt):
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    model = YoloD(pre_model, 20).cuda()
+    num_behaviors = 25
+    num_persons = 20
+    model = YoloD(pre_model, num_persons, num_behaviors).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(20, model.anchors, opt.reduction)
+    criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
@@ -125,29 +128,38 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label=SortFullRect(image, info)
+            image, label, behavior = SortFullRect(image, info)
 
             if len(image) == 0 or len(label)==0:
                 print("iter:{}_{}image_{}label".format(
                     iter, len(image), len(label)))
                 continue
 
+            # image [b, 3, 448, 448]
             if torch.cuda.is_available():
                 image = torch.cat(image).cuda()
             else:
                 image = torch.cat(image)
 
             optimizer.zero_grad()
-            logits = model(image) # [b, 30, 14, 14]
 
-            loss, loss_coord, loss_conf, loss_cls = criterion(logits, label)
+            # logits [b, 125, 14, 14]
+            logits, behavior_logits = model(image)
+
+            # losses for person detection
+            loss, loss_coord, loss_conf, loss_cls = criterion(
+                logits, label)
+
             loss.backward()
             optimizer.step()
 
-            print("Epoch: {}/{}, Iteration: {}/{}, Lr: {}, Loss:{:.2f} (Coord:{:.2f} Conf:{:.2f} Cls:{:.2f})".format(epoch + 1, opt.num_epoches,
-                                                                                                                     iter + 1, num_iter_per_epoch,
-                                                                                                                     optimizer.param_groups[0]['lr'], loss,
-                loss_coord,loss_conf,loss_cls))
+            print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
+                epoch + 1, opt.num_epoches,iter + 1,
+                num_iter_per_epoch, optimizer.param_groups[0]['lr']))
+
+            print("---- Person Detection ---- ")
+            print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
+                loss, loss_coord, loss_conf, loss_cls))
 
             loss_dict = {
                 'total' : loss.item(),
