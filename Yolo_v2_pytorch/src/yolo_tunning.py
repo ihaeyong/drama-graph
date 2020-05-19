@@ -6,13 +6,16 @@ import torch
 
 
 class YoloD(nn.Module):
-    def __init__(self, pre_model, num_classes,
-                 anchors=[(1.3221, 1.73145), (3.19275, 4.00944), (5.05587, 8.09892), (9.47112, 4.84053),
+    def __init__(self, pre_model, num_cls, num_behavior_cls,
+                 anchors=[(1.3221, 1.73145),
+                          (3.19275, 4.00944),
+                          (5.05587, 8.09892),
+                          (9.47112, 4.84053),
                           (11.2364, 10.0071)]):
         super(YoloD, self).__init__()
 
 
-        self.num_classes = num_classes
+        self.num_classes = num_cls
         self.anchors = anchors
 
         self.stage1_conv1 = pre_model.stage1_conv1
@@ -42,8 +45,12 @@ class YoloD(nn.Module):
 
         self.stage3_conv1 = pre_model.stage3_conv1
 
-        # self.stage3_conv2 = nn.Conv2d(1024, len(self.anchors) * (5 + num_classes), 1, 1, 0, bias=True)
-        self.stage3_conv_my = nn.Conv2d(1024, len(self.anchors) * (5 + num_classes), 1, 1, 0, bias=False)
+        # self.stage3_conv2 = nn.Conv2d(
+        #   1024, len(self.anchors) * (5 + num_classes), 1, 1, 0, bias=True)
+        self.stage3_conv_my = nn.Conv2d(
+            1024, len(self.anchors) * (5 + num_cls), 1, 1, 0, bias=False)
+        self.stage3_conv_behavior = nn.Conv2d(
+            1024, len(self.anchors) * (num_behavior_cls), 1, 1, 0, bias=False)
 
 
     def forward(self, input):
@@ -74,13 +81,16 @@ class YoloD(nn.Module):
 
         output_2 = self.stage2_b_conv(residual)
         batch_size, num_channel, height, width = output_2.data.size()
-        output_2 = output_2.view(batch_size, int(num_channel / 4), height, 2, width, 2).contiguous()
+        output_2 = output_2.view(
+            batch_size, int(num_channel / 4), height, 2, width, 2).contiguous()
         output_2 = output_2.permute(0, 3, 5, 1, 2, 4).contiguous()
         output_2 = output_2.view(batch_size, -1, int(height / 2), int(width / 2))
 
         output = torch.cat((output_1, output_2), 1)
-        output = self.stage3_conv1(output)
-        # output = self.stage3_conv2(output)
-        output = self.stage3_conv_my(output)
+        output_fmap = self.stage3_conv1(output)
 
-        return output
+        # output = self.stage3_conv2(output)
+        output = self.stage3_conv_my(output_fmap)
+        output_behavior = self.stage3_conv_behavior(output_fmap)
+
+        return output, output_behavior
