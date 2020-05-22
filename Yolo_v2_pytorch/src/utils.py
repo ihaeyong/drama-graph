@@ -13,23 +13,32 @@ def custom_collate_fn(batch):
     return items
 
 
-def post_processing(logits, image_size, gt_classes,
+def post_processing(logits, behavior_logits, image_size,
+                    gt_classes, gt_behavior_classes,
                     anchors, conf_threshold, nms_threshold):
+
+    # num_anchors : [5]
     num_anchors = len(anchors)
     anchors = torch.Tensor(anchors)
     if isinstance(logits, Variable):
         logits = logits.data
+    if isinstance(behavior_logits, Variable):
+        behavior_logits = behavior_logits.data
 
     if logits.dim() == 3:
         logits.unsqueeze_(0)
+    if behavior_logits.dim() == 3:
+        behavior_logits.unsqueeze_(0)
 
-    batch = logits.size(0)
-    h = logits.size(2)
-    w = logits.size(3)
+    # logits : [b, 125, 14, 14]
+    # behavior_logits : [b, 135, 14, 14]
+    batch, channel, h, w = logits.size()
 
-    # Compute xc,yc, w,h, box_score on Tensor
+    # -------- Compute xc,yc, w,h, box_score on Tensor -------------
+    # lin_x,y : [196]
     lin_x = torch.linspace(0, w - 1, w).repeat(h, 1).view(h * w)
     lin_y = torch.linspace(0, h - 1, h).repeat(w, 1).t().contiguous().view(h * w)
+    # anchor_w,h : [1,5,1]
     anchor_w = anchors[:, 0].contiguous().view(1, num_anchors, 1)
     anchor_h = anchors[:, 1].contiguous().view(1, num_anchors, 1)
     if torch.cuda.is_available():
@@ -38,6 +47,7 @@ def post_processing(logits, image_size, gt_classes,
         anchor_w = anchor_w.cuda()
         anchor_h = anchor_h.cuda()
 
+    # logits : [b, 5, 25, 196]
     logits = logits.view(batch, num_anchors, -1, h * w)
     logits[:, :, 0, :].sigmoid_().add_(lin_x).div_(w)
     logits[:, :, 1, :].sigmoid_().add_(lin_y).div_(h)
@@ -45,12 +55,31 @@ def post_processing(logits, image_size, gt_classes,
     logits[:, :, 3, :].exp_().mul_(anchor_h).div_(h)
     logits[:, :, 4, :].sigmoid_()
 
+    # behavior_logits : [b, 5, 27,196]
+    behavior_logits = behavior_logits.view(batch, num_anchors, -1, h * w)
+
+    # scores
     with torch.no_grad():
+        # cls_scores : [1, 5, 20, 196]
         cls_scores = torch.nn.functional.softmax(logits[:, :, 5:, :], 2)
+
+        # behavior_cls_scores : [1, 5, 27, 196]
+        behavior_cls_scores = torch.nn.functional.softmax(
+            behavior_logits, 2)
+
+    # cls_max : [1,5, 196]
+    # cls_max_idx : [1, 5, 196]
     cls_max, cls_max_idx = torch.max(cls_scores, 2)
     cls_max_idx = cls_max_idx.float()
     cls_max.mul_(logits[:, :, 4, :])
 
+    # behavior_cls_max : [1, 5, 196]
+    # behavior_cls_max_idx : [1, 5, 196]
+    behavior_cls_max, behavior_cls_max_idx = torch.max(behavior_cls_scores, 2)
+    behavior_cls_max_idx = behavior_cls_max_idx.float()
+
+    # score_thresh : [1, 5, 196]
+    # score_thresh_flat : [980]
     score_thresh = cls_max > conf_threshold
     score_thresh_flat = score_thresh.view(-1)
 
@@ -59,15 +88,39 @@ def post_processing(logits, image_size, gt_classes,
         for i in range(batch):
             predicted_boxes.append(torch.Tensor([]))
     else:
+        # coords : [7,4]
         coords = logits.transpose(2, 3)[..., 0:4]
         coords = coords[score_thresh[..., None].expand_as(coords)].view(-1, 4)
-        scores = cls_max[score_thresh]
-        idx = cls_max_idx[score_thresh]
-        detections = torch.cat([coords, scores[:, None], idx[:, None]], dim=1)
 
+        # scores : [7]
+        scores = cls_max[score_thresh]
+        behavior_scores = behavior_cls_max[score_thresh]
+
+        # idx : [7]
+        idx = cls_max_idx[score_thresh]
+        behavior_idx = behavior_cls_max_idx[score_thresh]
+
+        # detections : [7, 6]
+        detections = torch.cat(
+            [coords, # box coords
+             scores[:, None], # box confidence score
+             idx[:, None], # box index
+             behavior_idx[:, None]], # behavior index 
+            dim=1)
+        # det_size : [7]
+        det_size = detections.size(1)
+
+        # max_det_per_batch : [5 * h * w]
         max_det_per_batch = num_anchors * h * w
-        slices = [slice(max_det_per_batch * i, max_det_per_batch * (i + 1)) for i in range(batch)]
-        det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum() for s in slices])
+
+        # slice : [0, 980, None]
+        slices = [slice(max_det_per_batch * i, max_det_per_batch * (i + 1))
+                  for i in range(batch)]
+
+        # det_per_batch : [7]
+        det_per_batch = torch.IntTensor([score_thresh_flat[s].int().sum()
+                                         for s in slices])
+        # split_idx : [7]
         split_idx = torch.cumsum(det_per_batch, dim=0)
 
         # Group detections per image of batch
@@ -77,6 +130,7 @@ def post_processing(logits, image_size, gt_classes,
             predicted_boxes.append(detections[start: end])
             start = end
 
+    # -------- Select Boxes ------------
     selected_boxes = []
     for boxes in predicted_boxes:
         if boxes.numel() == 0:
@@ -113,12 +167,15 @@ def post_processing(logits, image_size, gt_classes,
         for i in range(1, keep_len):
             if keep[i] > 0:
                 keep -= conflicting[i]
-                #keep = keep - torch.Tensor([int(conflicting[x]=='true') for x in conflicting[i]])
+                #keep = keep - torch.Tensor([int(conflicting[x]=='true')
+                # for x in conflicting[i]])
         if torch.cuda.is_available():
             keep = keep.cuda()
 
         keep = (keep == 0)
-        selected_boxes.append(boxes[order][keep[:, None].expand_as(boxes)].view(-1, 6).contiguous())
+        selected_boxes.append(
+            boxes[order][keep[:, None].expand_as(boxes)].view(
+                -1, det_size).contiguous())
 
     final_boxes = []
     for boxes in selected_boxes:
@@ -130,6 +187,11 @@ def post_processing(logits, image_size, gt_classes,
             boxes[:, 1:4:2] *= image_size
             boxes[:, 1] -= boxes[:, 3] / 2
 
-            final_boxes.append([[box[0].item(), box[1].item(), box[2].item(), box[3].item(), box[4].item(),
-                                 gt_classes[int(box[5].item())]] for box in boxes])
+            final_boxes.append(
+                [[box[0].item(), box[1].item(),
+                  box[2].item(), box[3].item(),
+                  box[4].item(),
+                  gt_classes[int(box[5].item())],
+                  gt_behavior_classes[int(box[6].item())]] for box in boxes])
+
     return final_boxes

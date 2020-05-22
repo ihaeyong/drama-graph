@@ -13,8 +13,8 @@ import cv2
 import pickle
 import numpy as np
 
-loss_data = {'X': [], 'Y': [], 'legend_U':['total', 'coord', 'conf', 'cls']}
-visdom = visdom.Visdom(port=6006)
+loss_data = {'X': [], 'Y': [], 'legend_U':['total', 'coord', 'conf', 'cls', 'cls_behavior']}
+visdom = visdom.Visdom(port=6005)
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -29,7 +29,7 @@ def get_args():
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--decay", type=float, default=0.0005)
     parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--num_epoches", type=int, default=100)
+    parser.add_argument("--num_epoches", type=int, default=10)
     parser.add_argument("--test_interval", type=int, default=1,
                         help="Number of epoches between testing phases")
     parser.add_argument("--object_scale", type=float, default=1.0)
@@ -60,12 +60,6 @@ def get_args():
 
     args = parser.parse_args()
     return args
-
-# not use this classes should be removed ???
-CLASSES = ['aeroplane', 'bicycle', 'bird', 'boat', 'bottle', 'bus',
-           'car', 'cat', 'chair', 'cow', 'diningtable', 'dog',
-           'horse', 'motorbike', 'person', 'pottedplant', 'sheep',
-           'sofa', 'train', 'tvmonitor']
 
 # get args.
 opt = get_args()
@@ -104,13 +98,14 @@ def train(opt):
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    num_behaviors = 25
+    num_behaviors = 27
     num_persons = 20
     model = YoloD(pre_model, num_persons, num_behaviors).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
+    criterion = YoloLoss(num_persons, num_behaviors, model.anchors,
+                         opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
@@ -128,11 +123,11 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior = SortFullRect(image, info)
+            image, label, behavior_label = SortFullRect(image, info)
 
-            if len(image) == 0 or len(label)==0:
-                print("iter:{}_{}image_{}label".format(
-                    iter, len(image), len(label)))
+            if np.array(label).size == 0 :
+                print("iter:{}_person bboxs are empty".format(
+                    iter, label))
                 continue
 
             # image [b, 3, 448, 448]
@@ -147,8 +142,8 @@ def train(opt):
             logits, behavior_logits = model(image)
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls = criterion(
-                logits, label)
+            loss, loss_coord, loss_conf, loss_cls, loss_behavior_cls = criterion(
+                logits,behavior_logits,label, behavior_label)
 
             loss.backward()
             optimizer.step()
@@ -156,16 +151,19 @@ def train(opt):
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
                 num_iter_per_epoch, optimizer.param_groups[0]['lr']))
-
-            print("---- Person Detection ---- ")
+            #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
+            #print("---- Person Behavior ---- ")
+            print("+cls_behavior:{:.2f}".format(loss_behavior_cls))
+            print()
 
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
-                'cls' : loss_cls.item()
+                'cls' : loss_cls.item(),
+                'cls_behavior' : loss_behavior_cls.item()
             }
 
             visdom_loss(visdom, loss_step, loss_dict)

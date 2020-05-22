@@ -17,7 +17,18 @@ PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
             'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
+PBeHavCLS = ["unknown","stand up","sit down","walk","hold","hug",
+             "look at/back on",
+             "drink","eat",
+             "point out","dance", "look for","watch",
+             "push away", "wave hands",
+             "cook", "sing", "play instruments",
+             "call", "destroy",
+             "put arms around each other's shoulder",
+             "open", "shake hands", "wave hands",
+             "kiss", "high-five", "write"]
 num_persons = len(PersonCLS)
+num_behaviors = len(PBeHavCLS)
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -103,19 +114,58 @@ def test(opt):
         image, info = batch
 
         # sort label info on fullrect
-        image, label, frame_id = SortFullRect(image, info, is_train=False)
+        image, label, behavior_label, frame_id = SortFullRect(
+            image, info, is_train=False)
 
         for i, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
             save_dir = './results/person/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
 
+            save_mAP_gt_dir = './results/mAP/ground-truth/'
+            save_mAP_det_dir = './results/mAP/detection/'
+            save_mAP_img_dir = './results/mAP/image/'
+
+            # visualize predictions
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
+            # ground-truth
+            if not os.path.exists(save_mAP_gt_dir):
+                os.makedirs(save_mAP_gt_dir)
+            # detection
+            if not os.path.exists(save_mAP_det_dir):
+                os.makedirs(save_mAP_det_dir)
+            # image
+            if not os.path.exists(save_mAP_img_dir):
+                os.makedirs(save_mAP_img_dir)
 
             f_file = f_info[7]
+            mAP_file = "{}_{}_{}_{}".format(f_info[4],
+                                            f_info[5],
+                                            f_info[6],
+                                            f_info[7].replace("jpg", "txt"))
+
+            print("mAP_file:{}".format(mAP_file))
+
+            # ground truth
+            #b_person_label = label[i]
+            #b_behavior_label = behavior_label[i]
+
+            # save person ground truth
+            with open(save_mAP_gt_dir + mAP_file, mode='w') as f:
+                for dets in label:
+                    for det in dets:
+                        cls = PersonCLS[int(det[4])]
+                        xmin = str(max(det[0] / width_ratio, 0))
+                        ymin = str(max(det[1] / height_ratio, 0))
+                        xmax = str(min((det[2]) / width_ratio, width))
+                        ymax = str(min((det[3]) / height_ratio, height))
+                        cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                        f.write(cat_det)
+            f.close()
 
             try:
+                # pdb.set_trace = lambda : None out of try
                 # for some empty video clips
                 img = image[i]
 
@@ -126,10 +176,13 @@ def test(opt):
                     img = img.cuda()
 
                 with torch.no_grad():
-                    logits = model1(img)
-                    predictions = post_processing(logits,
+                    # logits : [1, 125, 14, 14]
+                    # behavior_logits : [1, 135, 14, 14]
+                    logits, behavior_logits = model1(img)
+
+                    predictions = post_processing(logits,behavior_logits,
                                                   opt.image_size,
-                                                  PersonCLS,
+                                                  PersonCLS,PBeHavCLS,
                                                   model1.anchors,
                                                   opt.conf_threshold,
                                                   opt.nms_threshold)
@@ -137,6 +190,9 @@ def test(opt):
                     predictions = predictions[0]
                     output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
+
+                    # save images
+                    cv2.imwrite(save_mAP_img_dir + mAP_file, output_image)
 
                     for pred in predictions:
                         xmin = int(max(pred[0] / width_ratio, 0))
@@ -152,16 +208,23 @@ def test(opt):
                         cv2.rectangle(
                             output_image,
                             (xmin, ymin),
-                            (xmin + text_size[0] + 3,
-                             ymin + text_size[1] + 4), color, -1)
+                            (xmin + text_size[0] + 100,
+                             ymin + text_size[1] + 20), color, -1)
                         cv2.putText(
                             output_image, pred[5] + ' : %.2f' % pred[4],
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
+                        cv2.putText(
+                            output_image, '+ behavior : ' + pred[6],
+                            (xmin, ymin + text_size[1] + 4 + 12),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 255, 255), 1)
 
                         cv2.imwrite(save_dir + "{}".format(f_file), output_image)
                     print("detected {}".format(save_dir + "{}".format(f_file)))
+                else:
+                    print("non-detected {}".format(save_dir + "{}".format(f_file)))
             except:
                 continue
 
