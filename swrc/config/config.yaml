@@ -1,0 +1,6 @@
+preprocessing:
+    substitle_file: data/AnotherMissOh_Subtitle
+    qa_file: data/specific_qa.json
+    oie: stanford
+    frame: frameBERT
+    output_path: data/output

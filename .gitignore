@@ -12,3 +12,7 @@ __pycache__/
 
 # C extensions
 *.so
+
+# swrc
+swrc/data/
+*.props
