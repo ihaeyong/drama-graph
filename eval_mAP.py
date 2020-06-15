@@ -1,3 +1,5 @@
+# code from https://github.com/ihaeyong/mAP.git
+# we modified the mAP code for evaluating performances of the drama-graph
 import glob
 import json
 import os
@@ -28,6 +30,10 @@ parser.add_argument('--set-class-iou', nargs='+', type=str,
                     help="set IoU for a specific class.")
 parser.add_argument('-rtype', dest='rtype', type=str, default='person',
                     help="set type for evaluation.")
+
+parser.add_argument('-show_animation', dest='show_animation', action='store_true')
+parser.add_argument('-draw_plot', dest='draw_plot', action='store_true')
+
 args = parser.parse_args()
 
 print(args)
@@ -87,8 +93,6 @@ if not args.no_animation:
         args.no_animation = True
 
 # try to import Matplotlib if the user didn't choose the option --no-plot
-draw_plot = True
-show_animation = False
 if not args.no_plot:
     try:
         import matplotlib.pyplot as plt
@@ -239,7 +243,8 @@ def draw_text_in_image(img, text, pos, color, line_width):
             fontScale,
             color,
             lineType)
-    text_width, _ = cv2.getTextSize(text, font, fontScale, lineType)[0]
+    text_width, _ = cv2.getTextSize(
+        text, font, fontScale, lineType)[0]
     return img, (line_width + text_width)
 
 """
@@ -260,26 +265,35 @@ def adjust_axes(r, t, fig, axes):
 """
  Draw plot using Matplotlib
 """
-def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, output_path, to_show, plot_color, true_p_bar):
+def draw_plot_func(dictionary, n_classes, window_title, plot_title,
+                   x_label, output_path, to_show, plot_color,
+                   true_p_bar):
     # sort the dictionary by decreasing value, into a list of tuples
-    sorted_dic_by_value = sorted(dictionary.items(), key=operator.itemgetter(1))
+    sorted_dic_by_value = sorted(dictionary.items(),
+                                 key=operator.itemgetter(1))
     # unpacking the list of tuples into two lists
     sorted_keys, sorted_values = zip(*sorted_dic_by_value)
     # 
     if true_p_bar != "":
         """
          Special case to draw in:
-            - green -> TP: True Positives (object detected and matches ground-truth)
-            - red -> FP: False Positives (object detected but does not match ground-truth)
-            - pink -> FN: False Negatives (object not detected but present in the ground-truth)
+            - green -> TP: True Positives
+        (object detected and matches ground-truth)
+            - red -> FP: False Positives
+        (object detected but does not match ground-truth)
+            - pink -> FN: False Negatives
+        (object not detected but present in the ground-truth)
         """
         fp_sorted = []
         tp_sorted = []
         for key in sorted_keys:
             fp_sorted.append(dictionary[key] - true_p_bar[key])
             tp_sorted.append(true_p_bar[key])
-        plt.barh(range(n_classes), fp_sorted, align='center', color='crimson', label='False Positive')
-        plt.barh(range(n_classes), tp_sorted, align='center', color='forestgreen', label='True Positive', left=fp_sorted)
+        plt.barh(range(n_classes), fp_sorted, align='center',
+                 color='crimson', label='False Positive')
+        plt.barh(range(n_classes), tp_sorted, align='center',
+                 color='forestgreen', label='True Positive',
+                 left=fp_sorted)
         # add legend
         plt.legend(loc='lower right')
         """
@@ -295,8 +309,10 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, out
             tp_str_val = fp_str_val + " " + str(tp_val)
             # trick to paint multicolor with offset:
             # first paint everything and then repaint the first number
-            t = plt.text(val, i, tp_str_val, color='forestgreen', va='center', fontweight='bold')
-            plt.text(val, i, fp_str_val, color='crimson', va='center', fontweight='bold')
+            t = plt.text(val, i, tp_str_val, color='forestgreen',
+                         va='center', fontweight='bold')
+            plt.text(val, i, fp_str_val, color='crimson',
+                     va='center', fontweight='bold')
             if i == (len(sorted_values)-1): # largest bar
                 adjust_axes(r, t, fig, axes)
     else:
@@ -311,7 +327,8 @@ def draw_plot_func(dictionary, n_classes, window_title, plot_title, x_label, out
             str_val = " " + str(val) # add a space before
             if val < 1.0:
                 str_val = " {0:.2f}".format(val)
-            t = plt.text(val, i, str_val, color=plot_color, va='center', fontweight='bold')
+            t = plt.text(val, i, str_val, color=plot_color,
+                         va='center', fontweight='bold')
             # re-set axes to show number inside the figure
             if i == (len(sorted_values)-1): # largest bar
                 adjust_axes(r, t, fig, axes)
@@ -363,9 +380,9 @@ if os.path.exists(output_files_path): # if it exist already
     shutil.rmtree(output_files_path)
 
 os.makedirs(output_files_path)
-if draw_plot:
+if args.draw_plot:
     os.makedirs(os.path.join(output_files_path, "classes"))
-if show_animation:
+if args.show_animation:
     os.makedirs(os.path.join(output_files_path, "images", "detections_one_by_one"))
 
 """
@@ -373,6 +390,7 @@ if show_animation:
      Load each of the ground-truth files into a temporary ".json" file.
      Create a list of all the class names present in the ground-truth (gt_classes).
 """
+print("step1:--------get ground-truth files--------------")
 # get a list with the ground-truth files
 ground_truth_files_list = glob.glob(GT_PATH + '/*.txt')
 if len(ground_truth_files_list) == 0:
@@ -417,10 +435,12 @@ for txt_file in ground_truth_files_list:
             continue
         bbox = left + " " + top + " " + right + " " +bottom
         if is_difficult:
-            bounding_boxes.append({"class_name":class_name, "bbox":bbox, "used":False, "difficult":True})
+            bounding_boxes.append(
+                {"class_name":class_name, "bbox":bbox, "used":False, "difficult":True})
             is_difficult = False
         else:
-            bounding_boxes.append({"class_name":class_name, "bbox":bbox, "used":False})
+            bounding_boxes.append(
+                {"class_name":class_name, "bbox":bbox, "used":False})
             # count that object
             if class_name in gt_counter_per_class:
                 gt_counter_per_class[class_name] += 1
@@ -449,6 +469,8 @@ gt_classes = sorted(gt_classes)
 n_classes = len(gt_classes)
 print(gt_classes)
 print(gt_counter_per_class)
+print("--------done ground-truth files--------------")
+
 
 """
  Check format of the flag --set-class-iou (if used)
@@ -469,15 +491,18 @@ if specific_iou_flagged:
         error('Error, missing arguments. Flag usage:' + error_msg)
     for tmp_class in specific_iou_classes:
         if tmp_class not in gt_classes:
-                    error('Error, unknown class \"' + tmp_class + '\". Flag usage:' + error_msg)
+                    error('Error, unknown class \"' + tmp_class
+                          + '\". Flag usage:' + error_msg)
     for num in iou_list:
         if not is_float_between_0_and_1(num):
-            error('Error, IoU must be between 0.0 and 1.0. Flag usage:' + error_msg)
+            error('Error, IoU must be between 0.0 and 1.0. Flag usage:'
+                  + error_msg)
 
 """
  detection-results
      Load each of the detection-results files into a temporary ".json" file.
 """
+print("step2:--------get detection-results --------------")
 # get a list with the detection-results files
 dr_files_list = glob.glob(DR_PATH + '/*.txt')
 dr_files_list.sort()
@@ -486,7 +511,8 @@ for class_index, class_name in enumerate(gt_classes):
     bounding_boxes = []
     for txt_file in dr_files_list:
         #print(txt_file)
-        # the first time it checks if all the corresponding ground-truth files exist
+        # the first time it checks
+        # if all the corresponding ground-truth files exist
         file_id = txt_file.split(".txt",1)[0]
         file_id = os.path.basename(os.path.normpath(file_id))
         temp_path = os.path.join(GT_PATH, (file_id + ".txt"))
@@ -507,7 +533,8 @@ for class_index, class_name in enumerate(gt_classes):
             if tmp_class_name == class_name:
                 #print("match")
                 bbox = left + " " + top + " " + right + " " +bottom
-                bounding_boxes.append({"confidence":confidence, "file_id":file_id, "bbox":bbox})
+                bounding_boxes.append({"confidence":confidence, "file_id":file_id,
+                                       "bbox":bbox})
                 #print(bounding_boxes)
     # sort detection-results by decreasing confidence
     bounding_boxes.sort(key=lambda x:float(x['confidence']), reverse=True)
@@ -515,9 +542,12 @@ for class_index, class_name in enumerate(gt_classes):
     with open(TEMP_FILES_PATH + "/" + class_name + "_dr.json", 'w') as outfile:
         json.dump(bounding_boxes, outfile)
 
+print("--------done detection-results --------------")
+
 """
  Calculate the AP for each class
 """
+print("step3:--------calculate AP --------------")
 sum_AP = 0.0
 ap_dictionary = {}
 lamr_dictionary = {}
@@ -541,7 +571,7 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
         fp = [0] * nd
         for idx, detection in enumerate(dr_data):
             file_id = detection["file_id"]
-            if show_animation:
+            if args.show_animation:
                 # find ground truth image
                 ground_truth_img = glob.glob1(IMG_PATH, file_id + ".*")
                 #tifCounter = len(glob.glob1(myPath,"*.tif"))
@@ -562,7 +592,8 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
                     # Add bottom border to image
                     bottom_border = 60
                     BLACK = [0, 0, 0]
-                    img = cv2.copyMakeBorder(img, 0, bottom_border, 0, 0, cv2.BORDER_CONSTANT, value=BLACK)
+                    img = cv2.copyMakeBorder(img, 0, bottom_border, 0, 0,
+                                             cv2.BORDER_CONSTANT, value=BLACK)
             # assign detection-results to ground truth object if any
             # open ground-truth with that file_id
             gt_file = TEMP_FILES_PATH + "/" + file_id + "_ground_truth.json"
@@ -575,20 +606,23 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
                 # look for a class_name match
                 if obj["class_name"] == class_name:
                     bbgt = [ float(x) for x in obj["bbox"].split() ]
-                    bi = [max(bb[0],bbgt[0]), max(bb[1],bbgt[1]), min(bb[2],bbgt[2]), min(bb[3],bbgt[3])]
+                    bi = [max(bb[0],bbgt[0]), max(bb[1],bbgt[1]),
+                          min(bb[2],bbgt[2]), min(bb[3],bbgt[3])]
                     iw = bi[2] - bi[0] + 1
                     ih = bi[3] - bi[1] + 1
                     if iw > 0 and ih > 0:
-                        # compute overlap (IoU) = area of intersection / area of union
-                        ua = (bb[2] - bb[0] + 1) * (bb[3] - bb[1] + 1) + (bbgt[2] - bbgt[0]
-                                        + 1) * (bbgt[3] - bbgt[1] + 1) - iw * ih
+                        # compute overlap (IoU) =
+                        # area of intersection / area of union
+                        ua = (bb[2] - bb[0] + 1) * (
+                            bb[3] - bb[1] + 1) + (bbgt[2] - bbgt[0] + 1) * (
+                                bbgt[3] - bbgt[1] + 1) - iw * ih
                         ov = iw * ih / ua
                         if ov > ovmax:
                             ovmax = ov
                             gt_match = obj
 
             # assign detection as true positive/don't care/false positive
-            if show_animation:
+            if args.show_animation:
                 status = "NO MATCH FOUND!" # status is only used in the animation
             # set minimum overlap
             min_overlap = MINOVERLAP
@@ -622,7 +656,7 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
             """
              Draw image to show animation
             """
-            if show_animation:
+            if args.show_animation:
                 height, widht = img.shape[:2]
                 # colors (OpenCV works with BGR)
                 white = (255,255,255)
@@ -633,38 +667,55 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
                 margin = 10
                 v_pos = int(height - margin - (bottom_border / 2.0))
                 text = "Image: " + ground_truth_img[0] + " "
-                img, line_width = draw_text_in_image(img, text, (margin, v_pos), white, 0)
-                text = "Class [" + str(class_index) + "/" + str(n_classes) + "]: " + class_name + " "
-                img, line_width = draw_text_in_image(img, text, (margin + line_width, v_pos), light_blue, line_width)
+                img, line_width = draw_text_in_image(
+                    img, text, (margin, v_pos), white, 0)
+                text = "Class [" + str(
+                    class_index) + "/" + str(n_classes) + "]: " + class_name + " "
+                img, line_width = draw_text_in_image(
+                    img, text, (margin + line_width, v_pos), light_blue, line_width)
                 if ovmax != -1:
                     color = light_red
                     if status == "INSUFFICIENT OVERLAP":
-                        text = "IoU: {0:.2f}% ".format(ovmax*100) + "< {0:.2f}% ".format(min_overlap*100)
+                        text = "IoU: {0:.2f}% ".format(
+                            ovmax*100) + "< {0:.2f}% ".format(min_overlap*100)
                     else:
-                        text = "IoU: {0:.2f}% ".format(ovmax*100) + ">= {0:.2f}% ".format(min_overlap*100)
+                        text = "IoU: {0:.2f}% ".format(
+                            ovmax*100) + ">= {0:.2f}% ".format(min_overlap*100)
                         color = green
-                    img, _ = draw_text_in_image(img, text, (margin + line_width, v_pos), color, line_width)
+                    img, _ = draw_text_in_image(
+                        img, text, (margin + line_width, v_pos), color, line_width)
                 # 2nd line
                 v_pos += int(bottom_border / 2.0)
                 rank_pos = str(idx+1) # rank position (idx starts at 0)
-                text = "Detection #rank: " + rank_pos + " confidence: {0:.2f}% ".format(float(detection["confidence"])*100)
-                img, line_width = draw_text_in_image(img, text, (margin, v_pos), white, 0)
+                text = "Detection #rank: " + rank_pos + " confidence: {0:.2f}% ".format(
+                    float(detection["confidence"])*100)
+                img, line_width = draw_text_in_image(
+                    img, text, (margin, v_pos), white, 0)
                 color = light_red
                 if status == "MATCH!":
                     color = green
                 text = "Result: " + status + " "
-                img, line_width = draw_text_in_image(img, text, (margin + line_width, v_pos), color, line_width)
+                img, line_width = draw_text_in_image(img, text,
+                                                     (margin + line_width, v_pos),
+                                                     color, line_width)
 
                 font = cv2.FONT_HERSHEY_SIMPLEX
                 if ovmax > 0: # if there is intersections between the bounding-boxes
                     bbgt = [ int(round(float(x))) for x in gt_match["bbox"].split() ]
-                    cv2.rectangle(img,(bbgt[0],bbgt[1]),(bbgt[2],bbgt[3]),light_blue,2)
-                    cv2.rectangle(img_cumulative,(bbgt[0],bbgt[1]),(bbgt[2],bbgt[3]),light_blue,2)
-                    cv2.putText(img_cumulative, class_name, (bbgt[0],bbgt[1] - 5), font, 0.6, light_blue, 1, cv2.LINE_AA)
+                    cv2.rectangle(img,
+                                  (bbgt[0],bbgt[1]),(bbgt[2],bbgt[3]),light_blue,2)
+                    cv2.rectangle(img_cumulative,
+                                  (bbgt[0],bbgt[1]),(bbgt[2],bbgt[3]),light_blue,2)
+                    cv2.putText(img_cumulative,
+                                class_name, (bbgt[0],bbgt[1] - 5),
+                                font, 0.6, light_blue, 1, cv2.LINE_AA)
                 bb = [int(i) for i in bb]
                 cv2.rectangle(img,(bb[0],bb[1]),(bb[2],bb[3]),color,2)
-                cv2.rectangle(img_cumulative,(bb[0],bb[1]),(bb[2],bb[3]),color,2)
-                cv2.putText(img_cumulative, class_name, (bb[0],bb[1] - 5), font, 0.6, color, 1, cv2.LINE_AA)
+                cv2.rectangle(img_cumulative,
+                              (bb[0],bb[1]),(bb[2],bb[3]),color,2)
+                cv2.putText(img_cumulative,
+                            class_name, (bb[0],bb[1] - 5),
+                            font, 0.6, color, 1, cv2.LINE_AA)
                 # show image
                 cv2.imshow("Animation", img)
                 cv2.waitKey(20) # show for 20 ms
@@ -702,25 +753,30 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
         """
         rounded_prec = [ '%.2f' % elem for elem in prec ]
         rounded_rec = [ '%.2f' % elem for elem in rec ]
-        output_file.write(text + "\n Precision: " + str(rounded_prec) + "\n Recall :" + str(rounded_rec) + "\n\n")
+        output_file.write(text + "\n Precision: "
+                          + str(rounded_prec) + "\n Recall :"
+                          + str(rounded_rec) + "\n\n")
         if not args.quiet:
             print(text)
         ap_dictionary[class_name] = ap
 
         n_images = counter_images_per_class[class_name]
-        lamr, mr, fppi = log_average_miss_rate(np.array(rec), np.array(fp), n_images)
+        lamr, mr, fppi = log_average_miss_rate(
+            np.array(rec), np.array(fp), n_images)
         lamr_dictionary[class_name] = lamr
 
         """
          Draw plot
         """
-        if draw_plot:
+        if args.draw_plot:
             plt.plot(rec, prec, '-o')
             # add a new penultimate point to the list (mrec[-2], 0.0)
-            # since the last line segment (and respective area) do not affect the AP value
+            # since the last line segment (and respective area)
+            # do not affect the AP value
             area_under_curve_x = mrec[:-1] + [mrec[-2]] + [mrec[-1]]
             area_under_curve_y = mprec[:-1] + [0.0] + [mprec[-1]]
-            plt.fill_between(area_under_curve_x, 0, area_under_curve_y, alpha=0.2, edgecolor='r')
+            plt.fill_between(area_under_curve_x,
+                             0, area_under_curve_y, alpha=0.2, edgecolor='r')
             # set window title
             fig = plt.gcf() # gcf - get current figure
             fig.canvas.set_window_title('AP ' + class_name)
@@ -742,7 +798,7 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
             fig.savefig(output_files_path + "/classes/" + class_name + ".png")
             plt.cla() # clear axes for next plot
 
-    if show_animation:
+    if args.show_animation:
         cv2.destroyAllWindows()
 
     output_file.write("\n# mAP of all classes\n")
@@ -751,17 +807,20 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
     output_file.write(text + "\n")
     print(text)
 
+print("--------done AP --------------")
+
 """
  Draw false negatives
 """
-if show_animation:
+if args.show_animation:
     pink = (203,192,255)
     for tmp_file in gt_files:
         ground_truth_data = json.load(open(tmp_file))
         #print(ground_truth_data)
         # get name of corresponding image
         start = TEMP_FILES_PATH + '/'
-        img_id = tmp_file[tmp_file.find(start)+len(start):tmp_file.rfind('_ground_truth.json')]
+        img_id = tmp_file[
+            tmp_file.find(start)+len(start):tmp_file.rfind('_ground_truth.json')]
         img_cumulative_path = output_files_path + "/images/" + img_id + ".jpg"
         img = cv2.imread(img_cumulative_path)
         if img is None:
@@ -803,7 +862,7 @@ dr_classes = list(det_counter_per_class.keys())
 """
  Plot the total number of occurences of each class in the ground-truth
 """
-if draw_plot:
+if args.draw_plot:
     window_title = "ground-truth-info"
     plot_title = "ground-truth\n"
     plot_title += "(" + str(len(ground_truth_files_list)) + " files and " + str(n_classes) + " classes)"
@@ -835,7 +894,8 @@ with open(output_files_path + "/output.txt", 'a') as output_file:
  Finish counting true positives
 """
 for class_name in dr_classes:
-    # if class exists in detection-result but not in ground-truth then there are no true positives in that class
+    # if class exists in detection-result but not in ground-truth then there are
+    # no true positives in that class
     if class_name not in gt_classes:
         count_true_positives[class_name] = 0
 #print(count_true_positives)
@@ -843,12 +903,13 @@ for class_name in dr_classes:
 """
  Plot the total number of occurences of each class in the "detection-results" folder
 """
-if draw_plot:
+if args.draw_plot:
     window_title = "detection-results-info"
     # Plot title
     plot_title = "detection-results\n"
     plot_title += "(" + str(len(dr_files_list)) + " files and "
-    count_non_zero_values_in_dictionary = sum(int(x) > 0 for x in list(det_counter_per_class.values()))
+    count_non_zero_values_in_dictionary = sum(int(x) > 0 for x in list(
+        det_counter_per_class.values()))
     plot_title += str(count_non_zero_values_in_dictionary) + " detected classes)"
     # end Plot title
     x_label = "Number of objects per class"
@@ -883,7 +944,7 @@ with open(output_files_path + "/output.txt", 'a') as output_file:
 """
  Draw log-average miss rate plot (Show lamr of all classes in decreasing order)
 """
-if draw_plot:
+if args.draw_plot:
     window_title = "lamr"
     plot_title = "log-average miss rate"
     x_label = "log-average miss rate"
@@ -905,7 +966,7 @@ if draw_plot:
 """
  Draw mAP plot (Show AP's of all classes in decreasing order)
 """
-if draw_plot:
+if args.draw_plot:
     window_title = "mAP"
     plot_title = "mAP = {0:.2f}%".format(mAP*100)
     x_label = "Average Precision"
