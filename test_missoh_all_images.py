@@ -7,26 +7,12 @@ import numpy as np
 from Yolo_v2_pytorch.src.utils import *
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
-PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
-            'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
-            'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
-PBeHavCLS = ["unknown","stand up","sit down","walk","hold","hug",
-             "look at/back on",
-             "drink","eat",
-             "point out","dance", "look for","watch",
-             "push away", "wave hands",
-             "cook", "sing", "play instruments",
-             "call", "destroy",
-             "put arms around each other's shoulder",
-             "open", "shake hands", "wave hands",
-             "kiss", "high-five", "write"]
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
 
@@ -122,9 +108,13 @@ def test(opt):
             save_dir = './results/person/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
 
-            save_mAP_gt_dir = './results/mAP/ground-truth/'
-            save_mAP_det_dir = './results/mAP/detection/'
-            save_mAP_img_dir = './results/mAP/image/'
+            save_mAP_gt_dir = './results/input_person/ground-truth/'
+            save_mAP_det_dir = './results/input_person/detection/'
+
+            save_mAP_gt_beh_dir = './results/input_person/ground-truth-behave/'
+            save_mAP_det_beh_dir = './results/input_person/detection-behave/'
+
+            save_mAP_img_dir = './results/input_person/image/'
 
             # visualize predictions
             if not os.path.exists(save_dir):
@@ -135,6 +125,14 @@ def test(opt):
             # detection
             if not os.path.exists(save_mAP_det_dir):
                 os.makedirs(save_mAP_det_dir)
+
+            # ground-truth behavior
+            if not os.path.exists(save_mAP_gt_beh_dir):
+                os.makedirs(save_mAP_gt_beh_dir)
+
+            # behavior
+            if not os.path.exists(save_mAP_det_beh_dir):
+                os.makedirs(save_mAP_det_beh_dir)
             # image
             if not os.path.exists(save_mAP_img_dir):
                 os.makedirs(save_mAP_img_dir)
@@ -149,10 +147,9 @@ def test(opt):
 
             # ground truth
             #b_person_label = label[i]
-            #b_behavior_label = behavior_label[i]
-
             # save person ground truth
             with open(save_mAP_gt_dir + mAP_file, mode='w') as f:
+                gt_person_cnt = 0
                 for dets in label:
                     for det in dets:
                         cls = PersonCLS[int(det[4])]
@@ -161,11 +158,31 @@ def test(opt):
                         xmax = str(min((det[2]) / width_ratio, width))
                         ymax = str(min((det[3]) / height_ratio, height))
                         cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                        print("person_gt:{}".format(cat_det))
+                        f.write(cat_det)
+                        gt_person_cnt += 1
+            f.close()
+
+            #b_behavior_label = behavior_label[i]
+            with open(save_mAP_gt_beh_dir + mAP_file, mode='w') as f:
+                for i, dets in enumerate(label):
+                    for j, det in enumerate(dets):
+                        cls = PBeHavCLS[int(behavior_label[i][j])].replace(' ', '_')
+                        cls = cls.replace('/', '_')
+                        xmin = str(max(det[0] / width_ratio, 0))
+                        ymin = str(max(det[1] / height_ratio, 0))
+                        xmax = str(min((det[2]) / width_ratio, width))
+                        ymax = str(min((det[3]) / height_ratio, height))
+                        cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                        print("behavior_gt:{}".format(cat_det))
                         f.write(cat_det)
             f.close()
 
+            # open detection file
+            f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w')
+            f = open(save_mAP_det_dir + mAP_file, mode='w')
+            # out of try : pdb.set_trace = lambda : None
             try:
-                # pdb.set_trace = lambda : None out of try
                 # for some empty video clips
                 img = image[i]
 
@@ -175,24 +192,26 @@ def test(opt):
                 if torch.cuda.is_available():
                     img = img.cuda()
 
-                with torch.no_grad():
-                    # logits : [1, 125, 14, 14]
-                    # behavior_logits : [1, 135, 14, 14]
-                    logits, behavior_logits = model1(img)
+                #with torch.no_grad():
+                # logits : [1, 125, 14, 14]
+                # behavior_logits : [1, 135, 14, 14]
+                logits, behavior_logits = model1(img)
 
-                    predictions = post_processing(logits,behavior_logits,
-                                                  opt.image_size,
-                                                  PersonCLS,PBeHavCLS,
-                                                  model1.anchors,
-                                                  opt.conf_threshold,
-                                                  opt.nms_threshold)
+                predictions = post_processing(logits,behavior_logits,
+                                              opt.image_size,
+                                              PersonCLS,PBeHavCLS,
+                                              model1.anchors,
+                                              opt.conf_threshold,
+                                              opt.nms_threshold)
+
                 if len(predictions) != 0:
                     predictions = predictions[0]
                     output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
 
                     # save images
-                    cv2.imwrite(save_mAP_img_dir + mAP_file, output_image)
+                    cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
+                        '.txt', '.jpg'), output_image)
 
                     for pred in predictions:
                         xmin = int(max(pred[0] / width_ratio, 0))
@@ -201,7 +220,8 @@ def test(opt):
                         ymax = int(min((pred[3]) / height_ratio, height))
                         color = colors[PersonCLS.index(pred[5])]
 
-                        cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), color, 2)
+                        cv2.rectangle(output_image, (xmin, ymin),
+                                      (xmax, ymax), color, 2)
                         text_size = cv2.getTextSize(
                             pred[5] + ' : %.2f' % pred[4],
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
@@ -221,11 +241,46 @@ def test(opt):
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
 
-                        cv2.imwrite(save_dir + "{}".format(f_file), output_image)
-                    print("detected {}".format(save_dir + "{}".format(f_file)))
+                        cv2.imwrite(save_dir + "{}".format(f_file),
+                                    output_image)
+
+                        # save detection results
+                        pred_cls = pred[5]
+                        pred_beh_cls = pred[6].replace(' ', '_')
+                        pred_beh_cls = pred_beh_cls.replace('/', '_')
+                        cat_pred = '%s %s %s %s %s %s\n' % (
+                            pred_cls,
+                            str(pred[4]),
+                            str(xmin), str(ymin), str(xmax), str(ymax))
+
+                        cat_pred_beh = '%s %s %s %s %s %s\n' % (
+                            pred_beh_cls,
+                            str(pred[4]),
+                            str(xmin), str(ymin), str(xmax), str(ymax))
+
+                        print("behavior_pred:{}".format(cat_pred_beh))
+                        #print("pred:{}".format(cat_pred))
+                        f.write(cat_pred)
+                        f_beh.write(cat_pred_beh)
+
+                        print("detected {}".format(save_dir + "{}".format(f_file)))
                 else:
                     print("non-detected {}".format(save_dir + "{}".format(f_file)))
+                    f.close()
+                    f_beh.close()
+                    if gt_person_cnt == 0:
+                        os.remove(save_mAP_gt_dir + mAP_file)
+                        os.remove(save_mAP_det_dir + mAP_file)
+                        os.remove(save_mAP_gt_beh_dir + mAP_file)
+                        os.remove(save_mAP_det_beh_dir + mAP_file)
             except:
+                f.close()
+                f_beh.close()
+                if gt_person_cnt == 0:
+                    os.remove(save_mAP_gt_dir + mAP_file)
+                    os.remove(save_mAP_det_dir + mAP_file)
+                    os.remove(save_mAP_gt_beh_dir + mAP_file)
+                    os.remove(save_mAP_det_beh_dir + mAP_file)
                 continue
 
 if __name__ == "__main__":

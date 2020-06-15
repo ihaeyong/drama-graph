@@ -258,12 +258,14 @@ class YoloLoss(nn.modules.loss._Loss):
                 tcls[b][best_n][gj * width + gi] = int(anno[4])
 
                 # empty labels should be considered as backgrounds
-                anno_behavior = int(ground_truth_behavior[b][i] + 1)
-                if anno_behavior > 0 and anno_behavior <= self.num_behaviors:
+                if ground_truth_behavior[b][i]:
+                    anno_behavior = int(ground_truth_behavior[b][i])
                     tcls_behavior[b][best_n][gj * width + gi] = anno_behavior
                 else:
-                    print("error: loss behavior annotation : {}".format(
-                        anno_behavior))
+                    tcls_behavior[b][best_n][gj * width + gi] = int(
+                        self.num_behaviors-1)
+
+
 
         return coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls, tcls_behavior
 
