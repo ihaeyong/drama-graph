@@ -6,6 +6,6 @@ visdom
 easydict
 bcolz==1.2.1
 mxnet==1.6.0
-sklearn==0.22.2
+scikit-learn==0.22.2
 Pillow==6.1
 future==0.18.2

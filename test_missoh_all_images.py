@@ -263,9 +263,11 @@ def test(opt):
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
 
-                        print("detected {}".format(save_dir + "{}".format(f_file)))
+                        print("detected {}".format(
+                            save_dir + "{}".format(f_file)))
                 else:
-                    print("non-detected {}".format(save_dir + "{}".format(f_file)))
+                    print("non-detected {}".format(
+                        save_dir + "{}".format(f_file)))
                     f.close()
                     f_beh.close()
                     if gt_person_cnt == 0:
