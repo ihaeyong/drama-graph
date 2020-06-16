@@ -148,39 +148,39 @@ def test(opt):
             # ground truth
             #b_person_label = label[i]
             # save person ground truth
-            with open(save_mAP_gt_dir + mAP_file, mode='w') as f:
-                gt_person_cnt = 0
-                for dets in label:
-                    for det in dets:
-                        cls = PersonCLS[int(det[4])]
-                        xmin = str(max(det[0] / width_ratio, 0))
-                        ymin = str(max(det[1] / height_ratio, 0))
-                        xmax = str(min((det[2]) / width_ratio, width))
-                        ymax = str(min((det[3]) / height_ratio, height))
-                        cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                        print("person_gt:{}".format(cat_det))
-                        f.write(cat_det)
-                        gt_person_cnt += 1
-            f.close()
+            gt_person_cnt = 0
+            if len(label) > i:
+                f = open(save_mAP_gt_dir + mAP_file, mode='w')
+                for det in label[i]:
+                    cls = PersonCLS[int(det[4])]
+                    xmin = str(max(det[0] / width_ratio, 0))
+                    ymin = str(max(det[1] / height_ratio, 0))
+                    xmax = str(min((det[2]) / width_ratio, width))
+                    ymax = str(min((det[3]) / height_ratio, height))
+                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                    print("person_gt:{}".format(cat_det))
+                    f.write(cat_det)
+                    gt_person_cnt += 1
+                f.close()
 
-            #b_behavior_label = behavior_label[i]
-            with open(save_mAP_gt_beh_dir + mAP_file, mode='w') as f:
-                for i, dets in enumerate(label):
-                    for j, det in enumerate(dets):
-                        cls = PBeHavCLS[int(behavior_label[i][j])].replace(' ', '_')
-                        cls = cls.replace('/', '_')
-                        xmin = str(max(det[0] / width_ratio, 0))
-                        ymin = str(max(det[1] / height_ratio, 0))
-                        xmax = str(min((det[2]) / width_ratio, width))
-                        ymax = str(min((det[3]) / height_ratio, height))
-                        cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                        print("behavior_gt:{}".format(cat_det))
-                        f.write(cat_det)
-            f.close()
+                #b_behavior_label = behavior_label[i]
+                f = open(save_mAP_gt_beh_dir + mAP_file, mode='w')
+                for j, det in enumerate(label[i]):
+                    cls = PBeHavCLS[int(behavior_label[i][j])].replace(' ', '_')
+                    cls = cls.replace('/', '_')
+                    xmin = str(max(det[0] / width_ratio, 0))
+                    ymin = str(max(det[1] / height_ratio, 0))
+                    xmax = str(min((det[2]) / width_ratio, width))
+                    ymax = str(min((det[3]) / height_ratio, height))
+                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                    print("behavior_gt:{}".format(cat_det))
+                    f.write(cat_det)
+                f.close()
 
-            # open detection file
-            f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w')
-            f = open(save_mAP_det_dir + mAP_file, mode='w')
+                # open detection file
+
+                f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w')
+                f = open(save_mAP_det_dir + mAP_file, mode='w')
             # out of try : pdb.set_trace = lambda : None
             try:
                 # for some empty video clips
@@ -259,31 +259,31 @@ def test(opt):
                             str(xmin), str(ymin), str(xmax), str(ymax))
 
                         print("behavior_pred:{}".format(cat_pred_beh))
-                        #print("pred:{}".format(cat_pred))
+                        print("person_pred:{}".format(cat_pred))
+
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
 
                         print("detected {}".format(
+                                save_dir + "{}".format(f_file)))
+                    else:
+                        print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
-                else:
-                    print("non-detected {}".format(
-                        save_dir + "{}".format(f_file)))
-                    f.close()
-                    f_beh.close()
-                    if gt_person_cnt == 0:
-                        os.remove(save_mAP_gt_dir + mAP_file)
-                        os.remove(save_mAP_det_dir + mAP_file)
-                        os.remove(save_mAP_gt_beh_dir + mAP_file)
-                        os.remove(save_mAP_det_beh_dir + mAP_file)
+                        f.close()
+                        f_beh.close()
             except:
                 f.close()
                 f_beh.close()
-                if gt_person_cnt == 0:
-                    os.remove(save_mAP_gt_dir + mAP_file)
-                    os.remove(save_mAP_det_dir + mAP_file)
-                    os.remove(save_mAP_gt_beh_dir + mAP_file)
-                    os.remove(save_mAP_det_beh_dir + mAP_file)
                 continue
+            if gt_person_cnt == 0:
+                if os.path.exists(save_mAP_gt_dir + mAP_file):
+                    os.remove(save_mAP_gt_dir + mAP_file)
+                if os.path.exists(save_mAP_det_dir + mAP_file):
+                    os.remove(save_mAP_det_dir + mAP_file)
+                if os.path.exists(save_mAP_gt_beh_dir + mAP_file):
+                    os.remove(save_mAP_gt_beh_dir + mAP_file)
+                if os.path.exists(save_mAP_det_beh_dir + mAP_file):
+                    os.remove(save_mAP_det_beh_dir + mAP_file)
 
 if __name__ == "__main__":
     test(opt)

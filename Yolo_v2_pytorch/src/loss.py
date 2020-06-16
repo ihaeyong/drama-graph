@@ -1,5 +1,5 @@
 """
-@author: Viet Nguyen <nhviet1009@gmail.com>
+modified by haeyong.kang
 """
 import math
 import torch
@@ -258,7 +258,7 @@ class YoloLoss(nn.modules.loss._Loss):
                 tcls[b][best_n][gj * width + gi] = int(anno[4])
 
                 # empty labels should be considered as backgrounds
-                if ground_truth_behavior[b][i]:
+                if ground_truth_behavior[b][i] is not None:
                     anno_behavior = int(ground_truth_behavior[b][i])
                     tcls_behavior[b][best_n][gj * width + gi] = anno_behavior
                 else:
