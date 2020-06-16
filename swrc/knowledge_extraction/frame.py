@@ -9,16 +9,17 @@ def eng_frameBERT(text):
     return response.json()
 
 class frame:
-    def __init__(self, input, type):
+    def __init__(self, config, input):
         self.input = input
-        self.type = type
+        self.config = config
         self.output = self.run()
 
     def run(self):
-        if self.type == 'frameBERT':
-                for qa in self.input:
-                    for utter in qa['utterances']:
-                        for sent in utter['sents']:
-                            sent['frames'] = eng_frameBERT(sent['text'])
+        if self.config['extraction']['frame'] == 'frameBERT':
+            for qa in self.input:
+                for utter in qa['utterances']:
+                    for sent in utter['sents']:
+                        sent['frames'] = eng_frameBERT(sent['statement'])
+            print('frameBERT done..')
 
         return self.input

@@ -8,19 +8,18 @@ def stanfordOIE(texts):
         return result
 
 class oie:
-    def __init__(self, input, type):
+    def __init__(self, config, input):
         self.input = input
-        self.type = type
+        self.config = config
         self.output = self.run()
 
     def run(self):
-        if self.type == 'stanford':
+        if self.config['extraction']['oie'] == 'stanford':
             with StanfordOpenIE() as client:
-                print()
-
                 for qa in self.input:
                     for utter in qa['utterances']:
                         for sent in utter['sents']:
-                            sent['triples'] = client.annotate(sent['text'])
+                            sent['triples'] = client.annotate(sent['statement'])
+            print('Stanford Open IE done..')
 
         return self.input

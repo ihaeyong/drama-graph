@@ -1,0 +1,9 @@
+// The Round Table
+digraph {
+	A [label="King Arthur"]
+	B [label=<<u>Sir Bedevere the Wise</u>> URL="http://iamaman.tistory.com/" target=_blank]
+	L [label="Sir Lancelot the Brave"]
+	A -> C
+	A -> L
+	B -> L [constraint=false]
+}

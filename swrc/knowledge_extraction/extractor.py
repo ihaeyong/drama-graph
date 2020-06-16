@@ -7,20 +7,19 @@ class extractor:
     def __init__(self, config, input):
         self.input = input
         self.config = config
-        self.oie = oie(self.input, self.config['preprocessing']['oie'])
-        self.frame = frame(self.oie.output, self.config['preprocessing']['frame'])
+
+        if config['extraction']['load']:
+            self.output = jsonload(self.config['extraction']['output_path'])
+            return
+
+        self.oie = oie(config, self.input)
+        self.frame = frame(config, self.oie.output)
         self.output = self.frame.output
 
 
-    def subtitle_loader(self):
-        return
-
-    def qa_loader(self):
-        qa_path = self.config['preprocessing']['qa_file']
-        self.input = jsonload(qa_path)
-        print()
-
     def save_output(self):
-        jsondump(self.output, os.path.join(self.config['preprocessing']['output_path'], 'extracted.json'))
+        if self.config['extraction']['load']:
+            return
+        jsondump(self.output, self.config['extraction']['output_path'])
         return
 
