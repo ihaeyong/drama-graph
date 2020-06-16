@@ -14,5 +14,9 @@ __pycache__/
 *.so
 
 # swrc
-swrc/data/
+swrc/data/AnotherMissOh_Sence_Bi-lang_Subtitle/
+swrc/data/AnotherMissOh_Sence_Subtitle/
+swrc/data/bi-lang_utter/
+swrc/data/ignore/
+swrc/data/output/ignore/
 *.props

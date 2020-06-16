@@ -12,15 +12,26 @@ class sentence_divider:
         if self.config['mode'] == 'qa':
             for qa in json:
                 for utter in qa['utterances']:
-                    text = utter['old_utter']
+                    text = utter['utter']
                     sents = nlp(text).sents
                     utter['sents'] = []
                     for s in sents:
                         t = {'origin': s.text}
                         utter['sents'].append(t)
                         print(s.text)
-        else:
-            json = None
+        elif self.config['mode'] == 'subtitle':
+            for j in self.input:
+                for scene in j:
+                    for utter in scene['scene']:
+                        print()
+                        text = utter['utter']
+                        sents = nlp(text).sents
+                        utter['sents'] = []
+                        for s in sents:
+                            t = {'origin': s.text}
+                            utter['sents'].append(t)
+                            print(s.text)
+
         return json
 
 

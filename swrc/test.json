@@ -38,6 +38,18 @@
 						"Purpose": "for the knock off,"
 					},
 					{
+						"type": "Perception_active",
+						"lu": "listen",
+						"Perceiver_agentive": "Taejin",
+						"Direction": "up"
+					},
+					{
+						"type": "Intentionally_act",
+						"lu": "did",
+						"Agent": "Taejin",
+						"Act": "something shady"
+					},
+					{
 						"type": "Desiring",
 						"lu": "want",
 						"Experiencer": "Taejin",
@@ -115,6 +127,10 @@
 					[
 						"have",
 						"go"
+					],
+					[
+						"'re feeling",
+						"better"
 					],
 					[
 						"'ll look into",
@@ -420,10 +436,16 @@
 						"Message": "something"
 					},
 					{
-						"type": "Beat_opponent",
+						"type": "Bringing",
+						"lu": "brought",
+						"Agent": "Dokyung",
+						"Theme": "two umbrellas?I"
+					},
+					{
+						"type": "Cause_harm",
 						"lu": "beat",
-						"Winner": "Haeyoung1",
-						"Loser": "Dokyung"
+						"Agent": "Haeyoung1",
+						"Victim": "Dokyung"
 					},
 					{
 						"type": "Possession",
@@ -439,12 +461,6 @@
 						"Agent": "Dokyung"
 					},
 					{
-						"type": "Possession",
-						"lu": "have",
-						"Owner": "Dokyung",
-						"Possession": "anything to say"
-					},
-					{
 						"type": "Bringing",
 						"lu": "bring",
 						"Agent": "Dokyung",
@@ -455,7 +471,8 @@
 						"lu": "called",
 						"Communicator": "Dokyung",
 						"Addressee": "a driver",
-						"Time": "in the middle of the night at the West Sea"
+						"Time": "in the middle of the night",
+						"Place": "at the West Sea"
 					},
 					{
 						"type": "Experiencer_focus",
@@ -516,10 +533,16 @@
 						"Event": "to beat you up"
 					},
 					{
-						"type": "Beat_opponent",
+						"type": "Cause_harm",
 						"lu": "beat",
-						"Winner": "Haeyoung1",
-						"Loser": "Dokyung"
+						"Agent": "Haeyoung1",
+						"Victim": "Dokyung"
+					},
+					{
+						"type": "Body_parts",
+						"lu": "shoulders",
+						"Possessor": "Haeyoung1",
+						"Body_part": "shoulders"
 					},
 					{
 						"type": "Possession",
@@ -547,6 +570,22 @@
 					}
 				],
 				"directed": [
+					[
+						"am tired",
+						"working late"
+					],
+					[
+						"tired",
+						"working"
+					],
+					[
+						"am tired",
+						"working"
+					],
+					[
+						"tired",
+						"working late"
+					],
 					[
 						"'m on",
 						"cloud nine"
@@ -635,7 +674,7 @@
 					{
 						"type": "Motion",
 						"lu": "went",
-						"Path": "through",
+						"Path": "through,",
 						"Theme": "Dokyung"
 					}
 				],
@@ -906,13 +945,14 @@
 						"type": "Giving",
 						"lu": "treat",
 						"Donor": "Dokyung",
-						"Recipient": "Dokyung"
+						"Recipient": "law",
+						"Theme": "that?"
 					},
 					{
-						"type": "Giving",
-						"lu": "treat",
-						"Donor": "Dokyung",
-						"Recipient": "Dokyung"
+						"type": "Kinship",
+						"lu": "law",
+						"Ego": "Dokyung",
+						"Alter": "law"
 					}
 				],
 				"directed": [
@@ -922,7 +962,11 @@
 					],
 					[
 						"Should treat",
-						"Dokyung"
+						"your brother-in-law"
+					],
+					[
+						"Should treat",
+						"your elder brother-in-law"
 					],
 					[
 						"'ll cut off",
@@ -956,7 +1000,8 @@
 						"type": "Desiring",
 						"lu": "wish",
 						"Experiencer": "Sukyung",
-						"Focal_participant": "Heayoung1"
+						"Focal_participant": "Heayoung1",
+						"Event": "a happy life together"
 					},
 					{
 						"type": "Arriving",
@@ -967,6 +1012,10 @@
 				],
 				"directed": [
 					[
+						"brother",
+						"please"
+					],
+					[
 						"'re",
 						"so cool"
 					],
@@ -976,7 +1025,27 @@
 					],
 					[
 						"wish",
+						"happy life"
+					],
+					[
+						"wish together",
+						"happy life"
+					],
+					[
+						"wish together",
+						"life"
+					],
+					[
+						"wish together",
 						"Heayoung1"
+					],
+					[
+						"wish",
+						"Heayoung1"
+					],
+					[
+						"wish",
+						"life"
 					]
 				]
 			},
@@ -1051,7 +1120,11 @@
 					],
 					[
 						"'m",
-						"Dokyung"
+						"your brother-in-law"
+					],
+					[
+						"'m",
+						"your elder brother-in-law"
 					]
 				]
 			},
@@ -1146,7 +1219,8 @@
 					{
 						"type": "Sleep",
 						"lu": "sleep",
-						"Sleeper": "Dokyung"
+						"Sleeper": "Dokyung",
+						"Place": "here,"
 					},
 					{
 						"type": "Perception_experience",
@@ -1158,13 +1232,14 @@
 						"lu": "told",
 						"Speaker": "Sukyung",
 						"Addressee": "Dokyung",
-						"Message": "to take you"
+						"Message": "to take you home,"
 					},
 					{
 						"type": "Bringing",
 						"lu": "take",
 						"Agent": "Dokyung",
-						"Theme": "Haeyoung1"
+						"Theme": "Haeyoung1",
+						"Goal": "home,"
 					},
 					{
 						"type": "Arriving",
@@ -1193,7 +1268,19 @@
 						"Haeyoung1"
 					],
 					[
+						"sleep here with",
+						"Haeyoung1"
+					],
+					[
 						"sleep with",
+						"Haeyoung1"
+					],
+					[
+						"'ll in",
+						"'ll car"
+					],
+					[
+						"take home",
 						"Haeyoung1"
 					],
 					[
@@ -1222,10 +1309,17 @@
 						"Goal": "up"
 					},
 					{
+						"type": "Awareness",
+						"lu": "know",
+						"Cognizer": "Haeyoung1",
+						"Content": "who carried you here!?I'll"
+					},
+					{
 						"type": "Bringing",
 						"lu": "carried",
 						"Agent": "who",
-						"Theme": "Haeyoung1"
+						"Theme": "Haeyoung1",
+						"Goal": "here!?I'll"
 					},
 					{
 						"type": "Self_motion",
@@ -1247,7 +1341,7 @@
 					{
 						"type": "Intentionally_act",
 						"lu": "do",
-						"Act": "with my life?\"",
+						"Act": "with my life?",
 						"Agent": "Haeyoung1",
 						"Time": "while drunk?\"\"What"
 					},
@@ -1255,7 +1349,8 @@
 						"type": "Bringing",
 						"lu": "take",
 						"Agent": "Dokyung",
-						"Theme": "Haeyoung1"
+						"Theme": "Haeyoung1",
+						"Goal": "home,"
 					},
 					{
 						"type": "Desiring",
@@ -1263,6 +1358,18 @@
 						"Experiencer": "Haeyoung1",
 						"Focal_participant": "Dokyung",
 						"Event": "to hit you,"
+					},
+					{
+						"type": "Motion",
+						"lu": "going",
+						"Theme": "Haeyoung1",
+						"Purpose": "to get up?"
+					},
+					{
+						"type": "Arriving",
+						"lu": "get",
+						"Theme": "Haeyoung1",
+						"Goal": "up?"
 					}
 				],
 				"directed": [
@@ -1275,8 +1382,16 @@
 						"when sober"
 					],
 					[
+						"behave",
+						"?!"
+					],
+					[
 						"getting",
 						"hit"
+					],
+					[
+						"getting",
+						"hit drunk"
 					],
 					[
 						"Do want",
@@ -1299,15 +1414,10 @@
 						"lu": "told",
 						"Speaker": "Sukyung",
 						"Addressee": "Dokyung",
-						"Message": "to take you"
+						"Message": "to take you home,"
 					}
 				],
-				"directed": [
-					[
-						"told",
-						"Dokyung"
-					]
-				]
+				"directed": []
 			},
 			"Jinsang": {
 				"undirected": [],
@@ -1385,15 +1495,22 @@
 			"Haeyoung1": {
 				"undirected": [
 					{
-						"type": "Awareness",
+						"type": "Opinion",
 						"lu": "think",
 						"Cognizer": "Haeyoung1",
-						"Content": "I have to"
+						"Opinion": "I have to"
 					},
 					{
 						"type": "Possession",
 						"lu": "have",
-						"Owner": "Haeyoung1"
+						"Owner": "Haeyoung1",
+						"Possession": "to"
+					},
+					{
+						"type": "Kinship",
+						"lu": "parents",
+						"Ego": "Haeyoung1",
+						"Alter": "parents"
 					},
 					{
 						"type": "Transition_to_state",
@@ -1411,13 +1528,22 @@
 					{
 						"type": "Giving",
 						"lu": "give",
-						"Recipient": "Haeyoung1"
+						"Recipient": "Haeyoung1",
+						"Theme": "the deposit,"
 					}
 				],
 				"directed": [
 					[
 						"'ve",
 						"'ve rejected"
+					],
+					[
+						"gets",
+						"killed"
+					],
+					[
+						"gets",
+						"killed somewhere"
 					]
 				]
 			},
@@ -1505,7 +1631,13 @@
 			"Haeyoung1": {
 				"undirected": [
 					{
-						"type": "Cause_to_continue",
+						"type": "Statement",
+						"lu": "saying",
+						"Speaker": "Haeyoung1",
+						"Message": "we don't even know"
+					},
+					{
+						"type": "Storing",
 						"lu": "keep",
 						"Agent": "Haeyoung1"
 					},
@@ -1573,8 +1705,7 @@
 					{
 						"type": "Awareness",
 						"lu": "know",
-						"Cognizer": "Sukyung",
-						"Content": "the basics?You"
+						"Cognizer": "Sukyung"
 					}
 				],
 				"directed": []
@@ -1685,10 +1816,6 @@
 					[
 						"'m",
 						"fine"
-					],
-					[
-						"'m getting off of",
-						"work"
 					]
 				]
 			},
@@ -2484,8 +2611,7 @@
 					{
 						"type": "Intentionally_act",
 						"lu": "do",
-						"Agent": "Sukyung",
-						"Act": "so"
+						"Agent": "Sukyung"
 					},
 					{
 						"type": "Manipulation",
@@ -2498,6 +2624,10 @@
 					[
 						"'m like",
 						"your sister"
+					],
+					[
+						"'ll give",
+						"one day"
 					],
 					[
 						"'ll give",
@@ -2536,7 +2666,8 @@
 						"type": "Giving",
 						"lu": "give",
 						"Donor": "I'll",
-						"Recipient": "Jinsang"
+						"Recipient": "Jinsang",
+						"Time": "one day"
 					},
 					{
 						"type": "Manipulation",
@@ -2549,18 +2680,6 @@
 					[
 						"are",
 						"aware"
-					],
-					[
-						"so do",
-						"I."
-					],
-					[
-						"are aware of",
-						"this"
-					],
-					[
-						"do",
-						"I."
 					],
 					[
 						"'ve like",
@@ -2577,6 +2696,18 @@
 					[
 						"'ve like",
 						"'ve brother to me"
+					],
+					[
+						"so do",
+						"I."
+					],
+					[
+						"are aware of",
+						"this"
+					],
+					[
+						"do",
+						"I."
 					],
 					[
 						"'ve like",
@@ -2836,7 +2967,14 @@
 					{
 						"type": "Telling",
 						"lu": "tell",
-						"Speaker": "Deogi",
+						"Speaker": "Dokyung",
+						"Addressee": "Dokyung",
+						"Message": "that it will be alright to endure it, and pat him on the shoulder?"
+					},
+					{
+						"type": "Telling",
+						"lu": "tell",
+						"Speaker": "Dokyung",
 						"Addressee": "Dokyung",
 						"Message": "that it will be alright to endure it, and pat him on the shoulder?"
 					},
@@ -2844,10 +2982,16 @@
 						"type": "Giving",
 						"lu": "give",
 						"Donor": "who",
-						"Recipient": "Dokyung"
+						"Recipient": "Dokyung",
+						"Time": "a hard time,"
 					}
 				],
-				"directed": []
+				"directed": [
+					[
+						"pat",
+						"Dokyung"
+					]
+				]
 			},
 			"Haeyoung1": {
 				"undirected": [
@@ -2877,16 +3021,23 @@
 						"Means": "your wedding?"
 					},
 					{
-						"type": "Contacting",
+						"type": "Referring_by_name",
 						"lu": "call",
-						"Communicator": "People",
-						"Addressee": "Haeyoung1"
+						"Speaker": "People",
+						"Entity": "Haeyoung1",
+						"Name": "a crazy idiot for"
 					},
 					{
 						"type": "Bringing",
 						"lu": "bring",
 						"Agent": "Haeyoung1",
 						"Theme": "Dokyung"
+					},
+					{
+						"type": "Personal_relationship",
+						"lu": "dating",
+						"Partner_1": "Haeyoung1",
+						"Partner_2": "that man?"
 					},
 					{
 						"type": "Forming_relationships",
@@ -2905,6 +3056,12 @@
 						"Partner_1": "Haeyoung1"
 					},
 					{
+						"type": "Kinship",
+						"lu": "mom",
+						"Ego": "Haeyoung1",
+						"Alter": "mom"
+					},
+					{
 						"type": "Transition_to_state",
 						"lu": "got",
 						"Entity": "Haeyoung1",
@@ -2921,7 +3078,8 @@
 						"type": "Causation",
 						"lu": "makes",
 						"Cause": "thinking about him",
-						"Affected": "Haeyoung1"
+						"Affected": "Haeyoung1",
+						"Effect": "miss him"
 					},
 					{
 						"type": "Desiring",
@@ -3004,12 +3162,20 @@
 						"your wedding"
 					],
 					[
+						"crazy",
+						"idiot"
+					],
+					[
 						"could bring",
 						"Dokyung"
 					],
 					[
-						"blabbed over",
-						"Haeyoung1"
+						"Is really dating",
+						"man"
+					],
+					[
+						"Is dating",
+						"man"
 					],
 					[
 						"blabbed over",
@@ -3032,7 +3198,7 @@
 						"Dokyung"
 					],
 					[
-						"thinking about",
+						"miss",
 						"Dokyung"
 					],
 					[
@@ -3076,27 +3242,22 @@
 			"Deogi": {
 				"undirected": [
 					{
+						"type": "Reading_activity",
+						"lu": "read",
+						"Reader": "Deogi",
+						"Text": "this,"
+					},
+					{
 						"type": "Experiencer_obj",
 						"lu": "surprised",
 						"Stimulus": "Deogi",
 						"Experiencer": "Haeyoung1"
-					},
-					{
-						"type": "Telling",
-						"lu": "tell",
-						"Speaker": "Deogi",
-						"Addressee": "Dokyung",
-						"Message": "that it will be alright to endure it, and pat him on the shoulder?"
 					}
 				],
 				"directed": [
 					[
 						"surprised",
 						"Haeyoung1"
-					],
-					[
-						"pat",
-						"Dokyung"
 					]
 				]
 			},
@@ -3522,7 +3683,9 @@
 						"type": "Grasp",
 						"lu": "understand",
 						"Cognizer": "Dokyung",
-						"Phenomenon": "Jinsang"
+						"Phenomenon": "Jinsang",
+						"Completeness": "a little",
+						"Time": "now?"
 					},
 					{
 						"type": "Ingest_substance",
@@ -3628,12 +3791,24 @@
 						"Jinsang"
 					],
 					[
+						"Can understand little",
+						"Jinsang"
+					],
+					[
+						"Can understand little now",
+						"Jinsang"
+					],
+					[
 						"are taking jab at",
 						"Jinsang"
 					],
 					[
 						"are taking",
 						"jab"
+					],
+					[
+						"know At",
+						"home"
 					]
 				]
 			},
@@ -3681,7 +3856,9 @@
 						"type": "Grasp",
 						"lu": "understand",
 						"Cognizer": "Dokyung",
-						"Phenomenon": "Jinsang"
+						"Phenomenon": "Jinsang",
+						"Completeness": "a little",
+						"Time": "now?"
 					},
 					{
 						"type": "Awareness",
@@ -3718,6 +3895,12 @@
 						"lu": "do",
 						"Agent": "Jinsang",
 						"Act": "something"
+					},
+					{
+						"type": "Grasp",
+						"lu": "see",
+						"Cognizer": "Jinsang",
+						"Phenomenon": "a solution to this"
 					},
 					{
 						"type": "Scrutiny",
@@ -3967,7 +4150,9 @@
 						"type": "Intentionally_act",
 						"lu": "do",
 						"Agent": "Dokyung",
-						"Act": "it"
+						"Act": "it",
+						"Purpose": "for you",
+						"Time": "later"
 					},
 					{
 						"type": "Intentionally_act",
@@ -3989,6 +4174,10 @@
 					}
 				],
 				"directed": [
+					[
+						"can do later",
+						"it"
+					],
 					[
 						"can do",
 						"it"
@@ -4028,8 +4217,19 @@
 						"type": "Ingest_substance",
 						"lu": "take",
 						"Ingestor": "Haeyoung1",
-						"Substance": "photos",
-						"Manner": "like these,"
+						"Substance": "photos like these,"
+					},
+					{
+						"type": "Getting",
+						"lu": "get",
+						"Recipient": "Haeyoung1",
+						"Theme": "a souvenir"
+					},
+					{
+						"type": "Body_parts",
+						"lu": "cheeks",
+						"Possessor": "Haeyoung1",
+						"Body_part": "cheeks"
 					}
 				],
 				"directed": [
@@ -4304,10 +4504,16 @@
 						"Emotional_state": "like I will lose my energy"
 					},
 					{
-						"type": "Losing",
+						"type": "Change_of_quantity_of_possession",
 						"lu": "lose",
 						"Owner": "Dokyung",
 						"Possession": "my energy"
+					},
+					{
+						"type": "Opinion",
+						"lu": "think",
+						"Cognizer": "Dokyung",
+						"Opinion": "I will get mad,"
 					},
 					{
 						"type": "Transition_to_state",
@@ -4343,14 +4549,6 @@
 					}
 				],
 				"directed": [
-					[
-						"feel",
-						"we part"
-					],
-					[
-						"feel",
-						"we just part"
-					],
 					[
 						"will lose",
 						"my energy"
@@ -4520,6 +4718,10 @@
 					[
 						"'ll match",
 						"Dokyung"
+					],
+					[
+						"'ll match",
+						"Dokyung"
 					]
 				]
 			},
@@ -4603,9 +4805,10 @@
 			"Dokyung": {
 				"undirected": [
 					{
-						"type": "Appellations",
+						"type": "Hit_or_miss",
 						"lu": "miss",
-						"Name": "Dokyung"
+						"Agent": "Haeyoung1",
+						"Target": "Dokyung"
 					}
 				],
 				"directed": [
@@ -4616,7 +4819,14 @@
 				]
 			},
 			"Haeyoung1": {
-				"undirected": [],
+				"undirected": [
+					{
+						"type": "Hit_or_miss",
+						"lu": "miss",
+						"Agent": "Haeyoung1",
+						"Target": "Dokyung"
+					}
+				],
 				"directed": [
 					[
 						"'m",
@@ -4625,6 +4835,10 @@
 					[
 						"'m",
 						"angry"
+					],
+					[
+						"miss",
+						"Dokyung"
 					]
 				]
 			},
@@ -4711,33 +4925,59 @@
 						"type": "Desiring",
 						"lu": "want",
 						"Experiencer": "Dokyung",
-						"Event": "to see her"
+						"Event": "to see her smiling face more"
 					},
 					{
 						"type": "Perception_experience",
 						"lu": "see",
 						"Perceiver_passive": "Dokyung",
-						"Phenomenon": "Haeyoung1"
+						"Phenomenon": "her smiling face",
+						"Degree": "more"
+					},
+					{
+						"type": "Desiring",
+						"lu": "hope",
+						"Experiencer": "Dokyung",
+						"Event": "that she will become happier"
 					}
 				],
 				"directed": [
+					[
+						"see",
+						"her smiling face more"
+					],
 					[
 						"want For",
 						"now"
 					],
 					[
 						"see",
-						"Haeyoung1"
+						"her face"
+					],
+					[
+						"see",
+						"her smiling face"
+					],
+					[
+						"see",
+						"her face more"
 					]
 				]
 			},
 			"Haeyoung1": {
 				"undirected": [
 					{
-						"type": "Perception_experience",
-						"lu": "see",
-						"Perceiver_passive": "Dokyung",
-						"Phenomenon": "Haeyoung1"
+						"type": "Making_faces",
+						"lu": "smiling",
+						"Agent": "Haeyoung1",
+						"Body_part": "face"
+					},
+					{
+						"type": "Body_parts",
+						"lu": "face",
+						"Possessor": "Haeyoung1",
+						"Descriptor": "smiling",
+						"Body_part": "face"
 					},
 					{
 						"type": "Becoming",
@@ -4854,33 +5094,59 @@
 						"type": "Desiring",
 						"lu": "want",
 						"Experiencer": "Dokyung",
-						"Event": "to see her"
+						"Event": "to see her smiling face more"
 					},
 					{
 						"type": "Perception_experience",
 						"lu": "see",
 						"Perceiver_passive": "Dokyung",
-						"Phenomenon": "Haeyoung1"
+						"Phenomenon": "her smiling face",
+						"Degree": "more"
+					},
+					{
+						"type": "Desiring",
+						"lu": "hope",
+						"Experiencer": "Dokyung",
+						"Event": "that she will become happier"
 					}
 				],
 				"directed": [
+					[
+						"see",
+						"her smiling face more"
+					],
 					[
 						"want For",
 						"now"
 					],
 					[
 						"see",
-						"Haeyoung1"
+						"her face"
+					],
+					[
+						"see",
+						"her smiling face"
+					],
+					[
+						"see",
+						"her face more"
 					]
 				]
 			},
 			"Haeyoung1": {
 				"undirected": [
 					{
-						"type": "Perception_experience",
-						"lu": "see",
-						"Perceiver_passive": "Dokyung",
-						"Phenomenon": "Haeyoung1"
+						"type": "Making_faces",
+						"lu": "smiling",
+						"Agent": "Haeyoung1",
+						"Body_part": "face"
+					},
+					{
+						"type": "Body_parts",
+						"lu": "face",
+						"Possessor": "Haeyoung1",
+						"Descriptor": "smiling",
+						"Body_part": "face"
 					},
 					{
 						"type": "Becoming",
@@ -5040,15 +5306,10 @@
 						"Act": "it"
 					},
 					{
-						"type": "Familiarity",
-						"lu": "know",
-						"Cognizer": "Heeran",
-						"Entity": "Heayoung1"
-					},
-					{
 						"type": "Awareness",
 						"lu": "thought",
 						"Cognizer": "Heeran",
+						"Degree": "really well,",
 						"Content": "you would cause such trouble"
 					},
 					{
@@ -5076,10 +5337,6 @@
 					[
 						"be",
 						"brave"
-					],
-					[
-						"know",
-						"Heayoung1"
 					],
 					[
 						"'ll in",
@@ -5187,7 +5444,6 @@
 					{
 						"type": "Judgment_direct_address",
 						"lu": "scolding",
-						"Communicator": "your daughter,",
 						"Addressee": "Jeongsuk"
 					}
 				],
@@ -5256,6 +5512,12 @@
 						"Resident": "Dokyung"
 					},
 					{
+						"type": "Statement",
+						"lu": "talks",
+						"Speaker": "Dokyung",
+						"Manner": "that way"
+					},
+					{
 						"type": "Cause_to_fragment",
 						"lu": "tear",
 						"Agent": "Dokyung",
@@ -5281,8 +5543,32 @@
 						"it"
 					],
 					[
+						"has",
+						"so just little sensitive"
+					],
+					[
+						"has",
+						"always stuck"
+					],
+					[
+						"has",
+						"little"
+					],
+					[
+						"has",
+						"so sensitive"
+					],
+					[
+						"has",
+						"sensitive"
+					],
+					[
 						"'s stuck in",
 						"recording studio"
+					],
+					[
+						"has",
+						"little sensitive"
 					],
 					[
 						"has",
@@ -5290,11 +5576,31 @@
 					],
 					[
 						"has",
-						"always stuck"
+						"just sensitive"
 					],
 					[
 						"'s always stuck in",
 						"recording studio"
+					],
+					[
+						"has",
+						"so just sensitive"
+					],
+					[
+						"has",
+						"so little sensitive"
+					],
+					[
+						"has",
+						"just little sensitive"
+					],
+					[
+						"talks",
+						"way"
+					],
+					[
+						"normally talks",
+						"way"
 					]
 				]
 			},
@@ -5508,7 +5814,7 @@
 					{
 						"type": "Intentionally_act",
 						"lu": "did",
-						"Act": "What",
+						"Act": "say about ruining the customer flow?",
 						"Agent": "Sukyung"
 					},
 					{
@@ -5522,7 +5828,7 @@
 						"type": "Bungling",
 						"lu": "ruining",
 						"Agent": "Sukyung",
-						"Patient": "the customer flow?"
+						"Action": "the"
 					},
 					{
 						"type": "Request",

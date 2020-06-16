@@ -16,10 +16,31 @@ class frame:
 
     def run(self):
         if self.config['extraction']['frame'] == 'frameBERT':
-            for qa in self.input:
-                for utter in qa['utterances']:
-                    for sent in utter['sents']:
-                        sent['frames'] = eng_frameBERT(sent['statement'])
+            if self.config['mode'] == 'qa':
+                for qa in self.input:
+                    for utter in qa['utterances']:
+                        for sent in utter['sents']:
+                            sent['frames'] = eng_frameBERT(sent['statement'])
+            elif self.config['mode'] == 'subtitle':
+                for ep in self.input:
+                    for scene in ep:
+                        for u in scene['scene']:
+                            for sent in u['sents']:
+                                sent['frames'] = []
+                                results = eng_frameBERT(sent['statement'])
+
+
+                                cur = None
+                                for element in results:
+                                    if element[1][-2:] == 'lu':
+                                        if cur:
+                                            sent['frames'].append(cur)
+                                            cur = None
+                                        cur = {'frame':element[0].split(':')[-1], 'lu': element[2]}
+                                    else:
+                                        cur[element[1].split('-')[-1]] = element[2]
+                                if cur:
+                                    sent['frames'].append(cur)
             print('frameBERT done..')
 
         return self.input

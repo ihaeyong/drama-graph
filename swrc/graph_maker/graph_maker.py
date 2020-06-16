@@ -1,4 +1,4 @@
-# TODO frame 같은 애들끼리 그래프가 겹치는 버그가 있다.
+# TODO frame 같은 애들끼리 그래프가 겹치는 버그가 있다. lu가 제일 먼저나오니까 그거 기준으로 짜르자.
 
 import os
 from graphviz import Digraph
@@ -30,15 +30,15 @@ class graph_maker:
 
         if self.config['mode'] == 'qa':
             for qa in self.input:
-                for u in qa['utterances']:
-                    for sent in u['sents']:
+                for uid, u in enumerate(qa['utterances']):
+
+                    coref_dict = {}  # {form:character}
+                    for coref in u['corefs']:
+                        coref_dict[coref['form'].lower()] = coref['coref']
+
+                    for sid, sent in enumerate(u['sents']):
                         sent['char_triples'] = []
                         sent['char_frames'] = []
-
-                        coref_dict = {}  # {form:character}
-
-                        for coref in sent['corefs']:
-                            coref_dict[coref['form'].lower()] = coref['coref']
 
                         for triple in sent['triples']:  # for directed edge
                             keys = triple.keys()
@@ -49,28 +49,49 @@ class graph_maker:
                             if flag:
                                 sent['char_triples'].append(triple)
 
-
                         if type(sent['frames']) is dict:  # error case
                             continue
-                        frames = {}
-                        for item in sent['frames']:
-                            item = [x.split(':')[-1].split('-')[-1] for x in item]
-                            if item[0] not in frames:
-                                frames[item[0]] = {'type': item[0]}
-
-                            if item[2][-1] == '.':
-                                item[2] = item[2][:-1]
-                            flag = flag or cur_flag
-                            frames[item[0]][item[1]] = item[2]
-
-                        for key in frames:
-                            frame = frames[key]
+                        for id, frame in enumerate(sent['frames']):
+                            frame['frame'] += '#{}_{}_{}'.format(uid,sid,id)
                             flag = False
                             for k in frame:
                                 cur_flag, frame[k] = form_to_character(frame[k], coref_dict)
                                 flag = flag or cur_flag
                             if flag:
                                 sent['char_frames'].append(frame)
+
+        elif self.config['mode'] == 'subtitle':
+            for ep in self.input:
+                for scene in ep:
+                    for uid, u in enumerate(scene['scene']):
+                        coref_dict = {}  # {form:character}
+                        for coref in u['corefs']:
+                            coref_dict[coref['form'].lower()] = coref['coref']
+
+                        for sid, sent in enumerate(u['sents']):
+                            sent['char_triples'] = []
+                            sent['char_frames'] = []
+
+                            for triple in sent['triples']:  # for directed edge
+                                keys = triple.keys()
+                                flag = False
+                                for key in keys:
+                                    cur_flag, triple[key] = form_to_character(triple[key], coref_dict)
+                                    flag = flag or cur_flag
+                                if flag:
+                                    sent['char_triples'].append(triple)
+
+
+                            if type(sent['frames']) is dict:  # error case
+                                continue
+                            for id, frame in enumerate(sent['frames']):
+                                frame['frame'] += '#{}_{}_{}'.format(uid,sid,id)
+                                flag = False
+                                for k in frame:
+                                    cur_flag, frame[k] = form_to_character(frame[k], coref_dict)
+                                    flag = flag or cur_flag
+                                if flag:
+                                    sent['char_frames'].append(frame)
 
 
     def build_graph(self):
@@ -101,7 +122,7 @@ class graph_maker:
                             'object': k[1]
                         }
 
-                        if self.config['graph']['only_use'] == 'None':
+                        if self.config['graph']['only_use'] == 'None':  #현재 등장하는 인물에 대한 backKB 사용.
                             only_rel = []
                         else:
                             only_rel = self.config['graph']['only_use'].split(',')
@@ -121,7 +142,55 @@ class graph_maker:
                             whole_graph[v]['undirected'].append(f)
                             graph[v]['undirected'].append(f)
                 self.graphs.append((qa['qid'], graph))
-        jsondump(self.graphs, 'test.json')
+
+        elif self.config['mode'] == 'subtitle':  # scene 당 그래프 1개.
+            for i, ep in enumerate(self.input):
+                ep_id = i+1
+                for scene in ep:
+                    graph = {}
+                    s_id = scene['scene_number']
+                    us = scene['scene']
+
+                    for name in self.char_names:
+                        graph[name] = {'undirected': [], 'directed': []}
+
+                    triples = [triple for u in us for sent in u['sents'] for triple in
+                               sent['char_triples']]
+                    frames = [triple for u in us for sent in u['sents'] for triple in sent['char_frames']]
+
+                    for char in self.back_KB:
+                        ks = self.back_KB[char]
+                        for k in ks:
+                            k_dict = {
+                                'subject': char,
+                                'relation': k[0],
+                                'object': k[1]
+                            }
+
+                            if self.config['graph']['only_use'] == 'None':  # 현재 등장하는 인물에 대한 backKB 사용.
+                                only_rel = []
+                            else:
+                                only_rel = self.config['graph']['only_use'].split(',')
+
+                            if k[0] in only_rel:
+                                triples.append(k_dict)
+
+                    for t in triples:
+                        if t['subject'] not in self.char_names:
+                            continue
+                        whole_graph[t['subject']]['directed'].append((t['relation'], t['object']))
+                        graph[t['subject']]['directed'].append((t['relation'], t['object']))
+
+                    for f in frames:
+                        for k, v in f.items():
+                            if v in self.char_names:
+                                whole_graph[v]['undirected'].append(f)
+                                graph[v]['undirected'].append(f)
+                    self.graphs.append(('ep{}_scene{}'.format(ep_id, s_id), graph))
+
+
+
+        jsondump(self.graphs, self.config['graph']['json_path'])
         return whole_graph
 
     def visualization(self):
@@ -143,7 +212,6 @@ class graph_maker:
             
             for char in chars:
                 triples = graph[char]['directed']
-                frames = graph[char]['undirected']
 
                 
                 if len(triples) != 0:
@@ -166,7 +234,7 @@ class graph_maker:
                 frames = graph[char]['undirected']
 
                 if len(frames) != 0:
-                    if char not in t_name_to_i:
+                    if char not in f_name_to_i:
                         dot_frame.node(str(len(f_name_to_i)), char, _attributes={'fillcolor':'gray', 'style':'filled'})
                         f_name_to_i[char] = str(len(f_name_to_i))
                         f_i_to_name[str(len(f_name_to_i))] = char
@@ -179,18 +247,9 @@ class graph_maker:
                             f_i_to_name[str(len(f_name_to_i))] = v
 
                     for k, v in f.items():
-                        if k =='type': continue
-                        dot_frame.edge(f_name_to_i[f['type']], f_name_to_i[v], label=k)
-
-
+                        if k =='frame': continue
+                        dot_frame.edge(f_name_to_i[f['frame']], f_name_to_i[v], label=k)
 
             print(dot_triple.source)
             dot_triple.render(os.path.join(self.config['graph']['graph_path'], '{}_triple.gv').format(qid), view=False)
             dot_frame.render(os.path.join(self.config['graph']['graph_path'], '{}_frame.gv').format(qid), view=False)
-            print()
-
-
-
-
-
-

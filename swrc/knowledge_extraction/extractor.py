@@ -11,10 +11,9 @@ class extractor:
         if config['extraction']['load']:
             self.output = jsonload(self.config['extraction']['output_path'])
             return
-
-        self.oie = oie(config, self.input)
-        self.frame = frame(config, self.oie.output)
-        self.output = self.frame.output
+        self.frame = frame(config, self.input)
+        self.oie = oie(config, self.frame.output)
+        self.output = self.oie.output
 
 
     def save_output(self):

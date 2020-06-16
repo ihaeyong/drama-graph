@@ -15,13 +15,16 @@ class preprocessor:
         else:
             self.qa_loader()
 
-        self.sentence_divider = sentence_divider(config, self.input)
-        self.coref = coreference(config, self.sentence_divider.output)
-        self.to_stmt = to_statement(config, self.coref.output)
+        self.coref = coreference(config, self.input)
+        self.sentence_divider = sentence_divider(config, self.coref.output)
+        self.to_stmt = to_statement(config, self.sentence_divider.output)
         self.output = self.to_stmt.output
 
 
     def subtitle_loader(self):
+        subtitle_path = self.config['preprocessing']['substitle_file']
+        for path in diriter(subtitle_path):
+            self.input.append(jsonload(path))
         return
 
     def qa_loader(self):

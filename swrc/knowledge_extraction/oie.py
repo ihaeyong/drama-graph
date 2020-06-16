@@ -16,10 +16,18 @@ class oie:
     def run(self):
         if self.config['extraction']['oie'] == 'stanford':
             with StanfordOpenIE() as client:
-                for qa in self.input:
-                    for utter in qa['utterances']:
-                        for sent in utter['sents']:
-                            sent['triples'] = client.annotate(sent['statement'])
+                if self.config['mode'] == 'qa':
+                    for qa in self.input:
+                        for utter in qa['utterances']:
+                            for sent in utter['sents']:
+                                sent['triples'] = client.annotate(sent['statement'])
+                elif self.config['mode'] == 'subtitle':
+                    for ep in self.input:
+                        for scene in ep:
+                            for u in scene['scene']:
+                                for sent in u['sents']:
+                                    sent['triples'] = client.annotate(sent['statement'])
+
             print('Stanford Open IE done..')
 
         return self.input

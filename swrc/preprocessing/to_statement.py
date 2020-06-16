@@ -11,5 +11,12 @@ class to_statement:
             for qa in input:
                 for u in qa['utterances']:
                     for sent in u['sents']:
-                        sent['statement'] = sent['text']
+                        sent['statement'] = sent['origin']
+        elif self.config['mode'] == 'subtitle':
+            print()
+            for ep in input:
+                for scene in ep:
+                    for u in scene['scene']:
+                        for sent in u['sents']:
+                            sent['statement'] = sent['origin']
         return input
