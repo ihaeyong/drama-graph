@@ -2,18 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="ad0ac833-e173-4251-87e0-7b995b19d678" name="Default Changelist" comment="">
-      <change beforePath="$PROJECT_DIR$/../.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/../.gitignore" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config/config.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/config/config.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/graph_maker/graph_maker.py" beforeDir="false" afterPath="$PROJECT_DIR$/graph_maker/graph_maker.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/knowledge_extraction/extractor.py" beforeDir="false" afterPath="$PROJECT_DIR$/knowledge_extraction/extractor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/knowledge_extraction/frame.py" beforeDir="false" afterPath="$PROJECT_DIR$/knowledge_extraction/frame.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/knowledge_extraction/oie.py" beforeDir="false" afterPath="$PROJECT_DIR$/knowledge_extraction/oie.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/coreference.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing/coreference.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/preprocessor.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing/preprocessor.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/sentence_divider.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing/sentence_divider.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/preprocessing/to_statement.py" beforeDir="false" afterPath="$PROJECT_DIR$/preprocessing/to_statement.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/test.json" beforeDir="false" afterPath="$PROJECT_DIR$/test.json" afterDir="false" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
@@ -33,17 +23,17 @@
       <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/graph_maker/graph_maker.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1304">
-              <caret line="255" selection-start-line="255" selection-end-line="255" />
+            <state relative-caret-position="95">
+              <caret line="7" column="26" lean-forward="true" selection-start-line="7" selection-start-column="26" selection-end-line="7" selection-end-column="26" />
             </state>
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="false">
+      <file pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/utils/macro.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="228">
-              <caret line="12" column="30" selection-start-line="12" selection-start-column="30" selection-end-line="12" selection-end-column="30" />
+            <state relative-caret-position="399">
+              <caret line="21" column="25" lean-forward="true" selection-start-line="21" selection-start-column="25" selection-end-line="21" selection-end-column="25" />
             </state>
           </provider>
         </entry>
@@ -120,11 +110,11 @@
           </provider>
         </entry>
       </file>
-      <file pinned="false" current-in-tab="true">
+      <file pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/config/config.yaml">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="420">
-              <caret line="27" lean-forward="true" selection-start-line="27" selection-end-line="27" />
+            <state relative-caret-position="228">
+              <caret line="12" column="43" lean-forward="true" selection-start-line="12" selection-start-column="43" selection-end-line="12" selection-end-column="43" />
             </state>
           </provider>
         </entry>
@@ -184,7 +174,6 @@
         <option value="$PROJECT_DIR$/pre-processor/preprocessor.py" />
         <option value="$PROJECT_DIR$/pre-processor/__init__.py" />
         <option value="$PROJECT_DIR$/preprocessor/oie.py" />
-        <option value="$PROJECT_DIR$/utils/macro.py" />
         <option value="$PROJECT_DIR$/preprocessor/sentence_divider.py" />
         <option value="$PROJECT_DIR$/visualization.py" />
         <option value="$PROJECT_DIR$/preprocessor/frame.py" />
@@ -203,8 +192,9 @@
         <option value="$PROJECT_DIR$/knowledge_extraction/oie.py" />
         <option value="$PROJECT_DIR$/knowledge_extraction/frame.py" />
         <option value="$PROJECT_DIR$/knowledge_extraction/extractor.py" />
-        <option value="$PROJECT_DIR$/graph_maker/graph_maker.py" />
         <option value="$PROJECT_DIR$/config/config.yaml" />
+        <option value="$PROJECT_DIR$/graph_maker/graph_maker.py" />
+        <option value="$PROJECT_DIR$/utils/macro.py" />
       </list>
     </option>
   </component>
@@ -238,7 +228,7 @@
     <property name="WebServerToolWindowFactoryState" value="true" />
     <property name="nodejs_interpreter_path.stuck_in_default_project" value="undefined stuck path" />
     <property name="nodejs_npm_path_reset_for_default_project" value="true" />
-    <property name="settings.editor.selected.configurable" value="com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable" />
+    <property name="settings.editor.selected.configurable" value="preferences.sourceCode.Python" />
   </component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
@@ -401,23 +391,22 @@
       <workItem from="1591081817313" duration="1165000" />
       <workItem from="1591083874613" duration="2037000" />
       <workItem from="1591336993684" duration="611000" />
-      <workItem from="1592290339116" duration="8551000" />
+      <workItem from="1592290339116" duration="9109000" />
     </task>
     <servers />
   </component>
   <component name="TimeTrackingManager">
-    <option name="totallyTimeSpent" value="55241000" />
+    <option name="totallyTimeSpent" value="55799000" />
   </component>
   <component name="ToolWindowManager">
     <frame x="-8" y="-8" width="1936" height="1056" extended-state="6" />
-    <editor active="true" />
     <layout>
-      <window_info active="true" content_ui="combo" id="Project" order="0" visible="true" weight="0.19509594" />
+      <window_info content_ui="combo" id="Project" order="0" visible="true" weight="0.19509594" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info id="Favorites" order="2" side_tool="true" />
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Find" order="1" weight="0.329718" />
-      <window_info anchor="bottom" id="Run" order="2" visible="true" weight="0.36334056" />
+      <window_info anchor="bottom" id="Run" order="2" weight="0.36334056" />
       <window_info anchor="bottom" id="Debug" order="3" weight="0.47613883" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
@@ -656,17 +645,24 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/knowledge_extraction/oie.py">
+    <entry file="file://$PROJECT_DIR$/preprocessing/to_statement.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="422">
-          <caret line="29" selection-start-line="29" selection-end-line="29" />
+        <state relative-caret-position="399">
+          <caret line="21" selection-start-line="21" selection-end-line="21" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/knowledge_extraction/frame.py">
+    <entry file="file://$PROJECT_DIR$/preprocessing/sentence_divider.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="157">
-          <caret line="28" column="51" selection-start-line="28" selection-start-column="51" selection-end-line="28" selection-end-column="51" />
+        <state relative-caret-position="133">
+          <caret line="7" selection-start-line="7" selection-end-line="7" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/config/config.yaml">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="228">
+          <caret line="12" column="43" lean-forward="true" selection-start-line="12" selection-start-column="43" selection-end-line="12" selection-end-column="43" />
         </state>
       </provider>
     </entry>
@@ -680,10 +676,17 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/preprocessing/to_statement.py">
+    <entry file="file://$PROJECT_DIR$/knowledge_extraction/oie.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="399">
-          <caret line="21" selection-start-line="21" selection-end-line="21" />
+        <state relative-caret-position="422">
+          <caret line="29" selection-start-line="29" selection-end-line="29" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/knowledge_extraction/frame.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="157">
+          <caret line="28" column="51" selection-start-line="28" selection-start-column="51" selection-end-line="28" selection-end-column="51" />
         </state>
       </provider>
     </entry>
@@ -707,31 +710,17 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/preprocessing/sentence_divider.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="133">
-          <caret line="7" selection-start-line="7" selection-end-line="7" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/graph_maker/graph_maker.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="1304">
-          <caret line="255" selection-start-line="255" selection-end-line="255" />
+        <state relative-caret-position="95">
+          <caret line="7" column="26" lean-forward="true" selection-start-line="7" selection-start-column="26" selection-end-line="7" selection-end-column="26" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/utils/macro.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="228">
-          <caret line="12" column="30" selection-start-line="12" selection-start-column="30" selection-end-line="12" selection-end-column="30" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/config/config.yaml">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="420">
-          <caret line="27" lean-forward="true" selection-start-line="27" selection-end-line="27" />
+        <state relative-caret-position="399">
+          <caret line="21" column="25" lean-forward="true" selection-start-line="21" selection-start-column="25" selection-end-line="21" selection-end-column="25" />
         </state>
       </provider>
     </entry>

@@ -1,5 +1,3 @@
-# TODO frame 같은 애들끼리 그래프가 겹치는 버그가 있다. lu가 제일 먼저나오니까 그거 기준으로 짜르자.
-
 import os
 from graphviz import Digraph
 from utils.macro import *
