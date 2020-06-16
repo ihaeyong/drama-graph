@@ -1,13 +1,16 @@
 ## SWRC
 
-### requirements
-> pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz --no-deps
+### Requirements for SWRC
 
-> apt-get install default-jdk
+```
+>> pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz --no-deps
+>> apt-get install default-jdk
+```
 
+### Execute SWRC
 
-### Execute
-> ./tran_swrc.sh
+```
+./tran_swrc.sh
+```
 
-### Visualization
-> 
+We can check the graph samples in the local data folder.
