@@ -49,3 +49,9 @@ We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 ```
 >> ./scripts/eval_models.sh #gpu
 ```
+
+
+
+#### Acknowledgements
+
+This work was supported by Institute for Information & communications Technology Promotion(IITP) grant funded by the Korea government(MSIT) (2017-0-01780, The technology development for event recognition/relational reasoning and learning knowledge based system for video understanding)
