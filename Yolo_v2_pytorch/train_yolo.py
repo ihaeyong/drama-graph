@@ -12,9 +12,7 @@ import visdom
 import cv2
 import pickle
 import numpy as np
-
-loss_data = {'X': [], 'Y': [], 'legend_U':['total', 'coord', 'conf', 'cls', 'cls_behavior']}
-visdom = visdom.Visdom(port=6005)
+from lib.logger import Logger
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -57,6 +55,7 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual/")
+    parser.add_argument("-model", dest='model', type=str, default="baseline")
 
     args = parser.parse_args()
     return args
@@ -73,6 +72,14 @@ train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
+# logger path
+logger_path = 'logs/{}'.format(opt.model)
+if os.path.exists(logger_path):
+    print('exist_{}'.format(logger_path))
+else:
+    os.makedirs(logger_path)
+    print('mkdir_{}'.format(logger_path))
+logger = Logger(logger_path)
 
 def train(opt):
     if torch.cuda.is_available():
@@ -166,28 +173,18 @@ def train(opt):
                 'cls_behavior' : loss_behavior_cls.item()
             }
 
-            visdom_loss(visdom, loss_step, loss_dict)
+            # Log scalar values
+            for tag, value in loss_dict.items():
+                logger.scalar_summary(tag, value, loss_step)
+
             loss_step = loss_step + 1
 
         print("SAVE MODEL")
         torch.save(model.state_dict(),
-                   opt.saved_path + os.sep + "anotherMissOh_only_params.pth")
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(opt.model))
         torch.save(model,
-                   opt.saved_path + os.sep + "anotherMissOh.pth")
-
-def visdom_loss(visdom, loss_step, loss_dict):
-    loss_data['X'].append(loss_step)
-    loss_data['Y'].append([loss_dict[k] for k in loss_data['legend_U']])
-    visdom.line(
-        X=np.stack([np.array(loss_data['X'])] * len(loss_data['legend_U']), 1),
-        Y=np.array(loss_data['Y']),
-        win=30,
-        opts=dict(xlabel='Step',
-                  ylabel='Loss',
-                  title='YOLO_V2',
-                  legend=loss_data['legend_U']),
-        update='append'
-    )
+                   opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
+                       opt.model))
 
 if __name__ == "__main__":
     train(opt)

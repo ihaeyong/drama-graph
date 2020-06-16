@@ -31,9 +31,6 @@ def get_args():
     parser.add_argument("--pre_trained_model_type",
                         type=str, choices=["model", "params"],
                         default="model")
-    parser.add_argument("--pre_trained_model_path",
-                        type=str,
-                        default="./checkpoint/anotherMissOh.pth")
     parser.add_argument("--data_path_test",
                         type=str,
                         default="./Yolo_v2_pytorch/missoh_test/",
@@ -43,6 +40,7 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual/")
+    parser.add_argument("-model", dest='model', type=str, default="baseline")
     args = parser.parse_args()
     return args
 
@@ -66,6 +64,9 @@ train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
+# model path
+model_path = "./checkpoint/anotherMissOh_{}.pth".format(opt.model)
+
 def test(opt):
     global colors
 
@@ -80,12 +81,12 @@ def test(opt):
 
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
-            model1 = torch.load(opt.pre_trained_model_path)
-            print("loaded with gpu {}".format(opt.pre_trained_model_path))
+            model1 = torch.load(model_path)
+            print("loaded with gpu {}".format(model_path))
         else:
             model1 = Yolo(num_persons)
-            model1.load_state_dict(torch.load(opt.pre_trained_model_path))
-            print("loaded with cpu {}".format(opt.pre_trained_model_path))
+            model1.load_state_dict(torch.load(model_path))
+            print("loaded with cpu {}".format(model_path))
 
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
