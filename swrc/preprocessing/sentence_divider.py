@@ -7,7 +7,7 @@ class sentence_divider:
         self.output = self.segmentation()
 
     def segmentation(self):
-        nlp = spacy.load('en')
+        nlp = spacy.load('en_core_web_sm')
         json = self.input
         if self.config['mode'] == 'qa':
             for qa in json:

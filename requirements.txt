@@ -9,3 +9,8 @@ mxnet==1.6.0
 scikit-learn==0.22.2
 Pillow==6.1
 future==0.18.2
+pyaml
+spacy
+logging
+stanfordnlp
+stanford-openie

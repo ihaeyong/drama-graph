@@ -6,7 +6,7 @@ from knowledge_extraction.extractor import *
 from graph_maker.graph_maker import *
 from background_knowledge.background import *
 
-with open(os.path.join('config', 'config.yaml'), 'r') as f:
+with open(os.path.join('config', 'config.yaml'), 'r', encoding='utf8') as f:
     config = yaml.load(f, Loader=yaml.FullLoader)
 
 LOG_FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
