@@ -11,7 +11,7 @@ import json
 PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'Unknown']
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
 
 # define behavior
 PBeHavCLS = ["stand up","sit down","walk","hold","hug",
@@ -23,14 +23,14 @@ PBeHavCLS = ["stand up","sit down","walk","hold","hug",
              "call", "destroy",
              "put arms around each other's shoulder",
              "open", "shake hands", "wave hands",
-             "kiss", "high-five", "write", "Unknown"]
+             "kiss", "high-five", "write", "none"]
 
 # define person to person relations
-P2PRelCLS = ['Friendly', 'Unfriendly', 'Unknown']
+P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
 
 # define object classes
-ObjectCLS = ['Phone', 'Stick']
-P2ORelCLS = ['Holding', 'Wearing', 'Unknown']
+ObjectCLS = ['Phone', 'Stick', 'none']
+P2ORelCLS = ['Holding', 'Wearing', 'none']
 
 def Splits(num_episodes):
     '''
