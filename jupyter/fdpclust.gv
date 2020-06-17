@@ -2,37 +2,22 @@ graph G {
 	graph [dpi=300 rankdir=TB rotate=0 size="5,5"]
 	node [fontsize=7 height=0.1]
 	edge [fontsize=7]
-	"4frame_subgraph"
 	subgraph clusterE {
 		kitchen
 		none
-		"4frame_subgraph" -- kitchen
-		"4frame_subgraph" -- none
-		subgraph clusterA {
-			graph [dpi=600 rankdir=TB rotate=0 size=1]
-			node [fontsize=7 height=0.05]
-			edge [fontsize=7]
-			id0_Jeongsuk
-			bhvr0_cook
-			pred0_
-			emt0_Happiness
-			id0_Jeongsuk -- bhvr0_cook
-			id0_Jeongsuk -- pred0_
-			id0_Jeongsuk -- emt0_Happiness
-		}
-		"4frame_subgraph" -- clusterA
-		subgraph clusterB {
-			graph [dpi=600 rankdir=TB rotate=0 size=1]
-			node [fontsize=7 height=0.05]
-			edge [fontsize=7]
-			id1_Deogi
-			bhvr1_cook
-			pred1_
-			emt1_Happiness
-			id1_Deogi -- bhvr1_cook
-			id1_Deogi -- pred1_
-			id1_Deogi -- emt1_Happiness
-		}
-		"4frame_subgraph" -- clusterB
+		Jeongsuk
+		cook
+		""
+		Happiness
+		Jeongsuk -- cook
+		Jeongsuk -- ""
+		Jeongsuk -- Happiness
+		Deogi
+		cook
+		""
+		Happiness
+		Deogi -- cook
+		Deogi -- ""
+		Deogi -- Happiness
 	}
 }

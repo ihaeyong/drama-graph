@@ -5,6 +5,6 @@ export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKIng/Face_recog
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python test_missoh_all_images.py -model logger
+python test_missoh_all_images.py -model more_params
 
 
