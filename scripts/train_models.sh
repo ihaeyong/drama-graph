@@ -5,6 +5,6 @@ export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKIng/Face_recog
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python train_main.py -model logger
+python train_main.py -model more_params
 
 

@@ -2,7 +2,7 @@ import os
 import argparse
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect
+from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
 from .src.utils import *
 from .src.loss import YoloLoss
 from .src.yolo_net import Yolo
@@ -72,6 +72,9 @@ train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
+num_persons = len(PersonCLS)
+num_behaviors = len(PBeHavCLS)
+
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
 if os.path.exists(logger_path):
@@ -101,12 +104,12 @@ def train(opt):
 
     train_loader = DataLoader(train_set, **training_params)
 
-    pre_model = Yolo(20).cuda()
+    # define pre-model
+    pre_model = Yolo(num_persons).cuda()
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    num_behaviors = 27
-    num_persons = 20
+    # define model
     model = YoloD(pre_model, num_persons, num_behaviors).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
@@ -114,7 +117,8 @@ def train(opt):
     criterion = YoloLoss(num_persons, num_behaviors, model.anchors,
                          opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
-                                momentum=opt.momentum, weight_decay=opt.decay)
+                                momentum=opt.momentum,
+                                weight_decay=opt.decay)
 
     model.train()
     num_iter_per_epoch = len(train_loader)
