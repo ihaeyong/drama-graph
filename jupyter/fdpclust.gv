@@ -1,23 +1,22 @@
-graph G {
+digraph G {
 	graph [dpi=300 rankdir=TB rotate=0 size="5,5"]
 	node [fontsize=7 height=0.1]
 	edge [fontsize=7]
-	subgraph clusterE {
-		kitchen
-		none
-		Jeongsuk
-		cook
-		""
-		Happiness
-		Jeongsuk -- cook
-		Jeongsuk -- ""
-		Jeongsuk -- Happiness
-		Deogi
-		cook
-		""
-		Happiness
-		Deogi -- cook
-		Deogi -- ""
-		Deogi -- Happiness
-	}
+	"4_frame"
+	kitchen
+	sound
+	Jeongsuk
+	cook
+	""
+	Happiness
+	Jeongsuk -> cook
+	Jeongsuk -> ""
+	Jeongsuk -> Happiness
+	Deogi
+	cook
+	""
+	Happiness
+	Deogi -> cook
+	Deogi -> ""
+	Deogi -> Happiness
 }
