@@ -11,7 +11,7 @@ import json
 PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
 
 # define behavior
 PBeHavCLS = ["stand up","sit down","walk","hold","hug",
