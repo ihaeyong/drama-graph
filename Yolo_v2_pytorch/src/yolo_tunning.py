@@ -52,6 +52,8 @@ class YoloD(nn.Module):
         self.stage3_conv_behavior = nn.Sequential(
             nn.Conv2d(1024, 1024,1, 1, 0, bias=False),
             nn.BatchNorm2d(1024),
+            nn.Conv2d(1024, 1024,1, 1, 0, bias=False),
+            nn.BatchNorm2d(1024),
             nn.Conv2d(1024, len(self.anchors) * (num_behavior_cls),
                       1, 1, 0, bias=False))
 
