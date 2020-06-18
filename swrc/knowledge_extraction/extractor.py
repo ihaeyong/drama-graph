@@ -1,6 +1,6 @@
 from knowledge_extraction.oie import *
 from knowledge_extraction.frame import *
-from preprocessing.sentence_divider import *
+from preprocessing.sentence_processor import *
 from utils.macro import *
 
 class extractor:
@@ -12,8 +12,9 @@ class extractor:
             self.output = jsonload(self.config['extraction']['output_path'])
             return
         self.frame = frame(config, self.input)
-        self.oie = oie(config, self.frame.output)
-        self.output = self.oie.output
+        # self.oie = oie(config, self.frame.output)
+        # self.output = self.oie.output
+        self.output = self.frame.output
 
 
     def save_output(self):

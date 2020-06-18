@@ -10,11 +10,17 @@ class graph_maker:
         self.char_triples = []
         self.char_frames = []
         self.char_names = []
+        print(' struct knowledge..')
         self.struct_knowledge()
+        print(' done..')
         self.graphs = []
+        print(' make graph..')
         self.whole_graph = self.build_graph()
-        if config['graph']['visualization']:
+        print(' done..')
+        if config['graph']['visualization'] != 'None':
+            print(' visualizing..')
             self.visualization()
+            print(' done..')
 
 
     def struct_knowledge(self):  # coref + 해당 지식이 인물관련 지식인가?
@@ -37,6 +43,10 @@ class graph_maker:
                     for sid, sent in enumerate(u['sents']):
                         sent['char_triples'] = []
                         sent['char_frames'] = []
+                        if 'triples' not in sent.keys():
+                            sent['triples'] = []
+                        if 'frames' not in sent.keys():
+                            sent['frames'] = []
 
                         for triple in sent['triples']:  # for directed edge
                             keys = triple.keys()
@@ -69,6 +79,12 @@ class graph_maker:
                         for sid, sent in enumerate(u['sents']):
                             sent['char_triples'] = []
                             sent['char_frames'] = []
+
+                            if 'triples' not in sent.keys():
+                                sent['triples'] = []
+                            if 'frames' not in sent.keys():
+                                sent['frames'] = []
+
 
                             for triple in sent['triples']:  # for directed edge
                                 keys = triple.keys()
@@ -200,54 +216,60 @@ class graph_maker:
 
 
         for qid, graph in self.graphs:
-            dot_triple = Digraph(comment='The Round Table')
-            dot_frame = Digraph(comment='The Round Table')
+            if self.config['graph']['visualization'] != 'frame':
+                dot_triple = Digraph(comment='The Round Table')
+            if self.config['graph']['visualization'] != 'triple':
+                dot_frame = Digraph(comment='The Round Table')
             t_name_to_i = {}
             t_i_to_name = {}
             f_name_to_i = {}
             f_i_to_name = {}
-            
-            
-            for char in chars:
-                triples = graph[char]['directed']
 
-                
-                if len(triples) != 0:
-                    if char not in t_name_to_i:
-                        dot_triple.node(str(len(t_name_to_i)), char, _attributes={'fillcolor':'gray', 'style':'filled'})
-                        t_name_to_i[char] = str(len(t_name_to_i))
-                        t_i_to_name[str(len(t_name_to_i))] = char
+            if self.config['graph']['visualization'] != 'frame':
+                dot_triple = Digraph(comment='The Round Table')
+                for char in chars:
+                    triples = graph[char]['directed']
 
-                for t in triples:
-                    rel = str(t[0])
-                    obj = str(t[1])
-                    if obj not in t_name_to_i:
-                        dot_triple.node(str(len(t_name_to_i)), obj)
-                        t_name_to_i[obj] = str(len(t_name_to_i))
-                        t_i_to_name[str(len(t_name_to_i))] = obj
 
-                    dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel)
+                    if len(triples) != 0:
+                        if char not in t_name_to_i:
+                            dot_triple.node(str(len(t_name_to_i)), char, _attributes={'fillcolor':'gray', 'style':'filled'})
+                            t_name_to_i[char] = str(len(t_name_to_i))
+                            t_i_to_name[str(len(t_name_to_i))] = char
 
-            for char in chars:
-                frames = graph[char]['undirected']
+                    for t in triples:
+                        rel = str(t[0])
+                        obj = str(t[1])
+                        if obj not in t_name_to_i:
+                            dot_triple.node(str(len(t_name_to_i)), obj)
+                            t_name_to_i[obj] = str(len(t_name_to_i))
+                            t_i_to_name[str(len(t_name_to_i))] = obj
 
-                if len(frames) != 0:
-                    if char not in f_name_to_i:
-                        dot_frame.node(str(len(f_name_to_i)), char, _attributes={'fillcolor':'gray', 'style':'filled'})
-                        f_name_to_i[char] = str(len(f_name_to_i))
-                        f_i_to_name[str(len(f_name_to_i))] = char
+                        dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel)
 
-                for f in frames:
-                    for k,v in f.items():
-                        if v not in f_name_to_i:
-                            dot_frame.node(str(len(f_name_to_i)), v)
-                            f_name_to_i[v] = str(len(f_name_to_i))
-                            f_i_to_name[str(len(f_name_to_i))] = v
+            if self.config['graph']['visualization'] != 'triple':
+                dot_frame = Digraph(comment='The Round Table')
+                for char in chars:
+                    frames = graph[char]['undirected']
 
-                    for k, v in f.items():
-                        if k =='frame': continue
-                        dot_frame.edge(f_name_to_i[f['frame']], f_name_to_i[v], label=k)
+                    if len(frames) != 0:
+                        if char not in f_name_to_i:
+                            dot_frame.node(str(len(f_name_to_i)), char, _attributes={'fillcolor':'gray', 'style':'filled'})
+                            f_name_to_i[char] = str(len(f_name_to_i))
+                            f_i_to_name[str(len(f_name_to_i))] = char
 
-            print(dot_triple.source)
-            dot_triple.render(os.path.join(self.config['graph']['graph_path'], '{}_triple.gv').format(qid), view=False)
-            dot_frame.render(os.path.join(self.config['graph']['graph_path'], '{}_frame.gv').format(qid), view=False)
+                    for f in frames:
+                        for k,v in f.items():
+                            if v not in f_name_to_i:
+                                dot_frame.node(str(len(f_name_to_i)), v)
+                                f_name_to_i[v] = str(len(f_name_to_i))
+                                f_i_to_name[str(len(f_name_to_i))] = v
+
+                        for k, v in f.items():
+                            if k =='frame': continue
+                            dot_frame.edge(f_name_to_i[f['frame']], f_name_to_i[v], label=k)
+
+            if self.config['graph']['visualization'] != 'frame':
+                dot_triple.render(os.path.join(self.config['graph']['graph_path'], '{}_triple.gv').format(qid), view=False)
+            if self.config['graph']['visualization'] != 'triple':
+                dot_frame.render(os.path.join(self.config['graph']['graph_path'], '{}_frame.gv').format(qid), view=False)

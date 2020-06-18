@@ -1,3 +1,6 @@
+
+
+
 class to_statement:
     def __init__(self, config, input):
         self.config = config
@@ -19,4 +22,5 @@ class to_statement:
                     for u in scene['scene']:
                         for sent in u['sents']:
                             sent['statement'] = sent['origin']
+
         return input

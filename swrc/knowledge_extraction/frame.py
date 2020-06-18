@@ -28,7 +28,8 @@ class frame:
                             for sent in u['sents']:
                                 sent['frames'] = []
                                 results = eng_frameBERT(sent['statement'])
-
+                                if type(results) is dict:  # error case
+                                    continue
 
                                 cur = None
                                 for element in results:

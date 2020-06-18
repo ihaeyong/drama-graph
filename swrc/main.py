@@ -17,13 +17,17 @@ logger.info('Config: %s' % config)
 
 subtitles_dir = config['preprocessing']['substitle_file']
 
+print('preprocessing..')
 preprocessor = preprocessor(config)
 preprocessor.save_output()
+print('done..')
 
+print('extracting knowledge..')
 extractor = extractor(config, preprocessor.output)
 extractor.save_output()
-
 back_KB = background_knowledge(config)
+print('done..')
 
+print('building graph..')
 graph_maker = graph_maker(config, extractor.output, back_KB.output)
-
+print('done..')

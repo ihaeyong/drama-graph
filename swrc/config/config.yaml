@@ -1,7 +1,7 @@
 mode: subtitle  #qa or subtitle
 preprocessing:
     load: False
-    substitle_file: data/temp # AnotherMissOh_Sence_Subtitle
+    substitle_file: data/AnotherMissOh_Sence_Bi-lang_Subtitle # AnotherMissOh_Sence_Subtitle
     qa_file: data/0529_specific_qa.json
     output_path: data/output/preprocessed.json
     coreference: gold
@@ -13,13 +13,13 @@ extraction:
     output_path: data/output/extracted.json
 
 background:
-    load: True
+    load: False
     input_path: data/background.txt
     output_path: data/output/background_KB.json
 
 graph:
     character_name: data/character.txt
-    visualization: True
+    visualization: frame  # all, frame, triple, None
     package_path: C:/Program Files (x86)/Graphviz2.38/bin/  # https://graphviz.gitlab.io/_pages/Download/Download_windows.html에서 설치 후 Graphviz 경로
     graph_path: data/output/graphs
     json_path: data/output/graph.json

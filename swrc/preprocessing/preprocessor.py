@@ -1,4 +1,4 @@
-from preprocessing.sentence_divider import *
+from preprocessing.sentence_processor import *
 from preprocessing.coreference import *
 from preprocessing.to_statement import *
 from utils.macro import *
@@ -16,8 +16,8 @@ class preprocessor:
             self.qa_loader()
 
         self.coref = coreference(config, self.input)
-        self.sentence_divider = sentence_divider(config, self.coref.output)
-        self.to_stmt = to_statement(config, self.sentence_divider.output)
+        self.sentence_processor = sentence_processor(config, self.coref.output)
+        self.to_stmt = to_statement(config, self.sentence_processor.output)
         self.output = self.to_stmt.output
 
 
