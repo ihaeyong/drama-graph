@@ -16,7 +16,7 @@ class sentence_processor:
         tokenized = [(tok.text, tok.pos_) for tok in sent]
         if tokenized[0][0].lower() in ['what', 'how'] and tokenized[-1][0] == '!':
             return 'exclamation'
-        if tokenized[-1][0] == '?' and tokenized[0][1] == 'AUX':
+        if tokenized[-1][0] == '?' and (tokenized[0][1] == 'AUX' or tokenized[0][0].lower()[:2] == 'wh'):
             return 'question'
         if tokenized[0][1] == 'VERB':
             return 'command'
