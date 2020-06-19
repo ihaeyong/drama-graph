@@ -5,12 +5,21 @@ class coreference:
     def __init__(self, config, input):
         self.config = config
         self.input = input
+        self.char_typo = {
+            "Heayoung1": "Haeyoung1",
+            "Heayoung2": "Haeyoung2",
+        }
 
         if config['preprocessing']['coreference'] == 'gold': # use annotations
             self.output = self.coref_gold()
 
         else:  # use models
             print()
+
+    def correct_typo(self, text):
+        if text in self.char_typo.keys():
+            return self.char_typo[text]
+        return text
 
     def coref_gold(self):
         input = self.input
@@ -55,7 +64,7 @@ class coreference:
                             'begin': st,
                             'end': en,
                             'form': u['old_utter'][st:en],
-                            'coref': patt[1:-1]
+                            'coref': self.correct_typo(patt[1:-1])
                         }
 
                         corefs.append(coref)
@@ -110,7 +119,7 @@ class coreference:
                                 'begin': st,
                                 'end': en,
                                 'form': u['old_utter'][st:en],
-                                'coref': patt[1:-1]
+                                'coref': self.correct_typo(patt[1:-1])
                             }
 
                             corefs.append(coref)

@@ -7,7 +7,7 @@
 
 
 ### Execute
-> ./tran_swrc.sh
+> ./train_swrc.sh
 
 ### Visualization
 > 

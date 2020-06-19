@@ -71,6 +71,8 @@ class graph_maker:
         elif self.config['mode'] == 'subtitle':
             for ep in self.input:
                 for scene in ep:
+                    if scene['scene_number'] == 24:
+                        print()
                     for uid, u in enumerate(scene['scene']):
                         coref_dict = {}  # {form:character}
                         for coref in u['corefs']:
@@ -136,7 +138,7 @@ class graph_maker:
                             'object': k[1]
                         }
 
-                        if self.config['graph']['only_use'] == 'None':  #현재 등장하는 인물에 대한 backKB 사용.
+                        if self.config['graph']['only_use'] == 'None':  #특정인물만.
                             only_rel = []
                         else:
                             only_rel = self.config['graph']['only_use'].split(',')
@@ -172,31 +174,45 @@ class graph_maker:
                                sent['char_triples']]
                     frames = [triple for u in us for sent in u['sents'] for triple in sent['char_frames']]
 
+                    exist_ch = set()
+                    for triple in triples:
+                        if triple['subject'] in self.char_names:
+                            exist_ch.add(triple['subject'])
+                        if triple['object'] in self.char_names:
+                            exist_ch.add(triple['object'])
+                    exist_ch = list(exist_ch)
+
+
                     for char in self.back_KB:
+                        if self.config['graph']['use_backKB'] == False:
+                            break
+                        if char not in exist_ch:
+                            continue
                         ks = self.back_KB[char]
                         for k in ks:
                             k_dict = {
+                                'type': 'background',
                                 'subject': char,
                                 'relation': k[0],
                                 'object': k[1]
                             }
-
-                            if self.config['graph']['only_use'] == 'None':  # 현재 등장하는 인물에 대한 backKB 사용.
-                                only_rel = []
-                            else:
-                                only_rel = self.config['graph']['only_use'].split(',')
-
-                            if k[0] in only_rel:
-                                triples.append(k_dict)
+                            triples.append(k_dict)
 
                     for t in triples:
                         if t['subject'] not in self.char_names:
                             continue
-                        whole_graph[t['subject']]['directed'].append((t['relation'], t['object']))
-                        graph[t['subject']]['directed'].append((t['relation'], t['object']))
+
+                        if 'type' in t.keys():
+                            type = 'background'
+                        else:
+                            type = 'triple'
+
+                        whole_graph[t['subject']]['directed'].append((t['relation'], t['object'], type))
+                        graph[t['subject']]['directed'].append((t['relation'], t['object'], type))
 
                     for f in frames:
                         for k, v in f.items():
+
                             if v in self.char_names:
                                 whole_graph[v]['undirected'].append(f)
                                 graph[v]['undirected'].append(f)
@@ -240,12 +256,19 @@ class graph_maker:
                     for t in triples:
                         rel = str(t[0])
                         obj = str(t[1])
+                        type = str(t[2])
                         if obj not in t_name_to_i:
-                            dot_triple.node(str(len(t_name_to_i)), obj)
+                            if type == 'background':  # background
+                                dot_triple.node(str(len(t_name_to_i)), obj)
+                                # dot_triple.node(str(len(t_name_to_i)), obj, _attributes={'fillcolor':'blue', 'style':'filled'})
+                            else:
+                                dot_triple.node(str(len(t_name_to_i)), obj)
                             t_name_to_i[obj] = str(len(t_name_to_i))
                             t_i_to_name[str(len(t_name_to_i))] = obj
-
-                        dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel)
+                        if type == 'background':  # background
+                            dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel,  _attributes={'fontcolor':'red','fillcolor':'red', 'style':'filled'})
+                        else:
+                            dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel)
 
             if self.config['graph']['visualization'] != 'triple':
                 dot_frame = Digraph(comment='The Round Table')
