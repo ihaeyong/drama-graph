@@ -36,11 +36,12 @@ def Splits(num_episodes):
     '''
     split the total number of episodes into three : train, val, test
     '''
-    train = range(1, num_episodes-3)
-    val = num_episodes-3
-    test = range(num_episodes-2, num_episodes)
+    train = [*range(1, 6), *range(9,num_episodes)]
+    val = [] #num_episodes-3
+    #test = range(num_episodes-2, num_episodes)
+    test = [7,8]
 
-    return [*train], [val], [*test]
+    return train, val, test
 
 def SortFullRect(image,label, is_train=True):
 
@@ -169,7 +170,7 @@ class AnotherMissOh(Dataset):
         for episode in dataset:
             img_dir = img_path + 'AnotherMissOh{:02}/'.format(episode)
             json_dir = json_path + \
-                'AnotherMissOh{:02}_visual.json'.format(episode)
+                'AnotherMissOh{:02}_ver3.2.json'.format(episode)
             if self.display_log:
                 print('imag_dir:{}'.format(img_dir))
                 print('json_dir:{}'.format(json_dir))

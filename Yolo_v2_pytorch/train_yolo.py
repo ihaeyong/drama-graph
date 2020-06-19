@@ -52,9 +52,9 @@ def get_args():
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
 
     args = parser.parse_args()
@@ -65,7 +65,7 @@ opt = get_args()
 print(opt)
 
 # splits the episodes int train, val, test
-train, val, test = Splits(num_episodes=9)
+train, val, test = Splits(num_episodes=18)
 
 # load datasets
 train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
