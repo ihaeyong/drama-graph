@@ -73,7 +73,6 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 num_persons = len(PersonCLS)
-num_behaviors = len(PBeHavCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -110,12 +109,11 @@ def train(opt):
                               strict=False)
 
     # define model
-    model = YoloD(pre_model, num_persons, num_behaviors).cuda()
+    model = YoloD(pre_model, num_persons).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_persons, num_behaviors, model.anchors,
-                         opt.reduction)
+    criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum,
                                 weight_decay=opt.decay)
@@ -150,11 +148,10 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits, behavior_logits = model(image)
+            logits = model(image)
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls, loss_behavior_cls = criterion(
-                logits,behavior_logits,label, behavior_label)
+            loss, loss_coord, loss_conf, loss_cls = criterion(logits,label)
 
             loss.backward()
             optimizer.step()
@@ -165,16 +162,13 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
-            #print("---- Person Behavior ---- ")
-            print("+cls_behavior:{:.2f}".format(loss_behavior_cls))
             print()
 
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
-                'cls' : loss_cls.item(),
-                'cls_behavior' : loss_behavior_cls.item()
+                'cls' : loss_cls.item()
             }
 
             # Log scalar values
