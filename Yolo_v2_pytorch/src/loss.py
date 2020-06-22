@@ -4,6 +4,7 @@ modified by haeyong.kang
 import math
 import torch
 import torch.nn as nn
+from torch.autograd import Variable
 import warnings
 warnings.filterwarnings("ignore", category=UserWarning)
 
@@ -36,7 +37,7 @@ class YoloLoss(nn.modules.loss._Loss):
         # display labels
         self.debug = True
 
-    def forward(self, output, target):
+    def forward(self, output, target, device):
 
         # output : [b, 125, 14, 14]
         batch, channel, height, width = output.size()
@@ -76,11 +77,16 @@ class YoloLoss(nn.modules.loss._Loss):
         anchor_h = self.anchors[:, 1].contiguous().view(self.num_anchors, 1)
 
         if torch.cuda.is_available():
-            pred_boxes = pred_boxes.cuda()
-            lin_x = lin_x.cuda()
-            lin_y = lin_y.cuda()
-            anchor_w = anchor_w.cuda()
-            anchor_h = anchor_h.cuda()
+            pred_boxes = Variable(pred_boxes.cuda(device),
+                                  requires_grad=False).detach()
+            lin_x = Variable(lin_x.cuda(device),
+                             requires_grad=False).detach()
+            lin_y = Variable(lin_y.cuda(device),
+                             requires_grad=False).detach()
+            anchor_w = Variable(anchor_w.cuda(device),
+                                requires_grad=False).detach()
+            anchor_h = Variable(anchor_h.cuda(device),
+                                requires_grad=False).detach()
 
         pred_boxes[:, 0] = (coord[:, :, 0].detach() + lin_x).view(-1)
         pred_boxes[:, 1] = (coord[:, :, 1].detach() + lin_y).view(-1)
@@ -101,18 +107,25 @@ class YoloLoss(nn.modules.loss._Loss):
         cls_person_mask = cls_mask.view(-1, 1).repeat(1, self.num_classes)
 
         if torch.cuda.is_available():
-            tcoord = tcoord.cuda()
-            tconf = tconf.cuda()
-            coord_mask = coord_mask.cuda()
-            conf_mask = conf_mask.cuda()
-            tcls_person = tcls_person.cuda()
-            cls_person_mask = cls_person_mask.cuda()
+            tcoord = Variable(tcoord.cuda(device),
+                              requires_grad=False).detach()
+            tconf = Variable(tconf.cuda(device),
+                             requires_grad=False).detach()
+            coord_mask = Variable(coord_mask.cuda(device),
+                                  requires_grad=False).detach()
+            conf_mask = Variable(conf_mask.cuda(device),
+                                 requires_grad=False).detach()
+            tcls_person = Variable(tcls_person.cuda(device),
+                                   requires_grad=False).detach()
+            cls_person_mask = Variable(cls_person_mask.cuda(device),
+                                       requires_grad=False).detach()
 
         conf_mask = conf_mask.sqrt()
         cls_person = cls[cls_person_mask].view(-1, self.num_classes)
 
         # --------- Compute losses --------------------
-        # losses for person detection coordinates
+        #import pdb; pdb.set_trace()
+        # Losses for person detection coordinates
         self.loss_coord = self.coord_scale * self.mse(
             coord * coord_mask, tcoord * coord_mask) / batch
 
@@ -177,7 +190,7 @@ class YoloLoss(nn.modules.loss._Loss):
             # ------- Build up tensors --------------------------------
             # cur_pred_boxes : [980, 4]
             cur_pred_boxes = pred_boxes[b * (self.num_anchors * height * width):(
-                                 b + 1) * (self.num_anchors * height * width)]
+                b + 1) * (self.num_anchors * height * width)]
 
             # anchors : [5, 4]
             if self.anchor_step == 4:
@@ -186,7 +199,7 @@ class YoloLoss(nn.modules.loss._Loss):
             else:
                 anchors = torch.cat(
                     [torch.zeros_like(self.anchors), self.anchors], 1)
-            # gt : [:, 4]
+                # gt : [:, 4]
             gt = torch.zeros(len(ground_truth[b]), 4)
             for i, anno in enumerate(ground_truth[b]):
                 gt[i, 0] = (anno[0] + anno[2] / 2) / self.reduction
@@ -197,7 +210,6 @@ class YoloLoss(nn.modules.loss._Loss):
             # ------ Set confidence mask of matching detections to 0
             # iou_gt_pred : [:, 980]
             iou_gt_pred = bbox_ious(gt, cur_pred_boxes)
-
             # mask : [:, 980]
             mask = (iou_gt_pred > self.thresh).sum(0) >= 1
             # conf_mask[b] : [5, 196]

@@ -2,9 +2,12 @@ import os
 import argparse
 import torch
 import torch.nn as nn
+from torch.nn import functional as F
+from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
 from Yolo_v2_pytorch.src.utils import *
+from Yolo_v2_pytorch.src.loss import YoloLoss
 import shutil
 import cv2
 import pickle
@@ -12,6 +15,7 @@ import numpy as np
 from lib.logger import Logger
 
 from lib.behavior_model import behavior_model
+from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -73,6 +77,7 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 num_persons = len(PersonCLS)
+num_behaviors = len(PBeHavCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -88,8 +93,10 @@ def train(opt):
         torch.cuda.manual_seed(123)
     else:
         torch.manual_seed(123)
-    learning_rate_schedule = {"0": 1e-5, "5": 1e-4,
-                              "80": 1e-5, "110": 1e-6}
+    #learning_rate_schedule = {"0": 1e-5, "5": 1e-4,
+    #                          "80": 1e-5, "110": 1e-6}
+    learning_rate_schedule = {"0": opt.lr/10, "5": opt.lr/10,
+                              "80": opt.lr/10, "110": opt.lr/100}
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -104,13 +111,21 @@ def train(opt):
     train_loader = DataLoader(train_set, **training_params)
 
     # define behavior-model
-    model = behavior_model(num_persons).cuda()
+    model = behavior_model(num_persons, num_behaviors, opt)
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
-    model.load_state_dict(torch.load(trained_persons),
-                          strict=False)
 
-    print("loaded pre-trained detector sucessfully.")
+    ckpt = torch.load(trained_persons)
+    if optimistic_restore(model.detector, ckpt):
+        print(".....")
+        print(".....")
+        print("loaded pre-trained detector sucessfully.")
+        print(".....")
+        print(".....")
+
+    if torch.cuda.is_available():
+        device = torch.cuda.current_device()
+        model.cuda(device)
 
     # get optim
     fc_params = [p for n,p in model.named_parameters()
@@ -118,12 +133,18 @@ def train(opt):
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
 
-    params = [{'params': fc_params, 'lr': opt.lr / 10.0},
-              {'params': non_fc_params}]
+    #params = [{'params': fc_params, 'lr': opt.lr / 10.0},
+    #          {'params': non_fc_params}]
+    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}]
+    b_params = [{'params': non_fc_params}]
 
-    optimizer = torch.optim.SGD(params, lr = opt.lr,
-                                momentum=opt.momentum,
-                                weight_decay=opt.decay)
+    criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
+    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
+                                  momentum=opt.momentum,
+                                  weight_decay=opt.decay)
+    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr,
+                                  momentum=opt.momentum,
+                                  weight_decay=opt.decay)
 
     model.train()
     num_iter_per_epoch = len(train_loader)
@@ -132,8 +153,14 @@ def train(opt):
 
     for epoch in range(opt.num_epoches):
         if str(epoch) in learning_rate_schedule.keys():
-            for param_group in optimizer.param_groups:
+
+            for param_group in p_optimizer.param_groups:
                 param_group['lr'] = learning_rate_schedule[str(epoch)]
+
+            for param_group in b_optimizer.param_groups:
+                param_group['lr'] = learning_rate_schedule[str(epoch)]
+
+
         for iter, batch in enumerate(train_loader):
 
             image, info = batch
@@ -148,34 +175,52 @@ def train(opt):
 
             # image [b, 3, 448, 448]
             if torch.cuda.is_available():
-                image = torch.cat(image).cuda()
+                image = torch.cat(image).cuda(device)
             else:
                 image = torch.cat(image)
 
-            optimizer.zero_grad()
+            p_optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits = model(image, label, behavior_label)
+            logits, b_logits, b_labels = model(image, label, behavior_label)
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls = criterion(logits,label)
+            loss, loss_coord, loss_conf, loss_cls = criterion(
+                logits, label, device)
 
             loss.backward()
-            optimizer.step()
+            p_optimizer.step()
+
+            # --------------------------
+            b_optimizer.zero_grad()
+
+            # loss for behavior
+            b_logits = torch.cat(b_logits, 0)
+
+            b_labels = flatten(b_labels)
+            b_labels = Variable(
+                torch.LongTensor(b_labels).cuda(device),
+                requires_grad=False)
+            loss_behavior = F.cross_entropy(b_logits, b_labels)
+
+            loss_behavior.backward()
+            b_optimizer.step()
 
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
-                num_iter_per_epoch, optimizer.param_groups[0]['lr']))
+                num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
+            print("+cls_behavior:{:.2f}".format(loss_behavior))
             print()
 
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
-                'cls' : loss_cls.item()
+                'cls' : loss_cls.item(),
+                'cls_behavior': loss_behavior.item()
             }
 
             # Log scalar values
@@ -185,6 +230,10 @@ def train(opt):
             loss_step = loss_step + 1
 
         print("SAVE MODEL")
+        if not os.path.exists(opt.saved_path):
+            os.makedirs(opt.saved_path)
+            print('mkdir_{}'.format(opt.saved_path))
+
         torch.save(model,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
                        opt.model))
