@@ -19,7 +19,7 @@ from Yolo_v2_pytorch.src.anotherMissOh_dataset import PersonCLS, PBeHavCLS
 import numpy as np
 
 class behavior_model(nn.Module):
-    def __init__(self, num_persons, num_behaviors, opt):
+    def __init__(self, num_persons, num_behaviors, opt, device):
         super(behavior_model, self).__init__()
 
         pre_model = Yolo(num_persons).cuda()
@@ -39,7 +39,7 @@ class behavior_model(nn.Module):
         self.img_size = opt.image_size
         self.conf_threshold = opt.conf_threshold
         self.nms_threshold = opt.nms_threshold
-        self.device=None
+        self.device=device
 
     def forward(self, image, label, behavior_label):
 
@@ -66,7 +66,7 @@ class behavior_model(nn.Module):
                     box = np.stack(box)[:,:4].astype('float32')
                     with torch.no_grad():
                         box = Variable(torch.from_numpy(box)).cuda(
-                            self.device)
+                            self.device).detach()
                         box = torch.clamp(box, min=0.0, max=self.fmap_size)
 
                         i_fmap = roi_align(fmap_[i].unsqueeze(0),
@@ -88,9 +88,9 @@ class behavior_model(nn.Module):
             for i, box in enumerate(label):
                 if len(box) == 0 :
                     continue
-                box = np.stack(box)[:,:4].astype('float32')/self.img_size
 
                 with torch.no_grad():
+                    box = np.stack(box)[:,:4].astype('float32')/self.img_size
                     box = Variable(torch.from_numpy(box).cuda(self.device),
                                    requires_grad=False).detach()
                     box = torch.clamp(box * self.fmap_size,

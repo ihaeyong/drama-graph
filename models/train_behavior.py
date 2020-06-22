@@ -91,12 +91,13 @@ logger = Logger(logger_path)
 def train(opt):
     if torch.cuda.is_available():
         torch.cuda.manual_seed(123)
+        device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
     #learning_rate_schedule = {"0": 1e-5, "5": 1e-4,
     #                          "80": 1e-5, "110": 1e-6}
-    learning_rate_schedule = {"0": opt.lr/10, "5": opt.lr/10,
-                              "80": opt.lr/10, "110": opt.lr/100}
+    learning_rate_schedule = {"0": opt.lr, "5": opt.lr,
+                              "80": opt.lr, "110": opt.lr/10.0}
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -111,7 +112,7 @@ def train(opt):
     train_loader = DataLoader(train_set, **training_params)
 
     # define behavior-model
-    model = behavior_model(num_persons, num_behaviors, opt)
+    model = behavior_model(num_persons, num_behaviors, opt, device)
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
 
@@ -123,9 +124,7 @@ def train(opt):
         print(".....")
         print(".....")
 
-    if torch.cuda.is_available():
-        device = torch.cuda.current_device()
-        model.cuda(device)
+    model.cuda(device)
 
     # get optim
     fc_params = [p for n,p in model.named_parameters()
@@ -200,7 +199,7 @@ def train(opt):
             b_labels = flatten(b_labels)
             b_labels = Variable(
                 torch.LongTensor(b_labels).cuda(device),
-                requires_grad=False)
+                requires_grad=False).detach()
 
             loss_behavior = F.cross_entropy(b_logits, b_labels)
 
