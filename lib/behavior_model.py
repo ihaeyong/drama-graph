@@ -45,6 +45,7 @@ class behavior_model(nn.Module):
 
         # person detector
         logits, fmap = self.detector(image)
+        fmap_ = fmap.detach()
 
         if self.device is None:
             self.device = logits.get_device()
@@ -63,11 +64,12 @@ class behavior_model(nn.Module):
             if len(boxes) > 0 :
                 for i, box in enumerate(boxes):
                     box = np.stack(box)[:,:4].astype('float32')
-                    box = Variable(torch.from_numpy(box)).cuda(
-                        self.device)
-                    box = torch.clamp(box, min=0.0, max=self.fmap_size)
                     with torch.no_grad():
-                        i_fmap = roi_align(fmap.detach()[i].unsqueeze(0),
+                        box = Variable(torch.from_numpy(box)).cuda(
+                            self.device)
+                        box = torch.clamp(box, min=0.0, max=self.fmap_size)
+
+                        i_fmap = roi_align(fmap_[i].unsqueeze(0),
                                            box.view(-1, 4).float(),
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
@@ -87,12 +89,14 @@ class behavior_model(nn.Module):
                 if len(box) == 0 :
                     continue
                 box = np.stack(box)[:,:4].astype('float32')/self.img_size
-                box = Variable(torch.from_numpy(box).cuda(self.device),
-                               requires_grad=False)
-                box = torch.clamp(box * self.fmap_size,
-                                  min=0.0, max=self.fmap_size)
+
                 with torch.no_grad():
-                    i_fmap = roi_align(fmap.detach()[i].unsqueeze(0),
+                    box = Variable(torch.from_numpy(box).cuda(self.device),
+                                   requires_grad=False).detach()
+                    box = torch.clamp(box * self.fmap_size,
+                                      min=0.0, max=self.fmap_size)
+
+                    i_fmap = roi_align(fmap_[i].unsqueeze(0),
                                        box.view(-1, 4).float(),
                                        (self.fmap_size//4,
                                         self.fmap_size//4))

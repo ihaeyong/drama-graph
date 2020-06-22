@@ -3,4 +3,4 @@ export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKING/Face_recog
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python models/eval_behavior.py -model behavior_v2
+python models/eval_behavior.py -model behavior

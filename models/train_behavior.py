@@ -201,6 +201,7 @@ def train(opt):
             b_labels = Variable(
                 torch.LongTensor(b_labels).cuda(device),
                 requires_grad=False)
+
             loss_behavior = F.cross_entropy(b_logits, b_labels)
 
             loss_behavior.backward()

@@ -201,12 +201,6 @@ def test(opt):
                 # logits : [1, 125, 14, 14]
                 # behavior_logits : [1, 135, 14, 14]
                 predictions, b_logits = model1(img, label, behavior_label)
-                #predictions = post_processing(logits,behavior_logits,
-                #                              opt.image_size,
-                #                              PersonCLS,PBeHavCLS,
-                #                              model1.anchors,
-                #                              opt.conf_threshold,
-                #                              opt.nms_threshold)
 
                 if len(predictions) != 0:
                     predictions = predictions[0]
