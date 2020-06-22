@@ -32,6 +32,7 @@ def post_processing(logits, behavior_logits, image_size,
 
     # logits : [b, 125, 14, 14]
     # behavior_logits : [b, 135, 14, 14]
+    # face_logits : [b, 125, 14, 14]
     batch, channel, h, w = logits.size()
 
     # -------- Compute xc,yc, w,h, box_score on Tensor -------------
@@ -67,6 +68,7 @@ def post_processing(logits, behavior_logits, image_size,
         behavior_cls_scores = torch.nn.functional.softmax(
             behavior_logits, 2)
 
+
     # cls_max : [1,5, 196]
     # cls_max_idx : [1, 5, 196]
     cls_max, cls_max_idx = torch.max(cls_scores, 2)
@@ -82,6 +84,7 @@ def post_processing(logits, behavior_logits, image_size,
     # score_thresh_flat : [980]
     score_thresh = cls_max > conf_threshold
     score_thresh_flat = score_thresh.view(-1)
+
 
     if score_thresh.sum() == 0:
         predicted_boxes = []

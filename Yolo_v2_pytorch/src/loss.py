@@ -70,10 +70,10 @@ class YoloLoss(nn.modules.loss._Loss):
             height * width).transpose(1, 2).contiguous().view(
                 -1,self.num_behaviors)
 
+
         # -------- Create prediction boxes--------------
         # pred_boxes : [7840, 4]
-        pred_boxes = torch.FloatTensor(
-            batch * self.num_anchors * height * width, 4)
+        pred_boxes = torch.FloatTensor(batch * self.num_anchors * height * width, 4)
 
         # lin_x, y : [196]
         lin_x = torch.range(0, width - 1).repeat(
@@ -97,6 +97,7 @@ class YoloLoss(nn.modules.loss._Loss):
         pred_boxes[:, 2] = (coord[:, :, 2].detach().exp() * anchor_w).view(-1)
         pred_boxes[:, 3] = (coord[:, :, 3].detach().exp() * anchor_h).view(-1)
         pred_boxes = pred_boxes.cpu()
+
 
         # --------- Get target values ------------------
         coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls, tcls_behavior = self.build_targets(pred_boxes, target, target_behavior, height, width)
@@ -149,12 +150,11 @@ class YoloLoss(nn.modules.loss._Loss):
 
         # total losses
         self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
-        self.loss_tot += self.loss_behavior_cls
+        # self.loss_tot += self.loss_behavior_cls
 
         return self.loss_tot, self.loss_coord, self.loss_conf, self.loss_cls, self.loss_behavior_cls
 
-    def build_targets(self, pred_boxes, ground_truth, ground_truth_behavior,
-                      height, width):
+    def build_targets(self, pred_boxes, ground_truth, ground_truth_behavior, height, width):
 
         # pred_boxes : [7840, 4]
         # ground_truth : [b, 5]
@@ -264,7 +264,6 @@ class YoloLoss(nn.modules.loss._Loss):
                 else:
                     tcls_behavior[b][best_n][gj * width + gi] = int(
                         self.num_behaviors-1)
-
 
 
         return coord_mask, conf_mask, cls_mask, tcoord, tconf, tcls, tcls_behavior
