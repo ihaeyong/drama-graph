@@ -51,8 +51,10 @@ def get_args():
     parser.add_argument("--conf_threshold", type=float, default=0.35) # 0.35
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
-    parser.add_argument("--img_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_images/")
-    parser.add_argument("--json_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_Visual/")
+    parser.add_argument("--img_path", type=str,
+                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+    parser.add_argument("--json_path", type=str,
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
 
     # parser.add_argument("--img_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_images/")
     # parser.add_argument("--json_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_Visual/")
@@ -67,7 +69,7 @@ opt = get_args()
 print(opt)
 
 # splits the episodes int train, val, test
-train, val, test = Splits(num_episodes=9)
+train, val, test = Splits(num_episodes=18)
 
 # load datasets
 train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
@@ -114,7 +116,8 @@ def train(opt):
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_persons, num_behaviors, model.anchors, opt.reduction)
+    p_criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
+    f_criterion = YoloLoss(num_face, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
@@ -148,15 +151,18 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits, behavior_logits, face_logits = model(image)
+            logits, face_logits = model(image)
+            device = logits.get_device()
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls, loss_behavior_cls = criterion(logits, behavior_logits, label, behavior_label)
+            loss, loss_coord, loss_conf, loss_cls = p_criterion(
+                logits, label, device)
 
             # losses for face detection
-            loss_face, loss_coord_face, loss_conf_face, loss_cls_face, _ = criterion(face_logits, behavior_logits, face_label, behavior_label)
+            loss_face, loss_coord_face, loss_conf_face, loss_cls_face = f_criterion(
+                face_logits, face_label, device)
 
-            loss = loss_face # + loss + loss_behavior_cls
+            loss += loss_face
 
             loss.backward()
             optimizer.step()
@@ -168,7 +174,6 @@ def train(opt):
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
             #print("---- Person Behavior ---- ")
-            print("+cls_behavior:{:.2f}".format(loss_behavior_cls))
             print()
 
             loss_dict = {
@@ -176,9 +181,6 @@ def train(opt):
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
-
-                'cls_behavior' : loss_behavior_cls.item(),
-
                 'coord_face': loss_coord_face.item(),
                 'conf_face': loss_conf_face.item(),
                 'cls_face': loss_cls_face.item(),
