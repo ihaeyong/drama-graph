@@ -42,11 +42,12 @@ def Splits(num_episodes):
     '''
     split the total number of episodes into three : train, val, test
     '''
-    train = range(1, num_episodes-3)
-    val = num_episodes-3
-    test = range(num_episodes-2, num_episodes)
+    train = [*range(1, 6), *range(9,num_episodes)]
+    val = [] #num_episodes-3
+    #test = range(num_episodes-2, num_episodes)
+    test = [7,8]
 
-    return [*train], [val], [*test]
+    return train, val, test
 
 def SortFullRect(image, label, is_train=True):
 
