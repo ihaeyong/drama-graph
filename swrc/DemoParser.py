@@ -3,7 +3,7 @@ import os
 import logging
 from preprocessing.preprocessor import *
 from knowledge_extraction.extractor import *
-from graph_maker.graph_maker import *
+from graph_maker.demo_graph_maker import *
 from background_knowledge.background import *
 
 
