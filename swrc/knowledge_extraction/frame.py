@@ -15,33 +15,42 @@ class frame:
         self.output = self.run()
 
     def run(self):
-        if self.config['extraction']['frame'] == 'frameBERT':
-            if self.config['mode'] == 'qa':
-                for qa in self.input:
-                    for utter in qa['utterances']:
-                        for sent in utter['sents']:
+        if self.config['mode'] == 'qa':
+            for qa in self.input:
+                for utter in qa['utterances']:
+                    for sent in utter['sents']:
+                        if self.config['extraction']['frame'] == 'None':
+                            sent['frames'] = []
+                        else:
                             sent['frames'] = eng_frameBERT(sent['statement'])
-            elif self.config['mode'] == 'subtitle':
-                for ep in self.input:
-                    for scene in ep:
-                        for u in scene['scene']:
-                            for sent in u['sents']:
-                                sent['frames'] = []
+        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
+            for ep in self.input:
+                for scene in ep:
+                    for u in scene['scene']:
+                        for sent in u['sents']:
+                            sent['frames'] = []
+                            if self.config['extraction']['frame'] == 'None':
+                                results = []
+                            else:
                                 results = eng_frameBERT(sent['statement'])
-                                if type(results) is dict:  # error case
-                                    continue
+                            if type(results) is dict:  # error case
+                                continue
 
-                                cur = None
-                                for element in results:
-                                    if element[1][-2:] == 'lu':
-                                        if cur:
-                                            sent['frames'].append(cur)
-                                            cur = None
-                                        cur = {'frame':element[0].split(':')[-1], 'lu': element[2]}
-                                    else:
-                                        cur[element[1].split('-')[-1]] = element[2]
-                                if cur:
-                                    sent['frames'].append(cur)
-            print('frameBERT done..')
+                            cur = None
+                            for element in results:
+
+                                if element[2][-1] in ['.','?','!',',']:
+                                    element[2] = element[2][:-1]
+
+                                if element[1][-2:] == 'lu':
+                                    if cur:
+                                        sent['frames'].append(cur)
+                                        cur = None
+                                    cur = {'frame':element[0].split(':')[-1], 'lu': element[2]}
+                                else:
+                                    cur[element[1].split('-')[-1]] = element[2]
+                            if cur:
+                                sent['frames'].append(cur)
+        print('frameBERT done..')
 
         return self.input

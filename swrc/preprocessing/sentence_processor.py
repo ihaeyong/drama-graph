@@ -35,7 +35,7 @@ class sentence_processor:
                         s_type = self.sentence_typing(s)
                         t = {'type': s_type, 'origin': s.text}
                         utter['sents'].append(t)
-        elif self.config['mode'] == 'subtitle':
+        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for j in self.input:
                 for scene in j:
                     for utter in scene['scene']:

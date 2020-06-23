@@ -78,7 +78,7 @@ class coreference:
                         idx += len(patt)
                     u['utter'] = new_sent
                     u['corefs'] = corefs
-        elif self.config['mode'] == 'subtitle':
+        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for j in input:
                 for scene in j:
                     for u in scene['scene']:

@@ -68,7 +68,7 @@ class graph_maker:
                             if flag:
                                 sent['char_frames'].append(frame)
 
-        elif self.config['mode'] == 'subtitle':
+        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for ep in self.input:
                 for scene in ep:
                     if scene['scene_number'] == 24:
@@ -118,13 +118,13 @@ class graph_maker:
         txt.close()
         self.char_names = [name.strip() for name in lines]
         for name in self.char_names:
-            whole_graph[name] = {'undirected': [], 'directed': []}
+            whole_graph[name] = {'frame': [], 'triple': []}
 
         if self.config['mode'] == 'qa':  # qa 당 그래프 1개.
             for qa in self.input:
                 graph = {}
                 for name in self.char_names:
-                    graph[name] = {'undirected': [], 'directed': []}
+                    graph[name] = {'frame': [], 'triple': []}
 
                 triples = [triple for u in qa['utterances'] for sent in u['sents'] for triple in sent['char_triples']]
                 frames = [triple for u in qa['utterances'] for sent in u['sents'] for triple in sent['char_frames']]
@@ -149,17 +149,17 @@ class graph_maker:
                 for t in triples:
                     if t['subject'] not in self.char_names:
                         continue
-                    whole_graph[t['subject']]['directed'].append((t['relation'], t['object']))
-                    graph[t['subject']]['directed'].append((t['relation'], t['object']))
+                    whole_graph[t['subject']]['triple'].append((t['relation'], t['object']))
+                    graph[t['subject']]['triple'].append((t['relation'], t['object']))
 
                 for f in frames:
                     for k, v in f.items():
                         if v in self.char_names:
-                            whole_graph[v]['undirected'].append(f)
-                            graph[v]['undirected'].append(f)
+                            whole_graph[v]['frame'].append(f)
+                            graph[v]['frame'].append(f)
                 self.graphs.append((qa['qid'], graph))
 
-        elif self.config['mode'] == 'subtitle':  # scene 당 그래프 1개.
+        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':  # scene 당 그래프 1개.
             for i, ep in enumerate(self.input):
                 ep_id = i+1
                 for scene in ep:
@@ -168,7 +168,7 @@ class graph_maker:
                     us = scene['scene']
 
                     for name in self.char_names:
-                        graph[name] = {'undirected': [], 'directed': []}
+                        graph[name] = {'frame': [], 'triple': []}
 
                     triples = [triple for u in us for sent in u['sents'] for triple in
                                sent['char_triples']]
@@ -207,15 +207,15 @@ class graph_maker:
                         else:
                             type = 'triple'
 
-                        whole_graph[t['subject']]['directed'].append((t['relation'], t['object'], type))
-                        graph[t['subject']]['directed'].append((t['relation'], t['object'], type))
+                        whole_graph[t['subject']]['triple'].append((t['relation'], t['object'], type))
+                        graph[t['subject']]['triple'].append((t['relation'], t['object'], type))
 
                     for f in frames:
                         for k, v in f.items():
 
                             if v in self.char_names:
-                                whole_graph[v]['undirected'].append(f)
-                                graph[v]['undirected'].append(f)
+                                whole_graph[v]['frame'].append(f)
+                                graph[v]['frame'].append(f)
                     self.graphs.append(('ep{}_scene{}'.format(ep_id, s_id), graph))
 
 
@@ -244,7 +244,7 @@ class graph_maker:
             if self.config['graph']['visualization'] != 'frame':
                 dot_triple = Digraph(comment='The Round Table')
                 for char in chars:
-                    triples = graph[char]['directed']
+                    triples = graph[char]['triple']
 
 
                     if len(triples) != 0:
@@ -273,7 +273,7 @@ class graph_maker:
             if self.config['graph']['visualization'] != 'triple':
                 dot_frame = Digraph(comment='The Round Table')
                 for char in chars:
-                    frames = graph[char]['undirected']
+                    frames = graph[char]['frame']
 
                     if len(frames) != 0:
                         if char not in f_name_to_i:

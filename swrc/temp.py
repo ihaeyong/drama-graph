@@ -3,7 +3,7 @@ import spacy
 nlp = spacy.load('en_core_web_sm')
 
 # text = r'Hurry and eat already. Huh? She\'ll ask how it was, so you should at least taste it.'
-text = 'who are you?'
+text = 'how are you?'
 
 sents = nlp(text).sents
 

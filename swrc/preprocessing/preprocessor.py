@@ -4,7 +4,7 @@ from preprocessing.to_statement import *
 from utils.macro import *
 
 class preprocessor:
-    def __init__(self, config):
+    def __init__(self, config, demo_json):
         self.input = []
         self.config = config
         if config['preprocessing']['load']:
@@ -12,6 +12,8 @@ class preprocessor:
             return
         elif config['mode'] == 'subtitle':
             self.subtitle_loader()
+        elif config['mode'] == 'demo':
+            self.demo_loader(demo_json)
         else:
             self.qa_loader()
 
@@ -19,6 +21,10 @@ class preprocessor:
         self.sentence_processor = sentence_processor(config, self.coref.output)
         self.to_stmt = to_statement(config, self.sentence_processor.output)
         self.output = self.to_stmt.output
+
+    def demo_loader(self, demo_json):
+        self.input.append(demo_json)
+        return
 
 
     def subtitle_loader(self):

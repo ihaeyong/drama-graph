@@ -15,7 +15,7 @@ class to_statement:
                 for u in qa['utterances']:
                     for sent in u['sents']:
                         sent['statement'] = sent['origin']
-        elif self.config['mode'] == 'subtitle':
+        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             print()
             for ep in input:
                 for scene in ep:
