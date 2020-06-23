@@ -60,6 +60,9 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
+    parser.add_argument("-clip", dest='clip', type=float, default=5.0)
+    parser.add_argument("-print_interval", dest='print_interval', type=int,
+                        default=1000)
 
     args = parser.parse_args()
     return args
@@ -94,9 +97,7 @@ def train(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    #learning_rate_schedule = {"0": 1e-5, "5": 1e-4,
-    #                          "80": 1e-5, "110": 1e-6}
-    learning_rate_schedule = {"0": opt.lr, "5": opt.lr,
+    learning_rate_schedule = {"0": opt.lr, "5": opt.lr * 10.0,
                               "80": opt.lr, "110": opt.lr/10.0}
 
     training_params = {"batch_size": opt.batch_size,
@@ -134,7 +135,8 @@ def train(opt):
 
     #params = [{'params': fc_params, 'lr': opt.lr / 10.0},
     #          {'params': non_fc_params}]
-    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}]
+    #p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1
+    p_params = [{'params': fc_params, 'lr': opt.lr}] # v2
     b_params = [{'params': non_fc_params}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
@@ -162,6 +164,8 @@ def train(opt):
 
         for iter, batch in enumerate(train_loader):
 
+            verbose=iter % (opt.print_interval*10) == 0
+
             image, info = batch
 
             # sort label info on fullrect
@@ -188,9 +192,13 @@ def train(opt):
                 logits, label, device)
 
             loss.backward()
+            clip_grad_norm(
+                [(n, p) for n, p in model.named_parameters()
+                 if p.grad is not None and n.startswith('detector')],
+                max_norm=opt.clip, verbose=verbose, clip=True)
             p_optimizer.step()
 
-            # --------------------------
+            # ------- behavior learning -------
             b_optimizer.zero_grad()
 
             # loss for behavior
@@ -204,6 +212,10 @@ def train(opt):
             loss_behavior = F.cross_entropy(b_logits, b_labels)
 
             loss_behavior.backward()
+            clip_grad_norm(
+                [(n, p) for n, p in model.named_parameters()
+                 if p.grad is not None and not n.startswith('detector')],
+                max_norm=opt.clip, verbose=verbose, clip=True)
             b_optimizer.step()
 
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(

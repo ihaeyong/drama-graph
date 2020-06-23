@@ -22,8 +22,8 @@ class behavior_model(nn.Module):
     def __init__(self, num_persons, num_behaviors, opt, device):
         super(behavior_model, self).__init__()
 
-        pre_model = Yolo(num_persons).cuda()
-        self.detector = YoloD(pre_model, num_persons).cuda()
+        pre_model = Yolo(num_persons).cuda(device)
+        self.detector = YoloD(pre_model, num_persons).cuda(device)
         self.num_persons = num_persons
 
         # define behavior
@@ -46,59 +46,61 @@ class behavior_model(nn.Module):
 
         # person detector
         logits, fmap = self.detector(image)
-        fmap_ = fmap.detach()
 
-        if self.device is None:
-            self.device = logits.get_device()
+        fmap = fmap.detach()
 
         # fmap [b, 1024, 14, 14]
         self.fmap_size = fmap.size(2)
 
         # persons boxes
+        b_logits = []
+        b_labels = []
         if not self.training:
             boxes = post_processing(logits, self.fmap_size, PersonCLS,
                                     self.detector.anchors,
                                     self.conf_threshold,
                                     self.nms_threshold)
-
-            b_logits = []
             if len(boxes) > 0 :
                 for i, box in enumerate(boxes):
-                    box = np.stack(box)[:,:4].astype('float32')
+                    num_box = len(box)
                     with torch.no_grad():
+                        box = np.clip(
+                            np.stack(box)[:,:4].astype('float32'),
+                            0.0 + 1e-3, self.fmap_size - 1e-3)
                         box = Variable(torch.from_numpy(box)).cuda(
                             self.device).detach()
-                        box = torch.clamp(box, min=0.0, max=self.fmap_size)
-
-                        i_fmap = roi_align(fmap_[i].unsqueeze(0),
-                                           box.view(-1, 4).float(),
+                        b_box = Variable(
+                            torch.zeros(num_box, 5).cuda(self.device)).detach()
+                        b_box[:,1:] = box
+                        i_fmap = roi_align(fmap[i][None],
+                                           b_box.float(),
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
 
-                    batch = box.size(0)
                     i_fmap = self.behavior_conv(i_fmap)
-                    i_logit = self.behavior_fc(i_fmap.view(batch, -1))
-                    if len(box) > 0:
+                    i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
+                    if num_box > 0:
                         b_logits.append(i_logit)
 
             return boxes, b_logits
 
         if len(behavior_label) > 0 and self.training:
-            b_logits = []
-            b_labels = []
             for i, box in enumerate(label):
-                if len(box) == 0 :
+                num_box = len(box)
+                if num_box == 0 :
                     continue
 
                 with torch.no_grad():
                     box = np.clip(
                         np.stack(box)[:,:4].astype('float32')/self.img_size,
                         0.0 + 1e-3, self.fmap_size - 1e-3)
-                    box = Variable(torch.from_numpy(box).cuda(self.device),
-                                   requires_grad=False).detach() * self.fmap_size
-
-                    i_fmap = roi_align(fmap_[i].unsqueeze(0),
-                                       box.view(-1, 4).float(),
+                    box = torch.from_numpy(box).cuda(
+                        self.device).detach() * self.fmap_size
+                    b_box = Variable(
+                        torch.zeros(num_box, 5).cuda(self.device)).detach()
+                    b_box[:,1:] = box
+                    i_fmap = roi_align(fmap[i][None],
+                                       b_box.float(),
                                        (self.fmap_size//4,
                                         self.fmap_size//4))
 

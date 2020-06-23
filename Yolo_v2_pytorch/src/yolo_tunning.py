@@ -1,5 +1,6 @@
 """
 @author: Viet Nguyen <nhviet1009@gmail.com>
+modified by Haeyong Kang
 """
 import torch.nn as nn
 import torch
