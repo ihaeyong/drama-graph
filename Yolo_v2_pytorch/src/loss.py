@@ -124,7 +124,6 @@ class YoloLoss(nn.modules.loss._Loss):
         cls_person = cls[cls_person_mask].view(-1, self.num_classes)
 
         # --------- Compute losses --------------------
-        #import pdb; pdb.set_trace()
         # Losses for person detection coordinates
         self.loss_coord = self.coord_scale * self.mse(
             coord * coord_mask, tcoord * coord_mask) / batch

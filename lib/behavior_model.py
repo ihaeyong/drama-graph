@@ -36,6 +36,7 @@ class behavior_model(nn.Module):
             nn.ReLU(),nn.Dropout(0.1),
             nn.Linear(1024, num_behaviors))
 
+        self.num_behaviors = num_behaviors
         self.img_size = opt.image_size
         self.conf_threshold = opt.conf_threshold
         self.nms_threshold = opt.nms_threshold
@@ -90,11 +91,11 @@ class behavior_model(nn.Module):
                     continue
 
                 with torch.no_grad():
-                    box = np.stack(box)[:,:4].astype('float32')/self.img_size
+                    box = np.clip(
+                        np.stack(box)[:,:4].astype('float32')/self.img_size,
+                        0.0 + 1e-3, self.fmap_size - 1e-3)
                     box = Variable(torch.from_numpy(box).cuda(self.device),
-                                   requires_grad=False).detach()
-                    box = torch.clamp(box * self.fmap_size,
-                                      min=0.0, max=self.fmap_size)
+                                   requires_grad=False).detach() * self.fmap_size
 
                     i_fmap = roi_align(fmap_[i].unsqueeze(0),
                                        box.view(-1, 4).float(),
