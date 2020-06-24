@@ -108,15 +108,14 @@ def train(opt):
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    num_behaviors = 27
     num_persons = 20
     num_objects = 144
-    model = YoloD(pre_model, num_persons, num_behaviors, num_objects).cuda()
+    model = YoloD(pre_model, num_persons, num_objects).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_persons, num_behaviors, num_objects, model.anchors,
-                         opt.reduction)
+    p_criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
+    o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
@@ -135,7 +134,7 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label, object_label = SortFullRect(image, info)
+            image, label, _, object_label = SortFullRect(image, info)
 
             if np.array(label).size == 0 and np.array(object_label).size == 0:
                 print("iter:{} person & objects bboxs are empty".format(
@@ -143,14 +142,8 @@ def train(opt):
                 empty_person+=1
                 empty_object+=1
                 continue
-            if np.array(label).size == 0:
-                print("iter:{} person bboxs are empty".format(
-                    iter, label))
-                empty_person+=1
-            if np.array(object_label).size == 0:
-                print("iter:{} object bboxs are empty".format(
-                    iter, object_label))
-                empty_object+=1
+            
+            
 
             # image [b, 3, 448, 448]
             if torch.cuda.is_available():
@@ -161,12 +154,35 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits, behavior_logits, object_logits = model(image)
+            logits, object_logits = model(image)
+            device = logits.get_device()
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls, loss_behavior_cls, loss_coord_obj, loss_conf_obj, loss_cls_obj = criterion(
-                logits, behavior_logits, object_logits,
-                label, behavior_label, object_label)
+            # because sometimes there are times when there are persons but not objects, we need to accout for each case
+            if np.array(label).size != 0:
+                loss, loss_coord, loss_conf, loss_cls = p_criterion(logits, label, device)
+            else:
+                print("iter:{} person bboxs are empty".format(
+                    iter, label))
+                empty_person+=1
+                loss = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_coord = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_conf = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_cls = torch.tensor(0, dtype=torch.float).cuda(device)
+
+            # losses for object detection
+            if np.array(object_label).size != 0:
+                loss_object, loss_coord_object, loss_conf_object, loss_cls_object = o_criterion(object_logits, object_label, device)
+            else:
+                print("iter:{} object bboxs are empty".format(
+                    iter, object_label))
+                empty_object+=1
+                loss_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_coord_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_conf_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_cls_object = torch.tensor(0, dtype=torch.float).cuda(device)
+
+            loss += loss_object
 
             loss.backward()
             optimizer.step()
@@ -177,11 +193,9 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
-            #print("---- Person Behavior ---- ")
-            print("+cls_behavior:{:.2f}".format(loss_behavior_cls))
             #print("---- Object Detection ----")
-            print("+(coord_obj:{:.2f},conf_obj:{:.2f},cls_obj:{:.2f})".format(
-                loss_coord_obj, loss_conf_obj, loss_cls_obj))
+            print("+Object_loss:{:.2f}(coord_obj:{:.2f},conf_obj:{:.2f},cls_obj:{:.2f})".format(
+                loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
             print()
 
 
@@ -190,10 +204,10 @@ def train(opt):
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
-                'coord_obj' : loss_coord_obj.item(),
-                'conf_obj' : loss_conf_obj.item(),
-                'cls_obj' : loss_cls.item(),
-                'cls_behavior' : loss_behavior_cls.item()
+                'object_loss' : loss_object.item(),
+                'coord_obj' : loss_coord_object.item(),
+                'conf_obj' : loss_conf_object.item(),
+                'cls_obj' : loss_cls.item()
             }
 
             # Log scalar values
