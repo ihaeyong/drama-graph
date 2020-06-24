@@ -104,18 +104,12 @@ class YoloLoss(nn.modules.loss._Loss):
         cls_person_mask = cls_mask.view(-1, 1).repeat(1, self.num_classes)
 
         if torch.cuda.is_available():
-            tcoord = Variable(tcoord.cuda(device),
-                              requires_grad=False).detach()
-            tconf = Variable(tconf.cuda(device),
-                             requires_grad=False).detach()
-            coord_mask = Variable(coord_mask.cuda(device),
-                                  requires_grad=False).detach()
-            conf_mask = Variable(conf_mask.cuda(device),
-                                 requires_grad=False).detach()
-            tcls_person = Variable(tcls_person.cuda(device),
-                                   requires_grad=False).detach()
-            cls_person_mask = Variable(cls_person_mask.cuda(device),
-                                       requires_grad=False).detach()
+            tcoord = tcoord.cuda(device)
+            tconf = tconf.cuda(device)
+            coord_mask = coord_mask.cuda(device)
+            conf_mask = conf_mask.cuda(device)
+            tcls_person = tcls_person.cuda(device)
+            cls_person_mask = cls_person_mask.cuda(device)
 
         conf_mask = conf_mask.sqrt()
         cls_person = cls[cls_person_mask].view(-1, self.num_classes)
@@ -152,32 +146,32 @@ class YoloLoss(nn.modules.loss._Loss):
         # conf_mask : [b, 5, 196]
         conf_mask = Variable(torch.ones(
             batch, self.num_anchors, height * width,
-            requires_grad=False)).cuda(device).detach() * self.noobject_scale
+            requires_grad=False)).cuda(device) * self.noobject_scale
 
         # coord_mask : [b, 5, 1, 196]
         coord_mask = Variable(torch.zeros(
             batch, self.num_anchors, 1, height * width,
-            requires_grad=False)).cuda(device).detach()
+            requires_grad=False)).cuda(device)
 
         # cls_mask : [b,5,196]
         cls_mask = Variable(torch.zeros(
             batch, self.num_anchors, height * width,
-            requires_grad=False).byte()).cuda(device).detach()
+            requires_grad=False).byte()).cuda(device)
 
         # tcoord : [b, 5, 4, 196]
         tcoord = Variable(torch.zeros(
             batch, self.num_anchors, 4, height * width,
-            requires_grad=False)).cuda(device).detach()
+            requires_grad=False)).cuda(device)
 
         # tconf : [b, 5, 196]
         tconf = Variable(torch.zeros(
             batch, self.num_anchors, height * width,
-            requires_grad=False)).cuda(device).detach()
+            requires_grad=False)).cuda(device)
 
         # tcls : [b, 5, 196]
         tcls = Variable(torch.zeros(
             batch, self.num_anchors, height * width,
-            requires_grad=False)).cuda(device).detach()
+            requires_grad=False)).cuda(device)
 
         for b in range(batch):
             if len(ground_truth[b]) == 0:

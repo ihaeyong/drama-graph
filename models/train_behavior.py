@@ -59,7 +59,7 @@ def get_args():
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
-    parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
+    parser.add_argument("-lr", dest='lr', type=float, default=1e-4)
     parser.add_argument("-clip", dest='clip', type=float, default=5.0)
     parser.add_argument("-print_interval", dest='print_interval', type=int,
                         default=1000)
@@ -135,8 +135,8 @@ def train(opt):
 
     #params = [{'params': fc_params, 'lr': opt.lr / 10.0},
     #          {'params': non_fc_params}]
-    #p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1
-    p_params = [{'params': fc_params, 'lr': opt.lr}] # v2
+    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1, v4
+    #p_params = [{'params': fc_params, 'lr': opt.lr}] # v2, v3
     b_params = [{'params': non_fc_params}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)

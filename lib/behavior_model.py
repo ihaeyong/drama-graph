@@ -66,7 +66,7 @@ class behavior_model(nn.Module):
                     with torch.no_grad():
                         box = np.clip(
                             np.stack(box)[:,:4].astype('float32'),
-                            0.0 + 1e-3, self.fmap_size - 1e-3)
+                            0.0, self.fmap_size)
                         box = Variable(torch.from_numpy(box)).cuda(
                             self.device).detach()
                         b_box = Variable(
@@ -93,7 +93,7 @@ class behavior_model(nn.Module):
                 with torch.no_grad():
                     box = np.clip(
                         np.stack(box)[:,:4].astype('float32')/self.img_size,
-                        0.0 + 1e-3, self.fmap_size - 1e-3)
+                        0.0, self.fmap_size) # v3
                     box = torch.from_numpy(box).cuda(
                         self.device).detach() * self.fmap_size
                     b_box = Variable(
