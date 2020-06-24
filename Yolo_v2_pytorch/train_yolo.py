@@ -12,7 +12,10 @@ import visdom
 import cv2
 import pickle
 import numpy as np
-from lib.logger import Logger
+# from lib.logger import Logger
+from tqdm import tqdm
+import pdb
+from collections import Counter
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -73,13 +76,13 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 # logger path
-logger_path = 'logs/{}'.format(opt.model)
-if os.path.exists(logger_path):
-    print('exist_{}'.format(logger_path))
-else:
-    os.makedirs(logger_path)
-    print('mkdir_{}'.format(logger_path))
-logger = Logger(logger_path)
+# logger_path = 'logs/{}'.format(opt.model)
+# if os.path.exists(logger_path):
+#     print('exist_{}'.format(logger_path))
+# else:
+#     os.makedirs(logger_path)
+#     print('mkdir_{}'.format(logger_path))
+# logger = Logger(logger_path)
 
 def train(opt):
     if torch.cuda.is_available():
@@ -107,11 +110,12 @@ def train(opt):
 
     num_behaviors = 27
     num_persons = 20
-    model = YoloD(pre_model, num_persons, num_behaviors).cuda()
+    num_objects = 144
+    model = YoloD(pre_model, num_persons, num_behaviors, num_objects).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_persons, num_behaviors, model.anchors,
+    criterion = YoloLoss(num_persons, num_behaviors, num_objects, model.anchors,
                          opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
@@ -120,7 +124,8 @@ def train(opt):
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
-
+    empty_person = 0
+    empty_object = 0
     for epoch in range(opt.num_epoches):
         if str(epoch) in learning_rate_schedule.keys():
             for param_group in optimizer.param_groups:
@@ -130,12 +135,22 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label = SortFullRect(image, info)
+            image, label, behavior_label, object_label = SortFullRect(image, info)
 
-            if np.array(label).size == 0 :
-                print("iter:{}_person bboxs are empty".format(
+            if np.array(label).size == 0 and np.array(object_label).size == 0:
+                print("iter:{} person & objects bboxs are empty".format(
                     iter, label))
+                empty_person+=1
+                empty_object+=1
                 continue
+            if np.array(label).size == 0:
+                print("iter:{} person bboxs are empty".format(
+                    iter, label))
+                empty_person+=1
+            if np.array(object_label).size == 0:
+                print("iter:{} object bboxs are empty".format(
+                    iter, object_label))
+                empty_object+=1
 
             # image [b, 3, 448, 448]
             if torch.cuda.is_available():
@@ -146,11 +161,12 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits, behavior_logits = model(image)
+            logits, behavior_logits, object_logits = model(image)
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls, loss_behavior_cls = criterion(
-                logits,behavior_logits,label, behavior_label)
+            loss, loss_coord, loss_conf, loss_cls, loss_behavior_cls, loss_coord_obj, loss_conf_obj, loss_cls_obj = criterion(
+                logits, behavior_logits, object_logits,
+                label, behavior_label, object_label)
 
             loss.backward()
             optimizer.step()
@@ -163,19 +179,26 @@ def train(opt):
                 loss, loss_coord, loss_conf, loss_cls))
             #print("---- Person Behavior ---- ")
             print("+cls_behavior:{:.2f}".format(loss_behavior_cls))
+            #print("---- Object Detection ----")
+            print("+(coord_obj:{:.2f},conf_obj:{:.2f},cls_obj:{:.2f})".format(
+                loss_coord_obj, loss_conf_obj, loss_cls_obj))
             print()
+
 
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
+                'coord_obj' : loss_coord_obj.item(),
+                'conf_obj' : loss_conf_obj.item(),
+                'cls_obj' : loss_cls.item(),
                 'cls_behavior' : loss_behavior_cls.item()
             }
 
             # Log scalar values
-            for tag, value in loss_dict.items():
-                logger.scalar_summary(tag, value, loss_step)
+            # for tag, value in loss_dict.items():
+            #     logger.scalar_summary(tag, value, loss_step)
 
             loss_step = loss_step + 1
 
@@ -185,6 +208,9 @@ def train(opt):
         torch.save(model,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
                        opt.model))
+        print("Total number of missing Persons: %d" % empty_person)
+        print("Total number of missing objects: %d" % empty_object)
+        print("Total number of images: %d" % iter)
 
 if __name__ == "__main__":
     train(opt)

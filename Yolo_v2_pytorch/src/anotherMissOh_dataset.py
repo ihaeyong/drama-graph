@@ -6,6 +6,7 @@ import glob
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import json
+import pdb
 
 # define person classes
 PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
@@ -29,8 +30,25 @@ PBeHavCLS = ["stand up","sit down","walk","hold","hug",
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
 
 # define object classes
-ObjectCLS = ['Phone', 'Stick', 'none']
+ObjectCLS = ['potted_plant', 'person', 'bowl', 'carrot', 'ladel', 'apron', 'bottle', 'paper_towel', 'frying_pan', 
+            'basket', 'chair(stool)', 'table', 'refrigerator', 'plate', 'TV', 'book', 'flower_pot', 'pot', 'glass'
+            'blender', 'accordion', 'vase', 'salt_bottle', 'phone', 'clothes', 'bed', 'tie', 'car', 'lamp', 'spoon'
+            'traffic_light', 'mouse', 'cat', 'glasses', 'keyboard', 'desk', 'paper(report)', 'watch', 'banana', 'handbag'
+            'baseball_bat', 'apple', 'orange', 'washingmachine', 'card', 'shoes', 'truck', 'dish', 'bench', 'door', 
+            'paper (report)', 'box', 'clock', 'wine_glass', 'oven', 'bus', 'fork', 'purse', 'food', 'beer_bottle',
+            'tree', 'water_bottle', 'remote_control', 'couch', 'bag', 'wine_bottle', 'backpack', 'frame', 'bookshelf',
+            'fan', 'tape_player', 'pencil_sharpener', 'computer', 'knife', 'kettle', 'window', 'plant', 'coffee_maker',
+            'microwave', 'soccer_ball', 'bird', 'horse', 'cup_or_mug', 'microphone', 'poster', 'flower', 'sports_ball', 
+            'cushion', 'notebook', 'laptop', 'drawer', 'guitar', 'bow_tie', 'umbrella', 'tennis_racket', 'candle',
+            'bicycle', 'suitcase', 'towel', 'blanket', 'pillow', 'filing_cabinet', 'cabinet', 'hat', 'board', 'can',
+            'coffeepot', 'envelope', 'can/beer', 'plastic_bag', 'stove', 'chopsticks', 'perfume', 'floor', 'remote',
+            'brick', 'machine', 'lipstick', 'cream', 'digital_clock', 'shelf', 'trumpet', 'drum', 'motorcycle',
+            'coat', 'frisbee', 'train', 'building', 'sofa', 'bat', 'photo', 'camera', 'cow', 'dog', 'cigarette',
+            'detergent_box', 'tennis_ball', 'stop_sign', 'teddy_bear', 'pencil_box', 'baseball', 'sink', 'cakes'
+            'bow', 'broccoli', 'laundry', 'pizza', 'hamburger']
+
 P2ORelCLS = ['Holding', 'Wearing', 'none']
+
 
 def Splits(num_episodes):
     '''
@@ -50,6 +68,7 @@ def SortFullRect(image,label, is_train=True):
 
     fullrect_list = []
     fullbehav_list = []
+    fullobj_list = []
     num_batch = len(label[0]) # per 1 video clip
 
     # set sequence length
@@ -98,18 +117,43 @@ def SortFullRect(image,label, is_train=True):
         except:
             continue
 
+    for frm in range(s_frm, e_frm):
+        try:
+            object_list = []
+            for p, p_id in enumerate(label[0][frm]['objects']['object_id']):
+
+                p_label = ObjectCLS.index(p_id)
+                if p_label > 144:
+                    print("sort full rect index error{}".format(p_label))
+                # object labels
+                object_rect = label[0][frm]['objects']['object_rect'][p]
+
+                #scale:
+                xmin = max(object_rect[0] * width_ratio, 0)
+                ymin = max(object_rect[1] * height_ratio, 0)
+                xmax = min((object_rect[2]) * width_ratio, 448)
+                ymax = min((object_rect[3]) * height_ratio, 448)
+                object_rect = [xmin,ymin,xmax,ymax]
+
+                temp_label = np.concatenate((object_rect, [p_label]), 0)
+                object_list.append(temp_label)
+        except:
+            continue
+
         if len(label_list) > 0 and is_train:
             fullrect_list.append(label_list)
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
+            fullobj_list.append(object_list)
         else: # for test
             fullrect_list.append(label_list)
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
+            fullobj_list.append(object_list)
 
     if is_train:
-        return image_list, fullrect_list, fullbehav_list
-    return image_list, fullrect_list, fullbehav_list, frame_id_list
+        return image_list, fullrect_list, fullbehav_list, fullobj_list
+    return image_list, fullrect_list, fullbehav_list, fullobj_list, frame_id_list
 
 class AnotherMissOh(Dataset):
     def __init__(self, dataset, img_path, json_path, display_log=True):
@@ -168,8 +212,7 @@ class AnotherMissOh(Dataset):
 
         for episode in dataset:
             img_dir = img_path + 'AnotherMissOh{:02}/'.format(episode)
-            json_dir = json_path + \
-                'AnotherMissOh{:02}_visual.json'.format(episode)
+            json_dir = json_path + 'AnotherMissOh{:02}_ver3.2.json'.format(episode)
             if self.display_log:
                 print('imag_dir:{}'.format(img_dir))
                 print('json_dir:{}'.format(json_dir))
@@ -203,28 +246,43 @@ class AnotherMissOh(Dataset):
 
                 clip['episode'].append(episode)
                 clip['clip'].append(i)
-                clip['start_time'].append(
-                    json_data['visual_results'][i]['start_time'])
-                clip['end_time'].append(
-                    json_data['visual_results'][i]['end_time'])
-                clip['vid'].append(json_data['visual_results']
-                                   [i]['vid'].replace('_', '/'))
+                clip['start_time'].append(json_data['visual_results'][i]['start_time'])
+                clip['end_time'].append(json_data['visual_results'][i]['end_time'])
+                clip['vid'].append(json_data['visual_results'][i]['vid'].replace('_', '/'))
 
-                num_persons = 0
                 for j, info in enumerate(json_data['visual_results'][i]['image_info']):
                     image_info = {}
                     image_info['frame_id'] = []
                     image_info['place'] = []
+                    image_info['objects'] = {}
                     image_info['persons'] = {}
 
                     if self.display_log:
-                        print(
-                            "=============={}th frame==========".format(j))
+                        print("=============={}th frame==========".format(j))
 
-                    img_file = img_dir + json_data['visual_results'][i]['vid'].replace(
-                        '_', '/')[-8:] + '/' + info['frame_id'][-16:] + '.jpg'
+                    img_file = img_dir + json_data['visual_results'][i]['vid'].replace('_', '/')[-8:] + '/' + info['frame_id'][-16:] + '.jpg'
                     image_info['frame_id'].append(img_file)
                     image_info['place'].append(info['place'])
+
+                    # add for the objects
+                    image_info['objects']['object_id']=[]
+                    image_info['objects']['object_rect']=[]
+                    image_info['objects']['relation']=[]
+                    for k, obj in enumerate(info['objects']):
+                        image_info['objects']['object_id'].append(obj['object_id'])
+                        object_bbox = obj['object_rect']
+                        if (object_bbox['min_y'] == "" 
+                            or object_bbox['max_y'] == "" 
+                            or object_bbox['min_x'] == "" 
+                            or object_bbox['max_x'] == ""):
+                            object_rect = []
+                            continue
+                        else:
+                            object_rect = [object_bbox['min_x'], object_bbox['min_y'], 
+                                           object_bbox['max_x'], object_bbox['max_y']]
+                        image_info['objects']['object_rect'].append(object_rect)
+                        image_info['objects']['relation'].append('none')
+                    # objects
 
                     image_info['persons']['person_id'] = []
                     image_info['persons']['face_rect'] = []
@@ -234,50 +292,66 @@ class AnotherMissOh(Dataset):
                     image_info['persons']['emotion'] = []
                     image_info['persons']['face_rect_score'] = []
                     image_info['persons']['full_rect_score'] = []
+
+                    image_info['persons']['related_object_id']=[]
+                    image_info['persons']['related_object_rect']=[]
                     for k, person in enumerate(info['persons']):
                         if self.display_log:
                             print("-------{}th person-----------".format(k))
 
-                        image_info['persons']['person_id'].append(
-                            person['person_id'])
+                        image_info['persons']['person_id'].append(person['person_id'])
+                        
+                        #import pdb; pdb.set_trace()
+                        for j, robj in enumerate(person['related_objects']):
+                            image_info['persons']['related_object_id'].append(robj['related_object_id'])
+                            image_info['objects']['object_id'].append(robj['related_object_id'])
+                            robj_bbox = robj['related_object_rect']
+                            if (robj_bbox['min_y'] == "" 
+                                or robj_bbox['max_y'] == "" 
+                                or robj_bbox['min_x'] == "" 
+                                or robj_bbox['max_x'] == ""):
+                                related_object_rect = []
+                                continue
+                            else:
+                                related_object_rect = [robj_bbox['min_x'], robj_bbox['min_y'], 
+                                                       robj_bbox['max_x'], robj_bbox['max_y']]
+                            image_info['persons']['related_object_rect'].append(related_object_rect)
+                            image_info['objects']['object_rect'].append(related_object_rect)
+                            if j > 0:
+                                image_info['objects']['relation'].append('none')
+                            else:
+                                image_info['objects']['relation'].append(person['person_info']['predicate'])
+
+
                         face_bbox = person['person_info']['face_rect']
-                        if (face_bbox['min_y'] == ""
-                            or face_bbox['max_y'] == ""
-                            or face_bbox['min_x'] == ""
-                                or face_bbox['max_x'] == ""):
+                        if (face_bbox['min_y'] == "" 
+                            or face_bbox['max_y'] == "" 
+                            or face_bbox['min_x'] == "" 
+                            or face_bbox['max_x'] == ""):
                             face_rect = []
                             continue
                         else:
-                            face_rect = [
-                                face_bbox['min_x'], face_bbox['min_y'], face_bbox['max_x'], face_bbox['max_y']]
+                            face_rect = [face_bbox['min_x'], face_bbox['min_y'], face_bbox['max_x'], face_bbox['max_y']]
                         image_info['persons']['face_rect'].append(face_rect)
                         full_bbox = person['person_info']['full_rect']
-                        if (full_bbox['min_y'] == ""
-                            or full_bbox['max_y'] == ""
-                            or full_bbox['min_x'] == ""
-                                or full_bbox['max_x'] == ""):
+                        if (full_bbox['min_y'] == "" 
+                            or full_bbox['max_y'] == "" 
+                            or full_bbox['min_x'] == "" 
+                            or full_bbox['max_x'] == ""):
                             full_rect = []
                             continue
                         else:
-                            full_rect = [
-                                full_bbox['min_x'], full_bbox['min_y'], full_bbox['max_x'], full_bbox['max_y']]
-                            num_persons+=1
+                            full_rect = [full_bbox['min_x'], full_bbox['min_y'], full_bbox['max_x'], full_bbox['max_y']]
                         image_info['persons']['full_rect'].append(full_rect)
-                        image_info['persons']['behavior'].append(
-                            person['person_info']['behavior'])
-                        image_info['persons']['predicate'].append(
-                            person['person_info']['predicate'])
-                        image_info['persons']['emotion'].append(
-                            person['person_info']['emotion'])
-                        image_info['persons']['face_rect_score'].append(
-                            person['person_info']['face_rect_score'])
-                        image_info['persons']['full_rect_score'].append(
-                            person['person_info']['full_rect_score'])
+                        image_info['persons']['behavior'].append(person['person_info']['behavior'])
+                        image_info['persons']['predicate'].append(person['person_info']['predicate'])
+                        image_info['persons']['emotion'].append(person['person_info']['emotion'])
+                        image_info['persons']['face_rect_score'].append(person['person_info']['face_rect_score'])
+                        image_info['persons']['full_rect_score'].append(person['person_info']['full_rect_score'])
 
                     clip['image_info'].append(image_info)
 
-                if num_persons > 0:
-                    self.clips.append(clip)
+                self.clips.append(clip)
 
     def __len__(self):
         return len(self.clips)
