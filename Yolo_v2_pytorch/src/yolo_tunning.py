@@ -6,7 +6,7 @@ import torch
 
 
 class YoloD(nn.Module):
-    def __init__(self, pre_model, num_cls, num_behavior_cls, num_objects_cls,
+    def __init__(self, pre_model, num_cls, num_objects_cls,
                  anchors=[(1.3221, 1.73145),
                           (3.19275, 4.00944),
                           (5.05587, 8.09892),
@@ -47,10 +47,8 @@ class YoloD(nn.Module):
 
         # self.stage3_conv2 = nn.Conv2d(
         #   1024, len(self.anchors) * (5 + num_classes), 1, 1, 0, bias=True)
-        self.stage3_conv_my = nn.Conv2d(
+        self.stage3_conv_person = nn.Conv2d(
             1024, len(self.anchors) * (5 + num_cls), 1, 1, 0, bias=False)
-        self.stage3_conv_behavior = nn.Conv2d(
-            1024, len(self.anchors) * (num_behavior_cls), 1, 1, 0, bias=False)
         self.stage3_conv_objects = nn.Conv2d(
             1024, len(self.anchors) * (5 + num_objects_cls), 1, 1, 0, bias=False)
 
@@ -92,8 +90,7 @@ class YoloD(nn.Module):
         output_fmap = self.stage3_conv1(output)
 
         # output = self.stage3_conv2(output)
-        output = self.stage3_conv_my(output_fmap)
-        output_behavior = self.stage3_conv_behavior(output_fmap)
+        output = self.stage3_conv_person(output_fmap)
         output_object = self.stage3_conv_objects(output_fmap)
 
-        return output, output_behavior, output_object
+        return output, output_object
