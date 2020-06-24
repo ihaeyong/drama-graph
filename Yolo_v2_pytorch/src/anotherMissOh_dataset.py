@@ -29,23 +29,42 @@ PBeHavCLS = ["stand up","sit down","walk","hold","hug",
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
 
-# define object classes
-ObjectCLS = ['potted_plant', 'person', 'bowl', 'carrot', 'ladel', 'apron', 'bottle', 'paper_towel', 'frying_pan', 
-            'basket', 'chair(stool)', 'table', 'refrigerator', 'plate', 'TV', 'book', 'flower_pot', 'pot', 'glass'
-            'blender', 'accordion', 'vase', 'salt_bottle', 'phone', 'clothes', 'bed', 'tie', 'car', 'lamp', 'spoon'
-            'traffic_light', 'mouse', 'cat', 'glasses', 'keyboard', 'desk', 'paper(report)', 'watch', 'banana', 'handbag'
-            'baseball_bat', 'apple', 'orange', 'washingmachine', 'card', 'shoes', 'truck', 'dish', 'bench', 'door', 
-            'paper (report)', 'box', 'clock', 'wine_glass', 'oven', 'bus', 'fork', 'purse', 'food', 'beer_bottle',
-            'tree', 'water_bottle', 'remote_control', 'couch', 'bag', 'wine_bottle', 'backpack', 'frame', 'bookshelf',
-            'fan', 'tape_player', 'pencil_sharpener', 'computer', 'knife', 'kettle', 'window', 'plant', 'coffee_maker',
-            'microwave', 'soccer_ball', 'bird', 'horse', 'cup_or_mug', 'microphone', 'poster', 'flower', 'sports_ball', 
-            'cushion', 'notebook', 'laptop', 'drawer', 'guitar', 'bow_tie', 'umbrella', 'tennis_racket', 'candle',
-            'bicycle', 'suitcase', 'towel', 'blanket', 'pillow', 'filing_cabinet', 'cabinet', 'hat', 'board', 'can',
-            'coffeepot', 'envelope', 'can/beer', 'plastic_bag', 'stove', 'chopsticks', 'perfume', 'floor', 'remote',
-            'brick', 'machine', 'lipstick', 'cream', 'digital_clock', 'shelf', 'trumpet', 'drum', 'motorcycle',
-            'coat', 'frisbee', 'train', 'building', 'sofa', 'bat', 'photo', 'camera', 'cow', 'dog', 'cigarette',
-            'detergent_box', 'tennis_ball', 'stop_sign', 'teddy_bear', 'pencil_box', 'baseball', 'sink', 'cakes'
-            'bow', 'broccoli', 'laundry', 'pizza', 'hamburger']
+# define object classes 
+
+# ObjectCLS = ["person", "apron", "tie", "bottle", "table", "chair(stool)", "vase", "couch", "remote_control", "potted_plant", 
+#             "glass", "handbag", "bag", "lamp", "food", "fork", "basket", "clock", "computer", "TV", "paper(report)", "glasses", 
+#             "binder", "can/beer", "plate", "phone", "flower_pot", "book", "frame", "car", "bed", "tree", "flower", "watch", 
+#             "wine_glass", "can", "suitcase", "bookshelf", "shoes", "box", "door", "cabinet", "desk", "umbrella", "laptop", "bowl", 
+#             "microphone", "fan", "refrigerator", "shelf", "beer_bottle", "apple", "pillow", "sofa", "window", "water_bottle", 
+#             "coffee_maker", "keyboard", "plant", "tooth_brush", "machine", "bicycle", "cup_or_mug", "clothes", "cap", "bow_tie", 
+#             "truck", "traffic_light", "stove", "chopsticks", "spoon", "pot", "sink", "racket", "dog", "horse", "remote", 
+#             "frying_pan", "purse", "towel", "plastic_bag", "hat", "bus", "microwave", "soccer_ball", "bench", "notebook", 
+#             "cigarette", "cakes", "backpack", "teddy_bear", "photo", "wine_bottle", "butterfly", "drawer", "sunglasses", "hammer", 
+#             "knife", "sandwitch", "carrot", "cushion", "tape_player", "sports_ball", "envelope", "washingmachine", "blender", 
+#             "pencil_box", "dish", "paper_towel", "lipstick", "ladle", "paper (report)", "camera", "baseball_bat", "kettle", "blanket", 
+#             "motorcycle", "candle", "filing_cabinet", "digital_clock", "brick", "bird", "coffeepot", "trumpet", "cat", "grass", "card", 
+#             "detergent_box", "board", "scissors", "star", "mouse", "broccoli", "building", "bat", "train", "nail", 
+#             "pencil_sharpener", "airplane", "poster", "guitar", "floor", "plate_rack", "accordion", "swine", "spatula", "rabbit", 
+#             "oven", "saxophone", "tennis_ball", "cow", "banana", "stop_sign", "boat", "cream", "tennis_racket", "orange", "baseball", 
+#             "skateboard", "perfume", "elephant", "axe", "hamburger"]
+
+ObjectCLS = ["apron", "tie", "bottle", "table", "chair(stool)", "vase", "couch", "remote_control", "potted_plant", 
+            "glass", "handbag", "bag", "lamp", "food", "fork", "basket", "clock", "computer", "TV", "paper(report)", "glasses", 
+            "binder", "can/beer", "plate", "phone", "flower_pot", "book", "frame", "car", "bed", "tree", "flower", "watch", 
+            "wine_glass", "can", "suitcase", "bookshelf", "shoes", "box", "door", "cabinet", "desk", "umbrella", "laptop", "bowl", 
+            "microphone", "fan", "refrigerator", "shelf", "beer_bottle", "apple", "pillow", "sofa", "window", "water_bottle", 
+            "coffee_maker", "keyboard", "plant", "tooth_brush", "machine", "bicycle", "cup_or_mug", "clothes", "cap", "bow_tie", 
+            "truck", "traffic_light", "stove", "chopsticks", "spoon", "pot", "sink", "racket", "dog", "horse", "remote", 
+            "frying_pan", "purse", "towel", "plastic_bag", "hat", "bus", "microwave", "soccer_ball", "bench", "notebook", 
+            "cigarette", "cakes", "backpack", "teddy_bear", "photo", "wine_bottle", "butterfly", "drawer", "sunglasses", "hammer", 
+            "knife", "sandwitch", "carrot", "cushion", "tape_player", "sports_ball", "envelope", "washingmachine", "blender", 
+            "pencil_box", "dish", "paper_towel", "lipstick", "ladle", "paper (report)", "camera", "baseball_bat", "kettle", "blanket", 
+            "motorcycle", "candle", "filing_cabinet", "digital_clock", "brick", "bird", "coffeepot", "trumpet", "cat", "grass", "card", 
+            "detergent_box", "board", "scissors", "star", "mouse", "broccoli", "building", "bat", "train", "nail", 
+            "pencil_sharpener", "airplane", "poster", "guitar", "floor", "plate_rack", "accordion", "swine", "spatula", "rabbit", 
+            "oven", "saxophone", "tennis_ball", "cow", "banana", "stop_sign", "boat", "cream", "tennis_racket", "orange", "baseball", 
+            "skateboard", "perfume", "elephant", "axe", "hamburger"]
+
 
 P2ORelCLS = ['Holding', 'Wearing', 'none']
 
@@ -54,11 +73,12 @@ def Splits(num_episodes):
     '''
     split the total number of episodes into three : train, val, test
     '''
-    train = range(1, num_episodes-3)
-    val = num_episodes-3
-    test = range(num_episodes-2, num_episodes)
+    train = [*range(1, 6), *range(9,num_episodes)]
+    val = [] #num_episodes-3
+    #test = range(num_episodes-2, num_episodes)
+    test = [7,8]
 
-    return [*train], [val], [*test]
+    return train, val, test
 
 def SortFullRect(image,label, is_train=True):
 
@@ -121,9 +141,11 @@ def SortFullRect(image,label, is_train=True):
         try:
             object_list = []
             for p, p_id in enumerate(label[0][frm]['objects']['object_id']):
-
+                # we need to account for 'person' and remove person from the list
+                if p_id == 'person':
+                    continue
                 p_label = ObjectCLS.index(p_id)
-                if p_label > 144:
+                if p_label > 162:
                     print("sort full rect index error{}".format(p_label))
                 # object labels
                 object_rect = label[0][frm]['objects']['object_rect'][p]
