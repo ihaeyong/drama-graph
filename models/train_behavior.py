@@ -5,6 +5,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
 from Yolo_v2_pytorch.src.utils import *
 from Yolo_v2_pytorch.src.loss import YoloLoss
@@ -59,7 +60,7 @@ def get_args():
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
-    parser.add_argument("-lr", dest='lr', type=float, default=1e-4)
+    parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
     parser.add_argument("-clip", dest='clip', type=float, default=5.0)
     parser.add_argument("-print_interval", dest='print_interval', type=int,
                         default=1000)
@@ -97,8 +98,8 @@ def train(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    learning_rate_schedule = {"0": opt.lr, "5": opt.lr * 10.0,
-                              "80": opt.lr, "110": opt.lr/10.0}
+    p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
+    b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0}
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -120,9 +121,7 @@ def train(opt):
     ckpt = torch.load(trained_persons)
     if optimistic_restore(model.detector, ckpt):
         print(".....")
-        print(".....")
         print("loaded pre-trained detector sucessfully.")
-        print(".....")
         print(".....")
 
     model.cuda(device)
@@ -133,19 +132,25 @@ def train(opt):
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
 
-    #params = [{'params': fc_params, 'lr': opt.lr / 10.0},
-    #          {'params': non_fc_params}]
     p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1, v4
-    #p_params = [{'params': fc_params, 'lr': opt.lr}] # v2, v3
     b_params = [{'params': non_fc_params}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
-    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
+    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
     b_optimizer = torch.optim.SGD(b_params, lr = opt.lr,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
+
+    p_scheduler = ReduceLROnPlateau(p_optimizer, 'max', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
+    b_scheduler = ReduceLROnPlateau(b_optimizer, 'max', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
 
     model.train()
     num_iter_per_epoch = len(train_loader)
@@ -154,18 +159,15 @@ def train(opt):
 
     for epoch in range(opt.num_epoches):
         if str(epoch) in learning_rate_schedule.keys():
-
             for param_group in p_optimizer.param_groups:
-                param_group['lr'] = learning_rate_schedule[str(epoch)]
-
+                param_group['lr'] = p_learning_rate_schedule[str(epoch)]
             for param_group in b_optimizer.param_groups:
-                param_group['lr'] = learning_rate_schedule[str(epoch)]
+                param_group['lr'] = b_learning_rate_schedule[str(epoch)]
 
 
         for iter, batch in enumerate(train_loader):
 
             verbose=iter % (opt.print_interval*10) == 0
-
             image, info = batch
 
             # sort label info on fullrect
@@ -218,6 +220,7 @@ def train(opt):
                 max_norm=opt.clip, verbose=verbose, clip=True)
             b_optimizer.step()
 
+            Print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
                 num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
@@ -245,6 +248,10 @@ def train(opt):
         if not os.path.exists(opt.saved_path):
             os.makedirs(opt.saved_path)
             print('mkdir_{}'.format(opt.saved_path))
+
+        # learning rate schedular
+        #p_scheduler.step(mAP)
+        #b_scheduler.step(mAP)
 
         torch.save(model,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
