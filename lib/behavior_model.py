@@ -80,6 +80,7 @@ class behavior_model(nn.Module):
 
         # persons boxes
         b_logits = []
+        g_features = []
         b_labels = []
         # testing
         if not self.training:
@@ -110,6 +111,19 @@ class behavior_model(nn.Module):
                         behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
 
                 for idx, box in enumerate(boxes):
+                    box_g = torch.from_numpy(
+                        np.array([0,0,14,14])).cuda(
+                            self.device).detach()
+                    g_box = Variable(
+                        torch.zeros(1, 5).cuda(self.device)).detach()
+                    g_box[:,1:] = box_g
+
+                    g_fmap = roi_align(fmap[idx][None],
+                                       g_box.float(),
+                                       (self.fmap_size//4,
+                                        self.fmap_size//4))
+                    g_fmap = self.behavior_conv(g_fmap).view(-1)
+
                     num_box = len(box)
                     b_logit = []
                     for jdx, p_box in enumerate(box):
@@ -119,7 +133,7 @@ class behavior_model(nn.Module):
                         else:
                             prv_b = behavior_tensor[idx-1, int(p_box[4])]
                         cur_b = behavior_tensor[idx, int(p_box[4])]
-                        i_logit = self.behavior_fc(cur_b-prv_b)
+                        i_logit = self.behavior_fc(g_fmap+cur_b-prv_b)
                         b_logit.append(i_logit)
                     b_logits.append(b_logit)
 
@@ -141,19 +155,34 @@ class behavior_model(nn.Module):
                     b_box = Variable(
                         torch.zeros(num_box, 5).cuda(self.device)).detach()
                     b_box[:,1:] = box_
+
                     i_fmap = roi_align(fmap[idx][None],
                                        b_box.float(),
                                        (self.fmap_size//4,
                                         self.fmap_size//4))
 
                 i_fmap = self.behavior_conv(i_fmap)
-
                 for jdx, p_box in enumerate(box):
                     b_label = behavior_label[idx][jdx]
                     behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
 
             # temporal features
+            cnt = 0
             for idx, box in enumerate(label):
+
+                box_g = torch.from_numpy(
+                        np.array([0,0,14,14])).cuda(
+                            self.device).detach()
+                g_box = Variable(
+                    torch.zeros(1, 5).cuda(self.device)).detach()
+                g_box[:,1:] = box_g
+
+                g_fmap = roi_align(fmap[idx][None],
+                                   g_box.float(),
+                                   (self.fmap_size//4,
+                                    self.fmap_size//4))
+                g_fmap = self.behavior_conv(g_fmap).view(-1)
+
                 for jdx, p_box in enumerate(box):
                     b_label = behavior_label[idx][jdx]
                     mean_b = behavior_tensor[:, int(p_box[4])].mean(0)
@@ -164,7 +193,7 @@ class behavior_model(nn.Module):
                         prv_b = behavior_tensor[idx-1, int(p_box[4])]
 
                     cur_b = behavior_tensor[idx, int(p_box[4])]
-                    i_logit = self.behavior_fc(cur_b-prv_b)
+                    i_logit = self.behavior_fc(g_fmap+cur_b-prv_b)
                     b_logits.append(i_logit)
                     b_labels.append(b_label)
 

@@ -184,7 +184,7 @@ def test(opt):
                     cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
                     if cls == 'none':
                         continue
-                    
+
                     cls = cls.replace('/', '_')
                     xmin = str(max(det[0] / width_ratio, 0))
                     ymin = str(max(det[1] / height_ratio, 0))
