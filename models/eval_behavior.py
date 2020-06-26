@@ -229,7 +229,6 @@ def test(opt):
                                       (xmax, ymax), color, 2)
 
                         value,index = b_logit[jdx].max(0)
-
                         b_idx = index.cpu().numpy()
                         b_pred = PBeHavCLS[b_idx]
                         text_size = cv2.getTextSize(

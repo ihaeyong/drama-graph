@@ -225,6 +225,7 @@ def train(opt):
             b_labels = Variable(
                 torch.LongTensor(b_labels).cuda(device),
                 requires_grad=False)
+            print('behavior_label:{}'.format(b_labels))
 
             if opt.b_loss == 'ce_focal':
                 loss_behavior = focal_without_onehot(b_logits, b_labels)

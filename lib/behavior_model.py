@@ -108,7 +108,8 @@ class behavior_model(nn.Module):
                     i_fmap = self.behavior_conv(i_fmap)
 
                     for jdx, p_box in enumerate(box):
-                        behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
+                        p_idx = PersonCLS.index(p_box[5])
+                        behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
 
                 for idx, box in enumerate(boxes):
                     box_g = torch.from_numpy(
@@ -127,12 +128,13 @@ class behavior_model(nn.Module):
                     num_box = len(box)
                     b_logit = []
                     for jdx, p_box in enumerate(box):
-                        mean_b = behavior_tensor[:, int(p_box[4])].mean(0)
+                        p_idx = PersonCLS.index(p_box[5])
+                        mean_b = behavior_tensor[:, p_idx].mean(0)
                         if idx == 0:
                             prv_b = mean_b
                         else:
-                            prv_b = behavior_tensor[idx-1, int(p_box[4])]
-                        cur_b = behavior_tensor[idx, int(p_box[4])]
+                            prv_b = behavior_tensor[idx-1, p_idx]
+                        cur_b = behavior_tensor[idx, p_idx]
                         i_logit = self.behavior_fc(g_fmap+cur_b-prv_b)
                         b_logit.append(i_logit)
                     b_logits.append(b_logit)
