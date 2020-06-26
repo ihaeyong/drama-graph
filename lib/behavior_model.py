@@ -114,16 +114,19 @@ class behavior_model(nn.Module):
                     b_logit = []
                     for jdx, p_box in enumerate(box):
                         mean_b = behavior_tensor[:, int(p_box[4])].mean(0)
-
+                        if idx == 0:
+                            prv_b = mean_b
+                        else:
+                            prv_b = behavior_tensor[idx-1, int(p_box[4])]
                         cur_b = behavior_tensor[idx, int(p_box[4])]
-                        i_logit = self.behavior_fc(mean_b - cur_b)
+                        i_logit = self.behavior_fc(cur_b-prv_b)
                         b_logit.append(i_logit)
                     b_logits.append(b_logit)
 
             return boxes, b_logits
 
         # training
-        #label_array = self.label_array(batch, label, behavior_label)
+        label_array = self.label_array(batch, label, behavior_label)
         if len(behavior_label) > 0 and self.training:
             for idx, box in enumerate(label):
                 num_box = len(box)
@@ -155,8 +158,13 @@ class behavior_model(nn.Module):
                     b_label = behavior_label[idx][jdx]
                     mean_b = behavior_tensor[:, int(p_box[4])].mean(0)
 
+                    if idx == 0:
+                        prv_b = mean_b
+                    else:
+                        prv_b = behavior_tensor[idx-1, int(p_box[4])]
+
                     cur_b = behavior_tensor[idx, int(p_box[4])]
-                    i_logit = self.behavior_fc(mean_b - cur_b)
+                    i_logit = self.behavior_fc(cur_b-prv_b)
                     b_logits.append(i_logit)
                     b_labels.append(b_label)
 
