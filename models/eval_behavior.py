@@ -44,6 +44,7 @@ def get_args():
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
+    parser.add_argument("-display", dest='display', action='store_true')
     args = parser.parse_args()
     return args
 
@@ -108,7 +109,15 @@ def test(opt):
         image, label, behavior_label, frame_id = SortFullRect(
             image, info, is_train=False)
 
-        for i, frame in enumerate(frame_id):
+        if torch.cuda.is_available():
+            image = torch.cat(image,0).cuda()
+
+        #with torch.no_grad():
+        # logits : [1, 125, 14, 14]
+        # behavior_logits : [1, 135, 14, 14]
+        predictions, b_logits = model1(image, label, behavior_label)
+
+        for idx, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
             save_dir = './results/person/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
@@ -147,63 +156,60 @@ def test(opt):
                                             f_info[5],
                                             f_info[6],
                                             f_info[7].replace("jpg", "txt"))
-
-            print("mAP_file:{}".format(mAP_file))
+            if opt.display:
+                print("mAP_file:{}".format(mAP_file))
 
             # ground truth
             #b_person_label = label[i]
             # save person ground truth
             gt_person_cnt = 0
-            if len(label) > i:
-                f = open(save_mAP_gt_dir + mAP_file, mode='w')
-                for det in label[i]:
+            if len(label) > idx :
+                f = open(save_mAP_gt_dir + mAP_file, mode='w+')
+                for det in label[idx]:
                     cls = PersonCLS[int(det[4])]
                     xmin = str(max(det[0] / width_ratio, 0))
                     ymin = str(max(det[1] / height_ratio, 0))
                     xmax = str(min((det[2]) / width_ratio, width))
                     ymax = str(min((det[3]) / height_ratio, height))
                     cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    print("person_gt:{}".format(cat_det))
+                    if opt.display:
+                        print("person_gt:{}".format(cat_det))
                     f.write(cat_det)
                     gt_person_cnt += 1
                 f.close()
 
                 #b_behavior_label = behavior_label[i]
-                f = open(save_mAP_gt_beh_dir + mAP_file, mode='w')
-                for j, det in enumerate(label[i]):
-                    cls = PBeHavCLS[int(behavior_label[i][j])].replace(' ', '_')
+                f = open(save_mAP_gt_beh_dir + mAP_file, mode='w+')
+                for j, det in enumerate(label[idx]):
+                    cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
+                    if cls == 'none':
+                        continue
+                    
                     cls = cls.replace('/', '_')
                     xmin = str(max(det[0] / width_ratio, 0))
                     ymin = str(max(det[1] / height_ratio, 0))
                     xmax = str(min((det[2]) / width_ratio, width))
                     ymax = str(min((det[3]) / height_ratio, height))
                     cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    print("behavior_gt:{}".format(cat_det))
+                    if opt.display:
+                        print("behavior_gt:{}".format(cat_det))
                     f.write(cat_det)
                 f.close()
 
                 # open detection file
 
-                f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w')
-                f = open(save_mAP_det_dir + mAP_file, mode='w')
+                f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
+                f = open(save_mAP_det_dir + mAP_file, mode='w+')
             # out of try : pdb.set_trace = lambda : None
             try:
                 # for some empty video clips
-                img = image[i]
-
+                img = image[idx]
                 # ToTensor function normalizes image pixel values into [0,1]
-                np_img = img.cpu().numpy()[0].transpose((1,2,0)) * 255
+                np_img = img.cpu().numpy().transpose((1,2,0)) * 255
 
-                if torch.cuda.is_available():
-                    img = img.cuda()
-
-                #with torch.no_grad():
-                # logits : [1, 125, 14, 14]
-                # behavior_logits : [1, 135, 14, 14]
-                predictions, b_logits = model1(img, label, behavior_label)
-
-                if len(predictions) != 0:
-                    predictions = predictions[0]
+                if len(predictions[idx]) != 0:
+                    prediction = predictions[idx]
+                    b_logit = b_logits[idx]
                     output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
 
@@ -211,7 +217,8 @@ def test(opt):
                     cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
                         '.txt', '.jpg'), output_image)
 
-                    for i, pred in enumerate(predictions):
+                    num_preds = len(prediction)
+                    for jdx, pred in enumerate(prediction):
                         xmin = int(max(pred[0] / width_ratio, 0))
                         ymin = int(max(pred[1] / height_ratio, 0))
                         xmax = int(min((pred[2]) / width_ratio, width))
@@ -220,8 +227,10 @@ def test(opt):
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
-                        value,index = b_logits[i].max(1)
-                        b_idx = index.cpu().numpy()[0]
+
+                        value,index = b_logit[jdx].max(0)
+
+                        b_idx = index.cpu().numpy()
                         b_pred = PBeHavCLS[b_idx]
                         text_size = cv2.getTextSize(
                             pred[5] + ' : %.2f' % pred[4],
@@ -265,10 +274,12 @@ def test(opt):
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
 
-                        print("detected {}".format(
+                        if opt.display:
+                            print("detected {}".format(
                                 save_dir + "{}".format(f_file)))
                     else:
-                        print("non-detected {}".format(
+                        if opt.display:
+                            print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
                         f.close()
                         f_beh.close()

@@ -17,6 +17,7 @@ from lib.logger import Logger
 
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
+from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -63,7 +64,9 @@ def get_args():
     parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
     parser.add_argument("-clip", dest='clip', type=float, default=5.0)
     parser.add_argument("-print_interval", dest='print_interval', type=int,
-                        default=1000)
+                        default=100)
+    parser.add_argument("-b_loss", dest='b_loss', type=str, default='ce')
+    parser.add_argument("-f_gamma", dest='f_gamma', type=float, default=1.0)
 
     args = parser.parse_args()
     return args
@@ -157,8 +160,11 @@ def train(opt):
 
     loss_step = 0
 
+    # define focal loss
+    focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
+
     for epoch in range(opt.num_epoches):
-        if str(epoch) in learning_rate_schedule.keys():
+        if str(epoch) in p_learning_rate_schedule.keys():
             for param_group in p_optimizer.param_groups:
                 param_group['lr'] = p_learning_rate_schedule[str(epoch)]
             for param_group in b_optimizer.param_groups:
@@ -204,14 +210,26 @@ def train(opt):
             b_optimizer.zero_grad()
 
             # loss for behavior
-            b_logits = torch.cat(b_logits, 0)
+            b_logits = torch.stack(b_logits)
 
-            b_labels = flatten(b_labels)
+            #b_labels = flatten(b_labels)
+            b_labels = np.stack(b_labels)
+            # skip none behavior
+            keep_idx = np.where(b_labels!=26)
+            if len(keep_idx[0]) > 0:
+                b_logits = b_logits[keep_idx]
+                b_labels = b_labels[keep_idx]
+            else:
+                continue
+
             b_labels = Variable(
                 torch.LongTensor(b_labels).cuda(device),
-                requires_grad=False).detach()
+                requires_grad=False)
 
-            loss_behavior = F.cross_entropy(b_logits, b_labels)
+            if opt.b_loss == 'ce_focal':
+                loss_behavior = focal_without_onehot(b_logits, b_labels)
+            elif opt.b_loss == 'ce':
+                loss_behavior = F.cross_entropy(b_logits, b_labels)
 
             loss_behavior.backward()
             clip_grad_norm(
@@ -220,7 +238,7 @@ def train(opt):
                 max_norm=opt.clip, verbose=verbose, clip=True)
             b_optimizer.step()
 
-            Print("Model:{}".format(opt.model))
+            print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
                 num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
