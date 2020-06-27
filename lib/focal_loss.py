@@ -43,6 +43,7 @@ class FocalLossWithOutOneHot(nn.Module):
         super(FocalLossWithOutOneHot, self).__init__()
         self.gamma = gamma
         self.eps = eps
+        self.weight = np.load('behavior.npy')
 
     def forward(self, input, target):
         logit = F.softmax(input, dim=1)
