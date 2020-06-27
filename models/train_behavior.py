@@ -62,11 +62,12 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
-    parser.add_argument("-clip", dest='clip', type=float, default=5.0)
+    parser.add_argument("-clip", dest='clip', type=float, default=10.0)
     parser.add_argument("-print_interval", dest='print_interval', type=int,
                         default=100)
     parser.add_argument("-b_loss", dest='b_loss', type=str, default='ce')
     parser.add_argument("-f_gamma", dest='f_gamma', type=float, default=1.0)
+    parser.add_argument("-clip_grad", dest='clip_grad',action='store_true')
 
     args = parser.parse_args()
     return args
@@ -233,10 +234,11 @@ def train(opt):
                 loss_behavior = F.cross_entropy(b_logits, b_labels)
 
             loss_behavior.backward()
-            clip_grad_norm(
-                [(n, p) for n, p in model.named_parameters()
-                 if p.grad is not None and not n.startswith('detector')],
-                max_norm=opt.clip, verbose=verbose, clip=True)
+            if opt.clip_grad:
+                clip_grad_norm(
+                    [(n, p) for n, p in model.named_parameters()
+                     if p.grad is not None and not n.startswith('detector')],
+                    max_norm=opt.clip, verbose=verbose, clip=True)
             b_optimizer.step()
 
             print("Model:{}".format(opt.model))

@@ -135,7 +135,7 @@ class behavior_model(nn.Module):
                         else:
                             prv_b = behavior_tensor[idx-1, p_idx]
                         cur_b = behavior_tensor[idx, p_idx]
-                        i_logit = self.behavior_fc(g_fmap+cur_b-prv_b)
+                        i_logit = self.behavior_fc(g_fmap+cur_b)
                         b_logit.append(i_logit)
                     b_logits.append(b_logit)
 
@@ -195,7 +195,7 @@ class behavior_model(nn.Module):
                         prv_b = behavior_tensor[idx-1, int(p_box[4])]
 
                     cur_b = behavior_tensor[idx, int(p_box[4])]
-                    i_logit = self.behavior_fc(g_fmap+cur_b-prv_b)
+                    i_logit = self.behavior_fc(g_fmap+cur_b)
                     b_logits.append(i_logit)
                     b_labels.append(b_label)
 
