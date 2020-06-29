@@ -37,10 +37,15 @@ def get_args():
                         default="./Yolo_v2_pytorch/missoh_test/",
                         help="the root folder of dataset")
 
-    parser.add_argument("--img_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_images/")
-    parser.add_argument("--json_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_Visual/")
-    # parser.add_argument("--img_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_images/")
-    # parser.add_argument("--json_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_Visual/")
+    # parser.add_argument("--img_path", type=str,
+    #                     default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+    # parser.add_argument("--json_path", type=str,
+    #                     default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+
+    # parser.add_argument("--img_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_images/")
+    # parser.add_argument("--json_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_Visual/")
+    parser.add_argument("--img_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_images/")
+    parser.add_argument("--json_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_Visual_pre/")
 
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     args = parser.parse_args()
@@ -103,12 +108,13 @@ def test(opt):
         image, info = batch
 
         # sort label info on fullrect
-        image, label, behavior_label, face_label, frame_id = SortFullRect(image, info, is_train=False)
+        image, label, behavior_label, face_label, frame_id = SortFullRect(
+            image, info, is_train=False)
 
         for i, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
-            save_dir = './results/person/{}/{}/{}/'.format(f_info[4], f_info[5], f_info[6])
-            # save_dir = './results/person/{}/{}/{}/'.format(f_info[1], f_info[2], f_info[3])
+            # save_dir = './results/person/{}/{}/{}/'.format(f_info[4], f_info[5], f_info[6])
+            save_dir = './results/person/{}/{}/{}/'.format(f_info[1], f_info[2], f_info[3])
 
             save_mAP_gt_dir = './results/input_person/ground-truth/'
             save_mAP_det_dir = './results/input_person/detection/'
@@ -150,16 +156,17 @@ def test(opt):
             if not os.path.exists(save_mAP_img_dir):
                 os.makedirs(save_mAP_img_dir)
 
-            f_file = f_info[4]
-            mAP_file = "{}_{}_{}_{}".format(f_info[4],
-                                            f_info[5],
-                                            f_info[6],
-                                            f_info[7].replace("jpg", "txt"))
+            # f_file = f_info[7]
+            # mAP_file = "{}_{}_{}_{}".format(f_info[4],
+            #                                 f_info[5],
+            #                                 f_info[6],
+            #                                 f_info[7].replace("jpg", "txt"))
 
-            # mAP_file = "{}_{}_{}_{}".format(f_info[1],
-            #                                 f_info[2],
-            #                                 f_info[3],
-            #                                 f_info[4].replace("jpg", "txt"))
+            f_file = f_info[4]
+            mAP_file = "{}_{}_{}_{}".format(f_info[1],
+                                            f_info[2],
+                                            f_info[3],
+                                            f_info[4].replace("jpg", "txt"))
 
             print("mAP_file:{}".format(mAP_file))
 
@@ -374,21 +381,21 @@ def test(opt):
                         f_face.close()
                 #
 
-            except:
+            except Exception as ex:
+                print(ex)
+
                 f.close()
                 f_beh.close()
                 f_face.close()
                 continue
 
-            # for windows
-            f.close()
-            f_beh.close()
-            f_face.close()
+            # # for windows
+            # f.close()
+            # f_beh.close()
+            # f_face.close()
             #
 
             if gt_person_cnt == 0:
-                # time.sleep(3)
-
                 if os.path.exists(save_mAP_gt_dir + mAP_file):
                     os.remove(save_mAP_gt_dir + mAP_file)
                 if os.path.exists(save_mAP_det_dir + mAP_file):
@@ -401,8 +408,6 @@ def test(opt):
 
             #
             if gt_face_cnt == 0:
-                # time.sleep(3)
-
                 if os.path.exists(save_mAP_gt_face_dir + mAP_file):
                     os.remove(save_mAP_gt_face_dir + mAP_file)
                 if os.path.exists(save_mAP_det_face_dir + mAP_file):
