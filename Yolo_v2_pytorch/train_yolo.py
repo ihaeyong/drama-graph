@@ -2,7 +2,7 @@ import os
 import argparse
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect
+from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS, FaceCLS
 from .src.utils import *
 from .src.loss import YoloLoss
 from .src.yolo_net import Yolo
@@ -51,13 +51,16 @@ def get_args():
     parser.add_argument("--conf_threshold", type=float, default=0.35) # 0.35
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
-    parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
-    parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+    # parser.add_argument("--img_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_images/")
+    # parser.add_argument("--json_path", type=str, default="./data/AnotherMissOh/AnotherMissOh_Visual/")
 
-    # parser.add_argument("--img_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_images/")
-    # parser.add_argument("--json_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_Visual/")
+    # parser.add_argument("--img_path", type=str,
+    #                     default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+    # parser.add_argument("--json_path", type=str,
+    #                     default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+
+    parser.add_argument("--img_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_images/")
+    parser.add_argument("--json_path", type=str, default="D:\PROPOSAL\VTT\data\AnotherMissOh\AnotherMissOh_Visual_pre/")
 
     parser.add_argument("-model", dest='model', type=str, default="baseline")
 
@@ -69,12 +72,16 @@ opt = get_args()
 print(opt)
 
 # splits the episodes int train, val, test
-train, val, test = Splits(num_episodes=18)
+train, val, test = Splits(num_episodes=9)
+# train, val, test = Splits(num_episodes=18)
 
 # load datasets
 train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
+
+num_persons = len(PersonCLS)
+num_faces = len(FaceCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -105,21 +112,22 @@ def train(opt):
 
     train_loader = DataLoader(train_set, **training_params)
 
+    # define pre-model
     pre_model = Yolo(20).cuda()
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    num_behaviors = 27
-    num_persons = 20
-    num_face = 20
-    model = YoloD(pre_model, num_persons, num_behaviors, num_face).cuda()
+    # define model
+    model = YoloD(pre_model, num_persons, num_faces).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
     p_criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
-    f_criterion = YoloLoss(num_face, model.anchors, opt.reduction)
+    f_criterion = YoloLoss(num_faces, model.anchors, opt.reduction)
+
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
-                                momentum=opt.momentum, weight_decay=opt.decay)
+                                momentum=opt.momentum,
+                                weight_decay=opt.decay)
 
     model.train()
     num_iter_per_epoch = len(train_loader)
@@ -155,12 +163,10 @@ def train(opt):
             device = logits.get_device()
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls = p_criterion(
-                logits, label, device)
+            loss, loss_coord, loss_conf, loss_cls = p_criterion(logits, label, device)
 
             # losses for face detection
-            loss_face, loss_coord_face, loss_conf_face, loss_cls_face = f_criterion(
-                face_logits, face_label, device)
+            loss_face, loss_coord_face, loss_conf_face, loss_cls_face = f_criterion(face_logits, face_label, device)
 
             loss += loss_face
 
@@ -173,7 +179,6 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
-            #print("---- Person Behavior ---- ")
             print()
 
             loss_dict = {
@@ -181,6 +186,7 @@ def train(opt):
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
+
                 'coord_face': loss_coord_face.item(),
                 'conf_face': loss_conf_face.item(),
                 'cls_face': loss_cls_face.item(),
