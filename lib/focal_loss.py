@@ -43,12 +43,17 @@ class FocalLossWithOutOneHot(nn.Module):
         super(FocalLossWithOutOneHot, self).__init__()
         self.gamma = gamma
         self.eps = eps
+        self.weight = np.load('./lib/behavior.npy')
+        self.weight[26] = 0.0
+        self.weight=torch.from_numpy(
+            self.weight/self.weight.sum()).cuda().float() * 3
 
     def forward(self, input, target):
         logit = F.softmax(input, dim=1)
         logit = logit.clamp(self.eps, 1. - self.eps)
         logit_ls = torch.log(logit)
-        loss = F.nll_loss(logit_ls, target, reduction="none")
+        loss = F.nll_loss(logit_ls, target, weight=self.weight,
+                          reduction="none")
         #view = target.size() + (1,)
         #index = target.view(*view)
         index = target.unsqueeze(1)

@@ -184,7 +184,7 @@ def test(opt):
                     cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
                     if cls == 'none':
                         continue
-                    
+
                     cls = cls.replace('/', '_')
                     xmin = str(max(det[0] / width_ratio, 0))
                     ymin = str(max(det[1] / height_ratio, 0))
@@ -229,7 +229,6 @@ def test(opt):
                                       (xmax, ymax), color, 2)
 
                         value,index = b_logit[jdx].max(0)
-
                         b_idx = index.cpu().numpy()
                         b_pred = PBeHavCLS[b_idx]
                         text_size = cv2.getTextSize(

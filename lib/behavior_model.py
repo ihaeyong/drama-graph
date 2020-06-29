@@ -81,6 +81,7 @@ class behavior_model(nn.Module):
 
         # persons boxes
         b_logits = []
+        g_features = []
         b_labels = []
         # testing
         if not self.training:
@@ -105,23 +106,24 @@ class behavior_model(nn.Module):
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
 
-                    i_fmap = self.behavior_conv(i_fmap)
 
-                    for jdx, p_box in enumerate(box):
-                        p_idx = PersonCLS.index(p_box[5])
-                        behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
+                        #
+                        box_g = torch.from_numpy(
+                            np.array([0,0,14,14])).cuda(
+                                self.device).detach()
+                        g_box = Variable(
+                            torch.zeros(1, 5).cuda(self.device)).detach()
+                        g_box[:,1:] = box_g
 
-                for idx, box in enumerate(boxes):
-                    num_box = len(box)
-                    b_logit = []
-                    for jdx, p_box in enumerate(box):
-                        p_idx = PersonCLS.index(p_box[5])
-                        mean_b = behavior_tensor[:, p_idx].mean(0)
+                        g_fmap = roi_align(fmap[idx][None],
+                                           g_box.float(),
+                                           (self.fmap_size//4,
+                                            self.fmap_size//4))
 
-                        cur_b = behavior_tensor[idx, p_idx]
-                        i_logit = self.behavior_fc(mean_b - cur_b)
-                        b_logit.append(i_logit)
-                    b_logits.append(b_logit)
+                        i_fmap = self.behavior_conv(g_fmap + i_fmap)
+                        i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
+                        if num_box > 0:
+                            b_logits.append(i_logit)
 
             return boxes, b_logits
 
@@ -141,30 +143,29 @@ class behavior_model(nn.Module):
                     b_box = Variable(
                         torch.zeros(num_box, 5).cuda(self.device)).detach()
                     b_box[:,1:] = box_
+
                     i_fmap = roi_align(fmap[idx][None],
                                        b_box.float(),
                                        (self.fmap_size//4,
                                         self.fmap_size//4))
 
-                i_fmap = self.behavior_conv(i_fmap)
+                    # global feature
+                    box_g = torch.from_numpy(
+                        np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
+                        self.device).detach()
+                    g_box = Variable(
+                        torch.zeros(1, 5).cuda(self.device)).detach()
+                    g_box[:,1:] = box_g
 
-                for jdx, p_box in enumerate(box):
-                    b_label = behavior_label[idx][jdx]
-                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
+                    g_fmap = roi_align(fmap[idx][None],
+                                       g_box.float(),
+                                       (self.fmap_size//4,
+                                        self.fmap_size//4))
 
-            # temporal features
-            for idx, box in enumerate(label):
-                for jdx, p_box in enumerate(box):
-                    b_label = behavior_label[idx][jdx]
-                    mean_b = behavior_tensor[:, int(p_box[4])].mean(0)
-
-                    cur_b = behavior_tensor[idx, int(p_box[4])]
-                    i_logit = self.behavior_fc(mean_b - cur_b)
+                i_fmap = self.behavior_conv(g_fmap + i_fmap)
+                i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
+                if len(behavior_label[idx]) > 0:
                     b_logits.append(i_logit)
-                    b_labels.append(b_label)
-
-
-            if len(b_logits) != len(b_labels):
-                import pdb; pdb.set_trace()
+                    b_labels.append(behavior_label[idx])
 
             return logits, b_logits, b_labels
