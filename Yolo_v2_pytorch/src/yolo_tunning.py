@@ -6,7 +6,7 @@ import torch
 
 
 class YoloD(nn.Module):
-    def __init__(self, pre_model, num_cls, num_behavior_cls, num_face_cls,
+    def __init__(self, pre_model, num_cls, num_face_cls,
                  anchors=[(1.3221, 1.73145),
                           (3.19275, 4.00944),
                           (5.05587, 8.09892),
