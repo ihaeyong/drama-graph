@@ -171,9 +171,11 @@ def train(opt):
             for param_group in b_optimizer.param_groups:
                 param_group['lr'] = b_learning_rate_schedule[str(epoch)]
 
-
+        b_logit_list = []
+        b_label_list = []
         for iter, batch in enumerate(train_loader):
 
+            behavior_lr = iter % (5) == 0
             verbose=iter % (opt.print_interval*10) == 0
             image, info = batch
 
@@ -208,7 +210,8 @@ def train(opt):
             p_optimizer.step()
 
             # ------- behavior learning -------
-            b_optimizer.zero_grad()
+            if behavior_lr:
+                b_optimizer.zero_grad()
 
             # loss for behavior
             #b_logits = torch.stack(b_logits)
@@ -216,6 +219,7 @@ def train(opt):
 
             b_labels = np.array(flatten(b_labels))
             #b_labels = np.stack(b_labels)
+
             # skip none behavior
             keep_idx = np.where(b_labels!=26)
             if len(keep_idx[0]) > 0:
@@ -229,18 +233,29 @@ def train(opt):
                 requires_grad=False)
             print('behavior_label:{}'.format(b_labels))
 
-            if opt.b_loss == 'ce_focal':
-                loss_behavior = focal_without_onehot(b_logits, b_labels)
-            elif opt.b_loss == 'ce':
-                loss_behavior = F.cross_entropy(b_logits, b_labels)
+            b_label_list.append(b_labels)
+            b_logit_list.append(b_logits)
 
-            loss_behavior.backward()
-            if opt.clip_grad:
-                clip_grad_norm(
-                    [(n, p) for n, p in model.named_parameters()
-                     if p.grad is not None and not n.startswith('detector')],
-                    max_norm=opt.clip, verbose=verbose, clip=True)
-            b_optimizer.step()
+            if behavior_lr:
+                b_logits = torch.cat(b_logit_list, 0)
+                b_labels = torch.cat(b_label_list, 0)
+
+                if opt.b_loss == 'ce_focal':
+                    loss_behavior = focal_without_onehot(b_logits, b_labels)
+                elif opt.b_loss == 'ce':
+                    loss_behavior = F.cross_entropy(b_logits, b_labels)
+
+                loss_behavior.backward()
+
+                b_logit_list = []
+                b_label_list = []
+
+                if opt.clip_grad:
+                    clip_grad_norm(
+                        [(n, p) for n, p in model.named_parameters()
+                         if p.grad is not None and not n.startswith('detector')],
+                        max_norm=opt.clip, verbose=verbose, clip=True)
+                b_optimizer.step()
 
             print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
@@ -249,7 +264,8 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
-            print("+cls_behavior:{:.2f}".format(loss_behavior))
+            if behavior_lr:
+                print("+cls_behavior:{:.2f}".format(loss_behavior))
             print()
 
             loss_dict = {
