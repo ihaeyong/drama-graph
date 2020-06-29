@@ -36,6 +36,11 @@ class behavior_model(nn.Module):
             nn.ReLU(),nn.Dropout(0.1),
             nn.Linear(1024, num_behaviors))
 
+        self.behavior_conv1d = nn.Sequential(
+            nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
+            nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
+            nn.AdaptiveAvgPool1d((1)))
+
         self.num_behaviors = num_behaviors
         self.img_size = opt.image_size
         self.conf_threshold = opt.conf_threshold
@@ -121,9 +126,18 @@ class behavior_model(nn.Module):
                                             self.fmap_size//4))
 
                         i_fmap = self.behavior_conv(g_fmap + i_fmap)
-                        i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
-                        if num_box > 0:
-                            b_logits.append(i_logit)
+                        for jdx, p_box in enumerate(box):
+                            p_idx = PersonCLS.index(p_box[5])
+                            behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
+
+                for idx, box in enumerate(boxes):
+                    for jdx, p_pox in enumerate(box):
+                        p_idx = PersonCLS.index(p_box[5])
+                        p_feat=behavior_tensor[:,p_idx][None,:,:].transpose(1,2)
+                        p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
+                        cur_b = behavior_tensor[idx, int(p_box[4])]
+                        i_logit = self.behavior_fc(p_feat + cur_b)
+                        b_logits.append(i_logit)
 
             return boxes, b_logits
 
@@ -163,9 +177,19 @@ class behavior_model(nn.Module):
                                         self.fmap_size//4))
 
                 i_fmap = self.behavior_conv(g_fmap + i_fmap)
-                i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
+                for jdx, p_box in enumerate(box):
+                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
+
                 if len(behavior_label[idx]) > 0:
-                    b_logits.append(i_logit)
                     b_labels.append(behavior_label[idx])
+
+            for idx, box in enumerate(label):
+                for jdx, p_box in enumerate(box):
+                    p_feat=behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
+                    p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
+                    cur_b = behavior_tensor[idx, int(p_box[4])]
+                    i_logit = self.behavior_fc(p_feat + cur_b)
+                    b_logits.append(i_logit)
+
 
             return logits, b_logits, b_labels

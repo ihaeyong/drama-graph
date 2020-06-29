@@ -214,8 +214,8 @@ def train(opt):
                 b_optimizer.zero_grad()
 
             # loss for behavior
-            #b_logits = torch.stack(b_logits)
-            b_logits = torch.cat(b_logits,0)
+            b_logits = torch.stack(b_logits)
+            #b_logits = torch.cat(b_logits,0)
 
             b_labels = np.array(flatten(b_labels))
             #b_labels = np.stack(b_labels)
@@ -273,8 +273,10 @@ def train(opt):
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
-                'cls_behavior': loss_behavior.item()
             }
+
+            if behavior_lr:
+                loss_dict['cls_behavior'] = loss_behavior.item()
 
             # Log scalar values
             for tag, value in loss_dict.items():
