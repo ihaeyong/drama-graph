@@ -4,4 +4,4 @@ export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
 
-python models/eval_behavior.py -model global_diff_reweight_focal_one_gamma3_batch
+python models/eval_behavior.py -model global_diff_reweight_focal_one_gamma3_batch_conv1d
