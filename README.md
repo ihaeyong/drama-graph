@@ -39,6 +39,7 @@ You could find all trained models in [this link](https://drive.google.com/drive/
 
 We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 
+
 ### Train model:
 
 ```
