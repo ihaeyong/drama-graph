@@ -1,4 +1,4 @@
-# Git clone this repository.1
+# Git clone this repository.
 ```
 >> git clone https://github.com/ihaeyong/drama-graph.git
 ```
