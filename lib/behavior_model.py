@@ -47,6 +47,8 @@ class behavior_model(nn.Module):
         self.nms_threshold = opt.nms_threshold
         self.device=device
 
+        self.global_feat = True
+
     def is_not_blank(self, s):
         return bool(s and s.strip())
 
@@ -111,21 +113,23 @@ class behavior_model(nn.Module):
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
 
+                        if self.global_feat:
+                            box_g = torch.from_numpy(
+                                np.array(
+                                    [0,0,self.fmap_size,self.fmap_size])).cuda(
+                                    self.device).detach()
+                            g_box = Variable(
+                                torch.zeros(1, 5).cuda(self.device)).detach()
+                            g_box[:,1:] = box_g
 
-                        #
-                        box_g = torch.from_numpy(
-                            np.array([0,0,14,14])).cuda(
-                                self.device).detach()
-                        g_box = Variable(
-                            torch.zeros(1, 5).cuda(self.device)).detach()
-                        g_box[:,1:] = box_g
+                            g_fmap = roi_align(fmap[idx][None],
+                                               g_box.float(),
+                                               (self.fmap_size//4,
+                                                self.fmap_size//4))
 
-                        g_fmap = roi_align(fmap[idx][None],
-                                           g_box.float(),
-                                           (self.fmap_size//4,
-                                            self.fmap_size//4))
-
-                        i_fmap = self.behavior_conv(g_fmap + i_fmap)
+                            i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                        else:
+                            i_fmap = self.behavior_conv(i_fmap)
                         for jdx, p_box in enumerate(box):
                             p_idx = PersonCLS.index(p_box[5])
                             behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
@@ -164,19 +168,22 @@ class behavior_model(nn.Module):
                                         self.fmap_size//4))
 
                     # global feature
-                    box_g = torch.from_numpy(
-                        np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
-                        self.device).detach()
-                    g_box = Variable(
-                        torch.zeros(1, 5).cuda(self.device)).detach()
-                    g_box[:,1:] = box_g
+                    if self.global_feat:
+                        box_g = torch.from_numpy(
+                            np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
+                                self.device).detach()
+                        g_box = Variable(
+                            torch.zeros(1, 5).cuda(self.device)).detach()
+                        g_box[:,1:] = box_g
 
-                    g_fmap = roi_align(fmap[idx][None],
-                                       g_box.float(),
-                                       (self.fmap_size//4,
-                                        self.fmap_size//4))
+                        g_fmap = roi_align(fmap[idx][None],
+                                           g_box.float(),
+                                           (self.fmap_size//4,
+                                            self.fmap_size//4))
 
-                i_fmap = self.behavior_conv(g_fmap + i_fmap)
+                        i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                    else:
+                        i_fmap = self.behavior_conv(i_fmap)
                 for jdx, p_box in enumerate(box):
                     behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
 

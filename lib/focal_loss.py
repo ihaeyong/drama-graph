@@ -17,8 +17,6 @@ def one_hot(index, classes):
     print(index)
     return mask.scatter_(1, index, ones)
 
-
-
 class FocalLossWithOneHot(nn.Module):
     def __init__(self, gamma=0, eps=1e-7):
         super(FocalLossWithOneHot, self).__init__()
@@ -36,15 +34,18 @@ class FocalLossWithOneHot(nn.Module):
 
         return loss.mean()
 
-
-
 class FocalLossWithOutOneHot(nn.Module):
     def __init__(self, gamma=0, eps=1e-7):
         super(FocalLossWithOutOneHot, self).__init__()
         self.gamma = gamma
         self.eps = eps
-        self.weight = np.load('./lib/behavior.npy')
-        self.weight[26] = 0.0
+        weight = np.load('./lib/behavior.npy')
+        self.weight = []
+        for i in range(len(weight)):
+            if i not in [0, 1, 3, 5, 26]:
+                self.weight.append(weight[i])
+        self.weight = np.stack(self.weight)
+
         self.weight=torch.from_numpy(
             self.weight/self.weight.sum()).cuda().float() * 3
 

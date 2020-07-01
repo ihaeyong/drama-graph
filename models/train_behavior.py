@@ -175,7 +175,7 @@ def train(opt):
         b_label_list = []
         for iter, batch in enumerate(train_loader):
 
-            behavior_lr = iter % (5) == 0
+            behavior_lr = iter % (1) == 0
             verbose=iter % (opt.print_interval*10) == 0
             image, info = batch
 

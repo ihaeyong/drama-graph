@@ -14,7 +14,7 @@ PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
 
 # define behavior
-PBeHavCLS = ["stand up","sit down","walk","hold","hug",
+PBeHavCLS_ORG = ["stand up","sit down","walk","hold","hug",
              "look at/back on",
              "drink","eat",
              "point out","dance", "look for","watch",
@@ -24,6 +24,18 @@ PBeHavCLS = ["stand up","sit down","walk","hold","hug",
              "put arms around each other's shoulder",
              "open", "shake hands", "wave hands",
              "kiss", "high-five", "write", "none"]
+
+# Small set of Behavior
+# ignore set : {0, 1, 3, 5, 26}
+PBeHavCLS = ["walk","hug",
+             "drink","eat",
+             "point out","dance", "look for","watch",
+             "push away", "wave hands",
+             "cook", "sing", "play instruments",
+             "call", "destroy",
+             "put arms around each other's shoulder",
+             "open", "shake hands", "wave hands",
+             "kiss", "high-five", "write"]
 
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
@@ -84,7 +96,10 @@ def SortFullRect(image,label, is_train=True):
 
                 # behavior label
                 behavior = label[0][frm]['persons']['behavior'][p]
-                behavior_label = PBeHavCLS.index(behavior)
+                if behavior in PBeHavCLS:
+                    behavior_label = PBeHavCLS.index(behavior)
+                else:
+                    continue
 
                 #scale:
                 xmin = max(full_rect[0] * width_ratio, 0)
