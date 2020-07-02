@@ -1,0 +1,7 @@
+embeddings/gensim.glove.6B.200d.txt filter=lfs diff=lfs merge=lfs -text
+embeddings/glove.6B.100d.txt filter=lfs diff=lfs merge=lfs -text
+embeddings/glove.6B.200d.txt filter=lfs diff=lfs merge=lfs -text
+embeddings/glove.6B.300d.txt filter=lfs diff=lfs merge=lfs -text
+embeddings/glove.6B.50d.txt filter=lfs diff=lfs merge=lfs -text
+embeddings/saved_200d_word_embeddings.pkl filter=lfs diff=lfs merge=lfs -text
+*.pth filter=lfs diff=lfs merge=lfs -text
