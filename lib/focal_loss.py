@@ -40,6 +40,7 @@ class FocalLossWithOutOneHot(nn.Module):
         self.gamma = gamma
         self.eps = eps
         weight = np.load('./lib/behavior.npy')
+        self.reweight = False
         self.weight = []
         for i in range(len(weight)):
             if i not in [0, 1, 3, 5, 26]:
@@ -53,8 +54,11 @@ class FocalLossWithOutOneHot(nn.Module):
         logit = F.softmax(input, dim=1)
         logit = logit.clamp(self.eps, 1. - self.eps)
         logit_ls = torch.log(logit)
-        loss = F.nll_loss(logit_ls, target, weight=self.weight,
-                          reduction="none")
+        if self.reweight:
+            loss = F.nll_loss(logit_ls, target, weight=self.weight,
+                              reduction="none")
+        else:
+            loss = F.nll_loss(logit_ls, target, reduction="none")
         #view = target.size() + (1,)
         #index = target.view(*view)
         index = target.unsqueeze(1)
