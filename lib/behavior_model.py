@@ -28,8 +28,12 @@ class behavior_model(nn.Module):
 
         # define behavior
         self.behavior_conv = nn.Sequential(
-            nn.Conv2d(1024, 512,1, 1, 0, bias=False),
-            nn.Conv2d(512, 256,1, 1, 0, bias=False))
+            nn.Conv2d(512, 512, 3, 1, 0, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(512, 256, 3, 1, 0, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1, inplace=True))
 
         self.behavior_fc = nn.Sequential(
             nn.Linear(256 * 3 * 3, 1024),
@@ -180,7 +184,7 @@ class behavior_model(nn.Module):
                                            g_box.float(),
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
-
+                        
                         i_fmap = self.behavior_conv(i_fmap + g_fmap)
                     else:
                         i_fmap = self.behavior_conv(i_fmap)

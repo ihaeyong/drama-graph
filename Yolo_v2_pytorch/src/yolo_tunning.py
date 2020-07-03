@@ -89,4 +89,4 @@ class YoloD(nn.Module):
 
         output = self.stage3_conv_person(output_fmap)
 
-        return output, output_1
+        return output, residual
