@@ -66,11 +66,11 @@ if args.rtype == 'person':
                            'results/input_person', 'ground-truth')
     DR_PATH = os.path.join(os.getcwd(),
                            'results/input_person', 'detection')
-elif args.rtype == 'behave':
+elif args.rtype == 'object':
     GT_PATH = os.path.join(os.getcwd(),
-                           'results/input_person', 'ground-truth-behave')
+                           'results/input_person', 'ground-truth-object')
     DR_PATH = os.path.join(os.getcwd(),
-                           'results/input_person', 'detection-behave')
+                           'results/input_person', 'detection-object')
 
 # if there are no images then no animation can be shown
 IMG_PATH = os.path.join(os.getcwd(), 'results/input_person', 'images-optional')
