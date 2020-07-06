@@ -173,9 +173,10 @@ def train(opt):
 
         b_logit_list = []
         b_label_list = []
+        train_behavior_flag, train_behavior_interval = False, 1
         for iter, batch in enumerate(train_loader):
+            train_behavior_flag = (iter % train_behavior_interval) == 0
 
-            behavior_lr = iter % (1) == 0
             verbose=iter % (opt.print_interval*10) == 0
             image, info = batch
 
@@ -210,23 +211,13 @@ def train(opt):
             p_optimizer.step()
 
             # ------- behavior learning -------
-            if behavior_lr:
+            if train_behavior_flag:
                 b_optimizer.zero_grad()
 
             # loss for behavior
             b_logits = torch.stack(b_logits)
-            #b_logits = torch.cat(b_logits,0)
 
             b_labels = np.array(flatten(b_labels))
-            #b_labels = np.stack(b_labels)
-
-            # skip none behavior
-            keep_idx = np.where(b_labels!=26)
-            if len(keep_idx[0]) > 0:
-                b_logits = b_logits[keep_idx]
-                b_labels = b_labels[keep_idx]
-            else:
-                continue
 
             b_labels = Variable(
                 torch.LongTensor(b_labels).cuda(device),
@@ -236,7 +227,7 @@ def train(opt):
             b_label_list.append(b_labels)
             b_logit_list.append(b_logits)
 
-            if behavior_lr:
+            if train_behavior_flag:
                 b_logits = torch.cat(b_logit_list, 0)
                 b_labels = torch.cat(b_label_list, 0)
 
@@ -264,7 +255,7 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
-            if behavior_lr:
+            if train_behavior_flag:
                 print("+cls_behavior:{:.2f}".format(loss_behavior))
             print()
 
@@ -275,12 +266,14 @@ def train(opt):
                 'cls' : loss_cls.item(),
             }
 
-            if behavior_lr:
+            if train_behavior_flag:
                 loss_dict['cls_behavior'] = loss_behavior.item()
 
             # Log scalar values
             for tag, value in loss_dict.items():
                 logger.scalar_summary(tag, value, loss_step)
+            logger.scalar_summary('params/p_lr', p_optimizer.param_groups[0]['lr'], loss_step)
+            logger.scalar_summary('params/b_lr', b_optimizer.param_groups[0]['lr'], loss_step)
 
             loss_step = loss_step + 1
 
