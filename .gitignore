@@ -5,6 +5,8 @@ checkpoint/
 work_space/log
 Yolo_v2_pytorch/trained_models/
 jupyter/.ipynb_checkpoints/
+jupyter/*.ipynb~*
+logs/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
@@ -13,3 +15,6 @@ __pycache__/
 
 # C extensions
 *.so
+
+**/*.swp
+
