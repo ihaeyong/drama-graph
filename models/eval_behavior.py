@@ -12,6 +12,7 @@ from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
 import time
+import shutil
 
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
@@ -156,6 +157,8 @@ def test(opt):
                                             f_info[5],
                                             f_info[6],
                                             f_info[7].replace("jpg", "txt"))
+            img_file = '_'.join([ f_info[4], f_info[5], f_info[6], f_info[7] ])
+            img_fpath = os.path.join(opt.img_path, f_info[4], f_info[5], f_info[6], f_info[7])
             if opt.display:
                 print("mAP_file:{}".format(mAP_file))
 
@@ -272,6 +275,11 @@ def test(opt):
 
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
+                        dest_fpath = os.path.join(save_mAP_det_beh_dir, 'images', pred_beh_cls, img_file)
+                        os.makedirs(dest_fpath, exist_ok=True)
+                        shutil.copy(
+                            img_fpath,
+                            dest_fpath)
 
                         if opt.display:
                             print("detected {}".format(
