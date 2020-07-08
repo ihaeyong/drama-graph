@@ -28,19 +28,28 @@ class behavior_model(nn.Module):
 
         # define behavior
         self.behavior_conv = nn.Sequential(
-            nn.Conv2d(1024, 512,1, 1, 0, bias=False),
-            nn.Conv2d(512, 256,1, 1, 0, bias=False))
+            nn.Conv2d(512, 512, 3, 1, 0, bias=False),
+            nn.BatchNorm2d(512),
+            nn.LeakyReLU(0.1, inplace=True),
+            nn.Conv2d(512, 256, 3, 1, 0, bias=False),
+            nn.BatchNorm2d(256),
+            nn.LeakyReLU(0.1, inplace=True))
 
         self.behavior_fc = nn.Sequential(
             nn.Linear(256 * 3 * 3, 1024),
             nn.ReLU(),nn.Dropout(0.1),
             nn.Linear(1024, num_behaviors))
 
+        self.behavior_conv1d = nn.Sequential(
+            nn.Conv1d(2304, 2304, 3, stride=1, padding=1))
+
         self.num_behaviors = num_behaviors
         self.img_size = opt.image_size
         self.conf_threshold = opt.conf_threshold
         self.nms_threshold = opt.nms_threshold
         self.device=device
+
+        self.global_feat = True
 
     def is_not_blank(self, s):
         return bool(s and s.strip())
@@ -106,24 +115,35 @@ class behavior_model(nn.Module):
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
 
+                        if self.global_feat:
+                            box_g = torch.from_numpy(
+                                np.array(
+                                    [0,0,self.fmap_size,self.fmap_size])).cuda(
+                                    self.device).detach()
+                            g_box = Variable(
+                                torch.zeros(1, 5).cuda(self.device)).detach()
+                            g_box[:,1:] = box_g
 
-                        #
-                        box_g = torch.from_numpy(
-                            np.array([0,0,14,14])).cuda(
-                                self.device).detach()
-                        g_box = Variable(
-                            torch.zeros(1, 5).cuda(self.device)).detach()
-                        g_box[:,1:] = box_g
+                            g_fmap = roi_align(fmap[idx][None],
+                                               g_box.float(),
+                                               (self.fmap_size//4,
+                                                self.fmap_size//4))
 
-                        g_fmap = roi_align(fmap[idx][None],
-                                           g_box.float(),
-                                           (self.fmap_size//4,
-                                            self.fmap_size//4))
+                            i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                        else:
+                            i_fmap = self.behavior_conv(i_fmap)
+                        for jdx, p_box in enumerate(box):
+                            p_idx = PersonCLS.index(p_box[5])
+                            behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
 
-                        i_fmap = self.behavior_conv(g_fmap + i_fmap)
-                        i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
-                        if num_box > 0:
-                            b_logits.append(i_logit)
+                for idx, box in enumerate(boxes):
+                    for jdx, p_pox in enumerate(box):
+                        p_idx = PersonCLS.index(p_box[5])
+                        p_feat=behavior_tensor[:,p_idx][None,:,:].transpose(1,2)
+                        p_feat = self.behavior_conv1d(p_feat)[0]
+                        cur_b = behavior_tensor[idx, int(p_box[4])]
+                        i_logit = self.behavior_fc(p_feat[:,idx] - cur_b)
+                        b_logits.append(i_logit)
 
             return boxes, b_logits
 
@@ -150,22 +170,35 @@ class behavior_model(nn.Module):
                                         self.fmap_size//4))
 
                     # global feature
-                    box_g = torch.from_numpy(
-                        np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
-                        self.device).detach()
-                    g_box = Variable(
-                        torch.zeros(1, 5).cuda(self.device)).detach()
-                    g_box[:,1:] = box_g
+                    if self.global_feat:
+                        box_g = torch.from_numpy(
+                            np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
+                                self.device).detach()
+                        g_box = Variable(
+                            torch.zeros(1, 5).cuda(self.device)).detach()
+                        g_box[:,1:] = box_g
 
-                    g_fmap = roi_align(fmap[idx][None],
-                                       g_box.float(),
-                                       (self.fmap_size//4,
-                                        self.fmap_size//4))
+                        g_fmap = roi_align(fmap[idx][None],
+                                           g_box.float(),
+                                           (self.fmap_size//4,
+                                            self.fmap_size//4))
 
-                i_fmap = self.behavior_conv(g_fmap + i_fmap)
-                i_logit = self.behavior_fc(i_fmap.view(num_box, -1))
+                        i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                    else:
+                        i_fmap = self.behavior_conv(i_fmap)
+                for jdx, p_box in enumerate(box):
+                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
+
                 if len(behavior_label[idx]) > 0:
-                    b_logits.append(i_logit)
                     b_labels.append(behavior_label[idx])
+
+            for idx, box in enumerate(label):
+                for jdx, p_box in enumerate(box):
+                    p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
+                    p_feat = self.behavior_conv1d(p_feat)[0]
+                    cur_b = behavior_tensor[idx, int(p_box[4])]
+                    i_logit = self.behavior_fc(p_feat[:,idx] - cur_b)
+                    b_logits.append(i_logit)
+
 
             return logits, b_logits, b_labels

@@ -214,8 +214,8 @@ def train(opt):
                 b_optimizer.zero_grad()
 
             # loss for behavior
-            #b_logits = torch.stack(b_logits)
-            b_logits = torch.cat(b_logits,0)
+            b_logits = torch.stack(b_logits)
+            #b_logits = torch.cat(b_logits,0)
 
             b_labels = np.array(flatten(b_labels))
             #b_labels = np.stack(b_labels)
