@@ -49,7 +49,7 @@ class behavior_model(nn.Module):
         self.nms_threshold = opt.nms_threshold
         self.device=device
 
-        self.global_feat = True
+        self.global_feat = False
 
     def is_not_blank(self, s):
         return bool(s and s.strip())
