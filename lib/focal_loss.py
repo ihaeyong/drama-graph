@@ -40,15 +40,15 @@ class FocalLossWithOutOneHot(nn.Module):
         self.gamma = gamma
         self.eps = eps
         weight = np.load('./lib/behavior.npy')
-        self.reweight = False
+        self.reweight = True
         self.weight = []
         for i in range(len(weight)):
-            if i not in [0, 1, 3, 5, 26]:
+            if i in [2, 4, 6, 7, 8, 9, 12, 14, 15, 17, 19, 20, 21, 22, 23, 24]:
                 self.weight.append(weight[i])
         self.weight = np.stack(self.weight)
 
         self.weight=torch.from_numpy(
-            self.weight/self.weight.sum()).cuda().float() * 3
+            self.weight/self.weight.sum()).cuda().float()
 
     def forward(self, input, target):
         logit = F.softmax(input, dim=1)
