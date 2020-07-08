@@ -37,8 +37,10 @@ class behavior_model(nn.Module):
 
         self.behavior_fc = nn.Sequential(
             nn.Linear(256 * 3 * 3, 1024),
-            nn.ReLU(),nn.Dropout(0.1),
+            nn.ReLU(),
+            nn.Dropout(0.1),
             nn.Linear(1024, num_behaviors))
+        # self.behavior_fc = nn.Linear(256, num_behaviors) # avgpool
 
         self.behavior_conv1d = nn.Sequential(
             nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
@@ -88,7 +90,8 @@ class behavior_model(nn.Module):
         # define behavior_tensor
         behavior_tensor = Variable(
             torch.zeros(batch, self.num_persons,
-                        256 * 3 * 3).cuda(self.device))
+                        256 * 3 * 3).cuda(self.device)) # flatten
+                        # 256).cuda(self.device)) # avgpool
 
         # persons boxes
         b_logits = []
@@ -185,22 +188,24 @@ class behavior_model(nn.Module):
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
                         
-                        i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                        i_fmap = self.behavior_conv(i_fmap + g_fmap) # sum
                     else:
                         i_fmap = self.behavior_conv(i_fmap)
                 for jdx, p_box in enumerate(box):
-                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
+                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1) # flatten
+                    # behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].mean(dim=2).mean(dim=1) # avgpool
 
                 if len(behavior_label[idx]) > 0:
                     b_labels.append(behavior_label[idx])
 
             for idx, box in enumerate(label):
                 for jdx, p_box in enumerate(box):
-                    p_feat=behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
+                    p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
                     p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
                     cur_b = behavior_tensor[idx, int(p_box[4])]
                     i_logit = self.behavior_fc(p_feat + cur_b)
+                    # i_logit = self.behavior_fc(cur_b) # w/o temporal modeling
                     b_logits.append(i_logit)
 
-
             return logits, b_logits, b_labels
+

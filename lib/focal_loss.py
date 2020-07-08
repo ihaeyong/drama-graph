@@ -65,3 +65,4 @@ class FocalLossWithOutOneHot(nn.Module):
         loss = loss * (1 - logit.gather(1, index).squeeze(1)) ** self.gamma # focal loss
 
         return loss.mean()
+

@@ -61,7 +61,8 @@ def get_args():
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
-    parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
+    parser.add_argument("-p_lr", dest='p_lr', type=float, default=1e-6)
+    parser.add_argument("-b_lr", dest='b_lr', type=float, default=1e-5)
     parser.add_argument("-clip", dest='clip', type=float, default=10.0)
     parser.add_argument("-print_interval", dest='print_interval', type=int,
                         default=100)
@@ -102,8 +103,8 @@ def train(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
-    b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0}
+    p_learning_rate_schedule = {"0": opt.p_lr, "5": opt.p_lr/5.0}
+    b_learning_rate_schedule = {"0": opt.b_lr, "5": opt.b_lr/10.0}
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -136,14 +137,14 @@ def train(opt):
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1, v4
+    p_params = [{'params': fc_params, 'lr': opt.p_lr}] # v1, v4
     b_params = [{'params': non_fc_params}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
-    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 10.0,
+    p_optimizer = torch.optim.SGD(p_params, lr = opt.p_lr,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
-    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr,
+    b_optimizer = torch.optim.SGD(b_params, lr = opt.b_lr,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
 
@@ -182,6 +183,10 @@ def train(opt):
 
             # sort label info on fullrect
             image, label, behavior_label = SortFullRect(image, info)
+            # print(f'len(image): {len(image)}')
+            # print(f'len(info[0]): {len(info[0])}')
+            # print(f'label (#={len(label)}): {label}')
+            # print(f'behavior_label (#={len(behavior_label)}): {behavior_label}')
 
             if np.array(label).size == 0 :
                 print("iter:{}_person bboxs are empty".format(
@@ -249,9 +254,11 @@ def train(opt):
                 b_optimizer.step()
 
             print("Model:{}".format(opt.model))
-            print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
+            print("Epoch: {}/{}, Iteration: {}/{}, p_lr: {}, b_lr: {}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
-                num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
+                num_iter_per_epoch,
+                p_optimizer.param_groups[0]['lr'],
+                b_optimizer.param_groups[0]['lr']))
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
