@@ -28,10 +28,10 @@ class behavior_model(nn.Module):
 
         # define behavior
         self.behavior_conv = nn.Sequential(
-            nn.Conv2d(512, 512, 3, 1, 0, bias=False),
+            nn.Conv2d(1024, 512, 1, 1, 0, bias=False),
             nn.BatchNorm2d(512),
             nn.LeakyReLU(0.1, inplace=True),
-            nn.Conv2d(512, 256, 3, 1, 0, bias=False),
+            nn.Conv2d(512, 256, 1, 1, 0, bias=False),
             nn.BatchNorm2d(256),
             nn.LeakyReLU(0.1, inplace=True))
 
@@ -53,7 +53,7 @@ class behavior_model(nn.Module):
         self.nms_threshold = opt.nms_threshold
         self.device=device
 
-        self.global_feat = True
+        self.global_feat = False
 
     def is_not_blank(self, s):
         return bool(s and s.strip())
