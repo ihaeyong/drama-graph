@@ -27,25 +27,32 @@ class behavior_model(nn.Module):
         self.num_persons = num_persons
 
         # define behavior
-        self.behavior_conv = nn.Sequential(
-            nn.Conv2d(1024, 512, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(512),
-            nn.LeakyReLU(0.1, inplace=True),
-            nn.Conv2d(512, 256, 1, 1, 0, bias=False),
-            nn.BatchNorm2d(256),
-            nn.LeakyReLU(0.1, inplace=True))
+        ### self.behavior_conv = nn.Sequential(
+        ###     nn.Conv2d(1024, 512, 1, 1, 0, bias=False),
+        ###     nn.BatchNorm2d(512),
+        ###     nn.LeakyReLU(0.1, inplace=True),
+        ###     nn.Conv2d(512, 256, 1, 1, 0, bias=False),
+        ###     nn.BatchNorm2d(256),
+        ###     nn.LeakyReLU(0.1, inplace=True))
 
-        self.behavior_fc = nn.Sequential(
-            nn.Linear(256 * 3 * 3, 1024),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-            nn.Linear(1024, num_behaviors))
-        # self.behavior_fc = nn.Linear(256, num_behaviors) # avgpool
+        ### self.behavior_fc = nn.Sequential(
+        ###     nn.Linear(256 * 3 * 3, 1024),
+        ###     nn.ReLU(),
+        ###     nn.Dropout(0.1),
+        ###     nn.Linear(1024, num_behaviors))
+        ### # self.behavior_fc = nn.Linear(256, num_behaviors) # avgpool
 
-        self.behavior_conv1d = nn.Sequential(
-            nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
-            nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
-            nn.AdaptiveAvgPool1d((1)))
+        ### self.behavior_conv1d = nn.Sequential(
+        ###     nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
+        ###     nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
+        ###     nn.AdaptiveAvgPool1d((1)))
+
+        self.conv1 = nn.Conv3d(1024, 512, kernel_size=(3, 3, 3), padding=(1, 1, 1))
+        self.pool1 = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=(1, 1, 1))
+
+        self.fc2 = nn.Linear(512, num_behaviors)
+
+        self.relu = nn.ReLU()
 
         self.num_behaviors = num_behaviors
         self.img_size = opt.image_size
@@ -76,21 +83,21 @@ class behavior_model(nn.Module):
 
         return label_array
 
-    def forward(self, image, label, behavior_label):
-
+    def forward(self, frames, label, behavior_label):
         # person detector
-        logits, fmap = self.detector(image)
-        batch = logits.size(0)
+        logits, fmaps = self.detector(frames)
+        num_frames = logits.size(0)
 
-        fmap = fmap.detach()
+        fmaps = fmaps.detach()
 
-        # fmap [b, 1024, 14, 14]
-        self.fmap_size = fmap.size(2)
+        # fmaps [n, 1024, 14, 14]
+        self.fmap_size = fmaps.size(2)
 
         # define behavior_tensor
         behavior_tensor = Variable(
-            torch.zeros(batch, self.num_persons,
-                        256 * 3 * 3).cuda(self.device)) # flatten
+            torch.zeros(num_frames,
+                        self.num_persons,
+                        1024, 3, 3).cuda(self.device)) # flatten
                         # 256).cuda(self.device)) # avgpool
 
         # persons boxes
@@ -115,7 +122,7 @@ class behavior_model(nn.Module):
                         b_box = Variable(
                             torch.zeros(num_box, 5).cuda(self.device)).detach()
                         b_box[:,1:] = box_
-                        i_fmap = roi_align(fmap[idx][None],
+                        i_fmap = roi_align(fmaps[idx][None],
                                            b_box.float(),
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
@@ -129,26 +136,43 @@ class behavior_model(nn.Module):
                                 torch.zeros(1, 5).cuda(self.device)).detach()
                             g_box[:,1:] = box_g
 
-                            g_fmap = roi_align(fmap[idx][None],
+                            g_fmap = roi_align(fmaps[idx][None],
                                                g_box.float(),
                                                (self.fmap_size//4,
                                                 self.fmap_size//4))
 
-                            i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                            ### i_fmap = self.behavior_conv(i_fmap + g_fmap)
+                            i_fmap = i_fmap + g_fmap
                         else:
-                            i_fmap = self.behavior_conv(i_fmap)
+                            ### i_fmap = self.behavior_conv(i_fmap)
+                            pass
                         for jdx, p_box in enumerate(box):
                             p_idx = PersonCLS.index(p_box[5])
-                            behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
+                            ### behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
+                            behavior_tensor[idx, p_idx] = i_fmap[jdx]
 
                 for idx, box in enumerate(boxes):
                     for jdx, p_pox in enumerate(box):
                         p_idx = PersonCLS.index(p_box[5])
-                        p_feat=behavior_tensor[:,p_idx][None,:,:].transpose(1,2)
-                        p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
-                        cur_b = behavior_tensor[idx, int(p_box[4])]
-                        i_logit = self.behavior_fc(p_feat + cur_b)
-                        b_logits.append(i_logit)
+                        p_fmap = behavior_tensor[:, p_idx]
+
+                        sample_idxs = np.linspace(0, num_frames - 1, 3, dtype=int)
+                        x = p_fmap[sample_idxs]
+                        x = x.transpose(0, 1)[None, :, :, :, :]
+
+                        x = self.relu(self.conv1(x))
+                        x = self.pool1(x)
+
+                        x = x.squeeze(4).squeeze(3).squeeze(2)
+                        b_logit = self.fc2(x)
+                        import ipdb; ipdb.set_trace()
+
+                        ### p_feat = behavior_tensor[:, p_idx][None, :, :].transpose(1, 2)
+                        ### p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
+                        ### cur_b = behavior_tensor[idx, int(p_box[4])]
+                        ### i_logit = self.behavior_fc(p_feat + cur_b)
+                        ### b_logits.append(i_logit)
+                        b_logits.append(b_logit)
 
             return boxes, b_logits
 
@@ -169,7 +193,7 @@ class behavior_model(nn.Module):
                         torch.zeros(num_box, 5).cuda(self.device)).detach()
                     b_box[:,1:] = box_
 
-                    i_fmap = roi_align(fmap[idx][None],
+                    i_fmap = roi_align(fmaps[idx][None],
                                        b_box.float(),
                                        (self.fmap_size//4,
                                         self.fmap_size//4))
@@ -183,29 +207,45 @@ class behavior_model(nn.Module):
                             torch.zeros(1, 5).cuda(self.device)).detach()
                         g_box[:,1:] = box_g
 
-                        g_fmap = roi_align(fmap[idx][None],
+                        g_fmap = roi_align(fmaps[idx][None],
                                            g_box.float(),
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
                         
-                        i_fmap = self.behavior_conv(i_fmap + g_fmap) # sum
+                        ### i_fmap = self.behavior_conv(i_fmap + g_fmap) # sum
+                        i_fmap = i_fmap + g_fmap
                     else:
-                        i_fmap = self.behavior_conv(i_fmap)
+                        ### i_fmap = self.behavior_conv(i_fmap)
+                        pass
                 for jdx, p_box in enumerate(box):
-                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1) # flatten
+                    ### behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1) # flatten
                     # behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].mean(dim=2).mean(dim=1) # avgpool
+                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx]
 
                 if len(behavior_label[idx]) > 0:
                     b_labels.append(behavior_label[idx])
 
             for idx, box in enumerate(label):
                 for jdx, p_box in enumerate(box):
-                    p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
-                    p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
-                    cur_b = behavior_tensor[idx, int(p_box[4])]
-                    i_logit = self.behavior_fc(p_feat + cur_b)
-                    # i_logit = self.behavior_fc(cur_b) # w/o temporal modeling
-                    b_logits.append(i_logit)
+                    p_fmap = behavior_tensor[:, int(p_box[4])]
+
+                    sample_idxs = np.linspace(0, num_frames - 1, 3, dtype=int)
+                    x = p_fmap[sample_idxs]
+                    x = x.transpose(0, 1)[None, :, :, :, :]
+
+                    x = self.relu(self.conv1(x))
+                    x = self.pool1(x)
+
+                    x = x.squeeze(4).squeeze(3).squeeze(2)
+                    b_logit = self.fc2(x)
+
+                    ### p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
+                    ### p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
+                    ### cur_b = behavior_tensor[idx, int(p_box[4])]
+                    ### i_logit = self.behavior_fc(p_feat + cur_b)
+                    ### # i_logit = self.behavior_fc(cur_b) # w/o temporal modeling
+                    b_logit = b_logit.squeeze(0)
+                    b_logits.append(b_logit)
 
             return logits, b_logits, b_labels
 
