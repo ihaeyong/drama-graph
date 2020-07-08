@@ -137,13 +137,13 @@ def train(opt):
                      if not n.startswith('detector') and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1, v4
-    b_params = [{'params': non_fc_params}]
+    b_params = [{'params': non_fc_params, 'lr': opt.lr * 100.0}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
-    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr,
+    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr * 100.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
 
@@ -175,7 +175,7 @@ def train(opt):
         b_label_list = []
         for iter, batch in enumerate(train_loader):
 
-            behavior_lr = iter % (5) == 0
+            behavior_lr = iter % (1) == 0
             verbose=iter % (opt.print_interval*10) == 0
             image, info = batch
 
@@ -273,8 +273,10 @@ def train(opt):
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
-                'cls_behavior': loss_behavior.item()
             }
+
+            if behavior_lr:
+                loss_dict['cls_behavior'] = loss_behavior.item()
 
             # Log scalar values
             for tag, value in loss_dict.items():
