@@ -92,6 +92,7 @@ class behavior_model(nn.Module):
         b_logits = []
         g_features = []
         b_labels = []
+
         # testing
         if not self.training:
             boxes = post_processing(logits, self.img_size, PersonCLS,
@@ -137,13 +138,15 @@ class behavior_model(nn.Module):
                             behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
 
                 for idx, box in enumerate(boxes):
+                    i_logit_list = []
                     for jdx, p_pox in enumerate(box):
                         p_idx = PersonCLS.index(p_box[5])
-                        p_feat=behavior_tensor[:,p_idx][None,:,:].transpose(1,2)
+                        p_feat = behavior_tensor[:,p_idx][None,:,:].transpose(1,2)
                         p_feat = self.behavior_conv1d(p_feat)[0]
-                        cur_b = behavior_tensor[idx, int(p_box[4])]
+                        cur_b = behavior_tensor[idx, p_idx]
                         i_logit = self.behavior_fc(p_feat[:,idx] - cur_b)
-                        b_logits.append(i_logit)
+                        i_logit_list.append(i_logit)
+                    b_logits.append(i_logit_list)
 
             return boxes, b_logits
 
