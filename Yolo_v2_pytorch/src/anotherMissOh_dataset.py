@@ -71,22 +71,20 @@ def SortFullRect(frames, label, is_train=True):
     max_num_frames = 10
     if num_frames > max_num_frames and is_train:
         start_frm_idx = np.random.choice(num_frames - max_num_frames, 1)[0]
-        end_frm_idx = start_frm_idx + max_num_frames
+        end_frm_idx = min(start_frm_idx + max_num_frames, num_frames)
     elif is_train is False:
         start_frm_idx = 0
-        end_frm_idx = max_num_frames
+        end_frm_idx = min(max_num_frames, num_frames)
 
-    image_list = []
+    frame_list = []
     frame_id_list = []
     fullrect_list = []
     fullbehav_list = []
     for frm_idx in range(start_frm_idx, end_frm_idx):
         label_list = []
         behavior_list = []
+        frame_id = label[0][frm_idx]['frame_id']
         for p, p_id in enumerate(label[0][frm_idx]['persons']['person_id']):
-
-            frame_id = label[0][frm_idx]['frame_id']
-
             if p_id in PersonCLS:
                 p_label = PersonCLS.index(p_id)
                 if p_label > 20:
@@ -111,17 +109,17 @@ def SortFullRect(frames, label, is_train=True):
             full_rect = [xmin,ymin,xmax,ymax]
 
             person_label = np.concatenate((full_rect, [p_label]), 0)
-            frame_id_list.append(frame_id)
             label_list.append(person_label)
             behavior_list.append(behavior_label)
 
+        frame_id_list.append(frame_id)
         fullrect_list.append(label_list)
         fullbehav_list.append(behavior_list)
-        image_list.append(frames[frm_idx])
+        frame_list.append(frames[frm_idx])
 
     if is_train:
-        return image_list, fullrect_list, fullbehav_list
-    return image_list, fullrect_list, fullbehav_list, frame_id_list
+        return frame_list, fullrect_list, fullbehav_list
+    return frame_list, fullrect_list, fullbehav_list, frame_id_list
 
 class AnotherMissOh(Dataset):
     def __init__(self, dataset, img_path, json_path, display_log=True):

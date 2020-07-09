@@ -105,29 +105,29 @@ class behavior_model(nn.Module):
                         self.num_persons,
                         1024, 3, 3).cuda(self.device))
 
-        # persons boxes
-        b_logits = []
-        g_features = []
-        b_labels = []
         # testing
         if not self.training:
-            boxes = post_processing(logits, self.img_size, PersonCLS,
-                                    self.detector.anchors,
-                                    self.conf_threshold,
-                                    self.nms_threshold)
-            if len(boxes) > 0 :
-                for idx, box in enumerate(boxes):
-                    num_box = len(box)
+            b_logits_list = []
+
+            p_boxes_list = post_processing(logits,
+                                         self.img_size,
+                                         PersonCLS,
+                                         self.detector.anchors,
+                                         self.conf_threshold,
+                                         self.nms_threshold)
+            if len(p_boxes_list) > 0 :
+                for frm_idx, boxes in enumerate(p_boxes_list):
+                    num_box = len(boxes)
                     with torch.no_grad():
                         box_ = np.clip(
-                            np.stack(box)[:,:4].astype('float32'),
+                            np.stack(boxes)[:,:4].astype('float32'),
                             0.0, self.img_size)
                         box_ = Variable(torch.from_numpy(box_)).cuda(
                             self.device).detach() / self.img_size * self.fmap_size
                         b_box = Variable(
                             torch.zeros(num_box, 5).cuda(self.device)).detach()
                         b_box[:,1:] = box_
-                        i_fmap = roi_align(fmaps[idx][None],
+                        i_fmap = roi_align(fmaps[frm_idx][None],
                                            b_box.float(),
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
@@ -141,25 +141,25 @@ class behavior_model(nn.Module):
                                 torch.zeros(1, 5).cuda(self.device)).detach()
                             g_box[:,1:] = box_g
 
-                            g_fmap = roi_align(fmaps[idx][None],
+                            g_fmap = roi_align(fmaps[frm_idx][None],
                                                g_box.float(),
                                                (self.fmap_size//4,
                                                 self.fmap_size//4))
 
-                            ### i_fmap = self.behavior_conv(i_fmap + g_fmap)
                             i_fmap = i_fmap + g_fmap
 
-                        for p_idx, p_box in enumerate(box):
+                        for p_idx, p_box in enumerate(boxes):
                             p_id = PersonCLS.index(p_box[5])
-                            behavior_tensor[idx, p_id] = i_fmap[p_idx]
+                            behavior_tensor[frm_idx, p_id] = i_fmap[p_idx]
 
                 T = 5
-                for idx, boxes in enumerate(boxes):
+                for frm_idx, boxes in enumerate(p_boxes_list):
+                    b_logits = []
                     for p_box in boxes:
                         p_id = PersonCLS.index(p_box[5])
                         p_fmap = behavior_tensor[:, p_id]
 
-                        start_idx = max(idx - (T // 2), 0)
+                        start_idx = max(frm_idx - (T // 2), 0)
                         end_idx = min(start_idx + T - 1, num_frames - 1)
                         sample_idxs = np.linspace(start_idx, end_idx, T, dtype=int)
                         x = p_fmap[sample_idxs]
@@ -170,21 +170,18 @@ class behavior_model(nn.Module):
                         x = self.pool1(x)
 
                         x = x.squeeze(4).squeeze(3).squeeze(2)
-                        b_logit = self.fc2(x)
-
-                        ### p_feat = behavior_tensor[:, p_id][None, :, :].transpose(1, 2)
-                        ### p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
-                        ### cur_b = behavior_tensor[idx, int(p_box[4])]
-                        ### i_logit = self.behavior_fc(p_feat + cur_b)
-                        ### b_logits.append(i_logit)
-                        b_logit = b_logit.squeeze(0)
+                        x = self.fc2(x)
+                        b_logit = x.squeeze(0)
                         b_logits.append(b_logit)
-
-            return boxes, b_logits
+                    b_logits_list.append(b_logits)
+            return p_boxes_list, b_logits_list
 
         # training
         #label_array = self.label_array(batch, labels, behavior_labels)
         if len(behavior_labels) > 0 and self.training:
+            b_logits = []
+            b_labels = []
+
             for frm_idx, gt_boxes in enumerate(labels):
                 num_boxes = len(gt_boxes)
                 if num_boxes == 0:
@@ -243,14 +240,8 @@ class behavior_model(nn.Module):
                     x = self.pool1(x)
 
                     x = x.squeeze(4).squeeze(3).squeeze(2)
-                    b_logit = self.fc2(x)
-
-                    ### p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
-                    ### p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
-                    ### cur_b = behavior_tensor[frm_idx, int(p_box[4])]
-                    ### i_logit = self.behavior_fc(p_feat + cur_b)
-                    ### # i_logit = self.behavior_fc(cur_b) # w/o temporal modeling
-                    b_logit = b_logit.squeeze(0)
+                    x = self.fc2(x)
+                    b_logit = x.squeeze(0)
                     b_logits.append(b_logit)
                     b_labels.append(b_label)
 

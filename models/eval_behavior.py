@@ -7,7 +7,7 @@ import numpy as np
 from Yolo_v2_pytorch.src.utils import *
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -87,39 +87,42 @@ def test(opt):
 
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
-            model1 = torch.load(model_path)
+            model = torch.load(model_path)
             print("loaded with gpu {}".format(model_path))
         else:
-            model1 = Yolo(num_persons)
-            model1.load_state_dict(torch.load(model_path))
+            model = Yolo(num_persons)
+            model.load_state_dict(torch.load(model_path))
             print("loaded with cpu {}".format(model_path))
 
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
 
-    model1.eval()
+    model.eval()
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
 
     # load test clips
     for iter, batch in enumerate(test_loader):
-        image, info = batch
+        frames, info = batch
 
         # sort label info on fullrect
-        image, label, behavior_label, frame_id = SortFullRect(
-            image, info, is_train=False)
+        frames, labels, behavior_labels, frame_ids = SortFullRect(
+            frames, info, is_train=False)
 
         if torch.cuda.is_available():
-            image = torch.cat(image,0).cuda()
+            frames = torch.cat(frames, 0).cuda()
 
         #with torch.no_grad():
         # logits : [1, 125, 14, 14]
         # behavior_logits : [1, 135, 14, 14]
-        predictions, b_logits = model1(image, label, behavior_label)
+        pred_p_bboxes_list, pred_b_logits_list = model(frames, labels, behavior_labels)
+        assert len(pred_p_bboxes_list) == len(pred_b_logits_list)
+        if len(pred_p_bboxes_list) == 0:
+            continue
 
-        for idx, frame in enumerate(frame_id):
-            f_info = frame[0].split('/')
+        for frame_idx, frame_id in enumerate(frame_ids):
+            f_info = frame_id[0].split('/')
             save_dir = './results/person/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
 
@@ -130,6 +133,8 @@ def test(opt):
             save_mAP_det_beh_dir = './results/input_person/detection-behave/'
 
             save_mAP_img_dir = './results/input_person/image/'
+
+            save_behavior_img_dpath = "./results/behavior"
 
             # visualize predictions
             if not os.path.exists(save_dir):
@@ -148,6 +153,8 @@ def test(opt):
             # behavior
             if not os.path.exists(save_mAP_det_beh_dir):
                 os.makedirs(save_mAP_det_beh_dir)
+            if not os.path.exists(save_behavior_img_dpath):
+                os.makedirs(save_behavior_img_dpath)
             # image
             if not os.path.exists(save_mAP_img_dir):
                 os.makedirs(save_mAP_img_dir)
@@ -157,18 +164,19 @@ def test(opt):
                                             f_info[5],
                                             f_info[6],
                                             f_info[7].replace("jpg", "txt"))
-            img_file = '_'.join([ f_info[4], f_info[5], f_info[6], f_info[7] ])
-            img_fpath = os.path.join(opt.img_path, f_info[4], f_info[5], f_info[6], f_info[7])
+            behavior_img_fname = '_'.join([ f_info[4], f_info[5], f_info[6], f_info[7] ])
+            ### img_file = '_'.join([ f_info[4], f_info[5], f_info[6], f_info[7] ])
+            ### img_fpath = os.path.join(opt.img_path, f_info[4], f_info[5], f_info[6], f_info[7])
             if opt.display:
                 print("mAP_file:{}".format(mAP_file))
 
             # ground truth
-            #b_person_label = label[i]
+            #b_person_label = labels[i]
             # save person ground truth
             gt_person_cnt = 0
-            if len(label) > idx :
-                f = open(save_mAP_gt_dir + mAP_file, mode='w+')
-                for det in label[idx]:
+            ### if len(labels) > frame_idx:
+            with open(save_mAP_gt_dir + mAP_file, mode='w+') as fin:
+                for det in labels[frame_idx]:
                     cls = PersonCLS[int(det[4])]
                     xmin = str(max(det[0] / width_ratio, 0))
                     ymin = str(max(det[1] / height_ratio, 0))
@@ -177,14 +185,13 @@ def test(opt):
                     cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
                     if opt.display:
                         print("person_gt:{}".format(cat_det))
-                    f.write(cat_det)
+                    fin.write(cat_det)
                     gt_person_cnt += 1
-                f.close()
 
-                #b_behavior_label = behavior_label[i]
-                f = open(save_mAP_gt_beh_dir + mAP_file, mode='w+')
-                for j, det in enumerate(label[idx]):
-                    cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
+            #b_behavior_labels = behavior_labels[i]
+            with open(save_mAP_gt_beh_dir + mAP_file, mode='w+') as fin:
+                for j, det in enumerate(labels[frame_idx]):
+                    cls = PBeHavCLS[int(behavior_labels[frame_idx][j])].replace(' ', '_')
                     if cls == 'none':
                         continue
 
@@ -196,105 +203,119 @@ def test(opt):
                     cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
                     if opt.display:
                         print("behavior_gt:{}".format(cat_det))
-                    f.write(cat_det)
-                f.close()
+                    fin.write(cat_det)
 
-                # open detection file
 
-                f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
-                f = open(save_mAP_det_dir + mAP_file, mode='w+')
+            # open detection file
+            f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
+            f = open(save_mAP_det_dir + mAP_file, mode='w+')
+
             # out of try : pdb.set_trace = lambda : None
-            try:
-                # for some empty video clips
-                img = image[idx]
-                # ToTensor function normalizes image pixel values into [0,1]
-                np_img = img.cpu().numpy().transpose((1,2,0)) * 255
+            ### try:
+            frame = frames[frame_idx]
+            np_frame = frame.cpu().numpy().transpose((1, 2, 0)) * 255
+            if len(pred_p_bboxes_list[frame_idx]) > 0:
+                pred_p_bboxes = pred_p_bboxes_list[frame_idx]
+                pred_b_logits = pred_b_logits_list[frame_idx]
+                output_image = cv2.cvtColor(np_frame, cv2.COLOR_RGB2BGR)
+                output_image = cv2.resize(output_image, (width, height))
 
-                if len(predictions[idx]) != 0:
-                    prediction = predictions[idx]
-                    b_logit = b_logits[idx]
-                    output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
-                    output_image = cv2.resize(output_image, (width, height))
+                # save images
+                cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
+                    '.txt', '.jpg'), output_image)
 
-                    # save images
-                    cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
-                        '.txt', '.jpg'), output_image)
+                assert len(pred_p_bboxes) == len(pred_b_logits)
+                for pred_bbox, pred_b_logit in zip(pred_p_bboxes, pred_b_logits):
+                    xmin = int(max(pred_bbox[0] / width_ratio, 0))
+                    ymin = int(max(pred_bbox[1] / height_ratio, 0))
+                    xmax = int(min((pred_bbox[2]) / width_ratio, width))
+                    ymax = int(min((pred_bbox[3]) / height_ratio, height))
+                    color = colors[PersonCLS.index(pred_bbox[5])]
 
-                    num_preds = len(prediction)
-                    for jdx, pred in enumerate(prediction):
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
-                        color = colors[PersonCLS.index(pred[5])]
+                    cv2.rectangle(output_image, (xmin, ymin),
+                                  (xmax, ymax), color, 2)
 
-                        cv2.rectangle(output_image, (xmin, ymin),
-                                      (xmax, ymax), color, 2)
+                    ### value, index = pred_b_logit.max(0)
+                    pred_b_weight = torch.softmax(pred_b_logit, dim=0)
+                    ( prct1, prct2 ), ( idx1, idx2 ) = pred_b_weight.topk(2, dim=0)
+                    b_idx1 = idx1.cpu().numpy()
+                    b_idx2 = idx2.cpu().numpy()
+                    b_pred1 = PBeHavCLS[b_idx1]
+                    b_pred2 = PBeHavCLS[b_idx2]
+                    text_size = cv2.getTextSize(
+                        pred_bbox[5] + ' : %.2f' % pred_bbox[4],
+                        cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                    cv2.rectangle(
+                        output_image,
+                        (xmin, ymin),
+                        (xmin + text_size[0] + 100,
+                         ymin + text_size[1] + 20 + 12), color, -1)
+                    cv2.putText(
+                        output_image, pred_bbox[5] + ' : %.2f' % pred_bbox[4],
+                        (xmin, ymin + text_size[1] + 4),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 255, 255), 1)
+                    cv2.putText(
+                        output_image, f'+ behavior : {b_pred1} ({prct1 * 100:.1f}%)',
+                        (xmin, ymin + text_size[1] + 4 + 12),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 255, 255), 1)
+                    cv2.putText(
+                        output_image, f'+ behavior : {b_pred2} ({prct2 * 100:.1f}%)',
+                        (xmin, ymin + text_size[1] + 4 + 12 + 12),
+                        cv2.FONT_HERSHEY_PLAIN, 1,
+                        (255, 255, 255), 1)
 
-                        value,index = b_logit[jdx].max(0)
-                        b_idx = index.cpu().numpy()
-                        b_pred = PBeHavCLS[b_idx]
-                        text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
-                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                        cv2.rectangle(
-                            output_image,
-                            (xmin, ymin),
-                            (xmin + text_size[0] + 100,
-                             ymin + text_size[1] + 20), color, -1)
-                        cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
-                            (xmin, ymin + text_size[1] + 4),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
-                        cv2.putText(
-                            output_image, '+ behavior : ' + b_pred,
-                            (xmin, ymin + text_size[1] + 4 + 12),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
 
-                        cv2.imwrite(save_dir + "{}".format(f_file),
-                                    output_image)
+                    cv2.imwrite(save_dir + "{}".format(f_file),
+                                output_image)
 
-                        # save detection results
-                        pred_cls = pred[5]
-                        pred_beh_cls = b_pred.replace(' ', '_')
-                        pred_beh_cls = pred_beh_cls.replace('/', '_')
-                        cat_pred = '%s %s %s %s %s %s\n' % (
-                            pred_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
+                    behavior_img_fpath = os.path.join(save_behavior_img_dpath,
+                                                      b_pred1,
+                                                      behavior_img_fname)
+                    os.makedirs(os.path.dirname(behavior_img_fpath), exist_ok=True)
+                    cv2.imwrite(behavior_img_fpath,
+                                output_image)
 
-                        cat_pred_beh = '%s %s %s %s %s %s\n' % (
-                            pred_beh_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
+                    # save detection results
+                    pred_cls = pred_bbox[5]
+                    pred_beh_cls = b_pred1.replace(' ', '_')
+                    pred_beh_cls = pred_beh_cls.replace('/', '_')
+                    cat_pred = '%s %s %s %s %s %s\n' % (
+                        pred_cls,
+                        str(pred_bbox[4]),
+                        str(xmin), str(ymin), str(xmax), str(ymax))
 
-                        print("behavior_pred:{}".format(cat_pred_beh))
-                        print("person_pred:{}".format(cat_pred))
+                    cat_pred_beh = '%s %s %s %s %s %s\n' % (
+                        pred_beh_cls,
+                        str(pred_bbox[4]),
+                        str(xmin), str(ymin), str(xmax), str(ymax))
 
-                        f.write(cat_pred)
-                        f_beh.write(cat_pred_beh)
-                        dest_fpath = os.path.join(save_mAP_det_beh_dir, 'images', pred_beh_cls, img_file)
-                        dest_dpath = os.path.dirname(dest_fpath)
-                        os.makedirs(dest_dpath, exist_ok=True)
-                        shutil.copy(
-                            img_fpath,
-                            dest_fpath)
+                    print("behavior_pred:{}".format(cat_pred_beh))
+                    print("person_pred:{}".format(cat_pred))
 
-                        if opt.display:
-                            print("detected {}".format(
-                                save_dir + "{}".format(f_file)))
-                    else:
-                        if opt.display:
-                            print("non-detected {}".format(
+                    f.write(cat_pred)
+                    f_beh.write(cat_pred_beh)
+                    ### dest_fpath = os.path.join(save_mAP_det_beh_dir, 'images', pred_beh_cls, img_file)
+                    ### dest_dpath = os.path.dirname(dest_fpath)
+                    ### os.makedirs(dest_dpath, exist_ok=True)
+                    ### shutil.copy(img_fpath, dest_fpath)
+
+                    if opt.display:
+                        print("detected {}".format(
                             save_dir + "{}".format(f_file)))
-                        f.close()
-                        f_beh.close()
-            except:
-                f.close()
-                f_beh.close()
-                continue
+                else:
+                    if opt.display:
+                        print("non-detected {}".format(
+                        save_dir + "{}".format(f_file)))
+                    f.close()
+                    f_beh.close()
+            ### except:
+            ###     f.close()
+            ###     f_beh.close()
+            ###     continue
+            f.close()
+            f_beh.close()
             if gt_person_cnt == 0:
                 if os.path.exists(save_mAP_gt_dir + mAP_file):
                     os.remove(save_mAP_gt_dir + mAP_file)
