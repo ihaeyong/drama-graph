@@ -165,8 +165,8 @@ class behavior_model(nn.Module):
                     box_ = torch.from_numpy(box_).cuda(self.device).detach()
                     b_box = Variable(
                         torch.zeros(num_box, 5).cuda(self.device)).detach()
-                    b_box[:,1:] = box_
-
+                    b_box[:,1:] = torch.clamp(box_+torch.randn(box_.shape).cuda(
+                        self.device), 0, self.fmap_size)
                     i_fmap = roi_align(fmap[idx][None],
                                        b_box.float(),
                                        (self.fmap_size//4,
