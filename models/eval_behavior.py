@@ -276,7 +276,8 @@ def test(opt):
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
                         dest_fpath = os.path.join(save_mAP_det_beh_dir, 'images', pred_beh_cls, img_file)
-                        os.makedirs(dest_fpath, exist_ok=True)
+                        dest_dpath = os.path.dirname(dest_fpath)
+                        os.makedirs(dest_dpath, exist_ok=True)
                         shutil.copy(
                             img_fpath,
                             dest_fpath)

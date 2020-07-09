@@ -163,7 +163,8 @@ def train(opt):
     loss_step = 0
 
     # define focal loss
-    focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
+    ### focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
+    focal_with_onehot = FocalLossWithOneHot(gamma=opt.f_gamma)
 
     for epoch in range(opt.num_epoches):
         if str(epoch) in p_learning_rate_schedule.keys():
@@ -222,7 +223,8 @@ def train(opt):
             # loss for behavior
             b_logits = torch.stack(b_logits)
 
-            b_labels = np.array(flatten(b_labels))
+            ### b_labels = np.array(flatten(b_labels))
+            b_labels = np.array(b_labels)
 
             b_labels = Variable(
                 torch.LongTensor(b_labels).cuda(device),
@@ -237,7 +239,7 @@ def train(opt):
                 b_labels = torch.cat(b_label_list, 0)
 
                 if opt.b_loss == 'ce_focal':
-                    loss_behavior = focal_without_onehot(b_logits, b_labels)
+                    loss_behavior = focal_with_onehot(b_logits, b_labels)
                 elif opt.b_loss == 'ce':
                     loss_behavior = F.cross_entropy(b_logits, b_labels)
 

@@ -47,10 +47,11 @@ class behavior_model(nn.Module):
         ###     nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
         ###     nn.AdaptiveAvgPool1d((1)))
 
-        self.conv1 = nn.Conv3d(1024, 512, kernel_size=(3, 3, 3), padding=(1, 1, 1))
-        self.pool1 = nn.MaxPool3d(kernel_size=(3, 3, 3), stride=(1, 1, 1))
+        self.conv1a = nn.Conv3d(1024, 512, kernel_size=(3, 3, 3), padding=(1, 1, 1))
+        self.conv1b = nn.Conv3d(512, 256, kernel_size=(3, 3, 3), padding=(0, 0, 0))
+        self.pool1 = nn.MaxPool3d(kernel_size=(3, 1, 1), stride=(3, 1, 1))
 
-        self.fc2 = nn.Linear(512, num_behaviors)
+        self.fc2 = nn.Linear(256, num_behaviors)
 
         self.relu = nn.ReLU()
 
@@ -83,22 +84,26 @@ class behavior_model(nn.Module):
 
         return label_array
 
-    def forward(self, frames, label, behavior_label):
+    def forward(self, frames, labels, behavior_labels):
+        '''
+            frames: F C H W
+            labels: F var(num_people) 5
+            behavior_labels: F var(num_behaviors), where num_people == num_behaviors
+        '''
         # person detector
         logits, fmaps = self.detector(frames)
         num_frames = logits.size(0)
 
         fmaps = fmaps.detach()
 
-        # fmaps [n, 1024, 14, 14]
+        # fmaps: F 1024 14 14
         self.fmap_size = fmaps.size(2)
 
         # define behavior_tensor
         behavior_tensor = Variable(
             torch.zeros(num_frames,
                         self.num_persons,
-                        1024, 3, 3).cuda(self.device)) # flatten
-                        # 256).cuda(self.device)) # avgpool
+                        1024, 3, 3).cuda(self.device))
 
         # persons boxes
         b_logits = []
@@ -143,60 +148,60 @@ class behavior_model(nn.Module):
 
                             ### i_fmap = self.behavior_conv(i_fmap + g_fmap)
                             i_fmap = i_fmap + g_fmap
-                        else:
-                            ### i_fmap = self.behavior_conv(i_fmap)
-                            pass
-                        for jdx, p_box in enumerate(box):
-                            p_idx = PersonCLS.index(p_box[5])
-                            ### behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
-                            behavior_tensor[idx, p_idx] = i_fmap[jdx]
 
-                for idx, box in enumerate(boxes):
-                    for jdx, p_pox in enumerate(box):
-                        p_idx = PersonCLS.index(p_box[5])
-                        p_fmap = behavior_tensor[:, p_idx]
+                        for p_idx, p_box in enumerate(box):
+                            p_id = PersonCLS.index(p_box[5])
+                            behavior_tensor[idx, p_id] = i_fmap[p_idx]
 
-                        sample_idxs = np.linspace(0, num_frames - 1, 3, dtype=int)
+                T = 5
+                for idx, boxes in enumerate(boxes):
+                    for p_box in boxes:
+                        p_id = PersonCLS.index(p_box[5])
+                        p_fmap = behavior_tensor[:, p_id]
+
+                        start_idx = max(idx - (T // 2), 0)
+                        end_idx = min(start_idx + T - 1, num_frames - 1)
+                        sample_idxs = np.linspace(start_idx, end_idx, T, dtype=int)
                         x = p_fmap[sample_idxs]
                         x = x.transpose(0, 1)[None, :, :, :, :]
 
-                        x = self.relu(self.conv1(x))
+                        x = self.relu(self.conv1a(x))
+                        x = self.relu(self.conv1b(x))
                         x = self.pool1(x)
 
                         x = x.squeeze(4).squeeze(3).squeeze(2)
                         b_logit = self.fc2(x)
-                        import ipdb; ipdb.set_trace()
 
-                        ### p_feat = behavior_tensor[:, p_idx][None, :, :].transpose(1, 2)
+                        ### p_feat = behavior_tensor[:, p_id][None, :, :].transpose(1, 2)
                         ### p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
                         ### cur_b = behavior_tensor[idx, int(p_box[4])]
                         ### i_logit = self.behavior_fc(p_feat + cur_b)
                         ### b_logits.append(i_logit)
+                        b_logit = b_logit.squeeze(0)
                         b_logits.append(b_logit)
 
             return boxes, b_logits
 
         # training
-        #label_array = self.label_array(batch, label, behavior_label)
-        if len(behavior_label) > 0 and self.training:
-            for idx, box in enumerate(label):
-                num_box = len(box)
-                if num_box == 0 :
+        #label_array = self.label_array(batch, labels, behavior_labels)
+        if len(behavior_labels) > 0 and self.training:
+            for frm_idx, gt_boxes in enumerate(labels):
+                num_boxes = len(gt_boxes)
+                if num_boxes == 0:
                     continue
 
                 with torch.no_grad():
                     box_ = np.clip(
-                        np.stack(box)[:,:4].astype('float32')/self.img_size,
+                        np.stack(gt_boxes)[:,:4].astype('float32') / self.img_size,
                         0.0, self.fmap_size) * self.fmap_size
                     box_ = torch.from_numpy(box_).cuda(self.device).detach()
                     b_box = Variable(
-                        torch.zeros(num_box, 5).cuda(self.device)).detach()
+                        torch.zeros(num_boxes, 5).cuda(self.device)).detach()
                     b_box[:,1:] = box_
 
-                    i_fmap = roi_align(fmaps[idx][None],
-                                       b_box.float(),
-                                       (self.fmap_size//4,
-                                        self.fmap_size//4))
+                    p_l_fmap = roi_align(fmaps[frm_idx][None],
+                                         b_box.float(),
+                                         (self.fmap_size//4, self.fmap_size//4))
 
                     # global feature
                     if self.global_feat:
@@ -207,33 +212,34 @@ class behavior_model(nn.Module):
                             torch.zeros(1, 5).cuda(self.device)).detach()
                         g_box[:,1:] = box_g
 
-                        g_fmap = roi_align(fmaps[idx][None],
-                                           g_box.float(),
-                                           (self.fmap_size//4,
-                                            self.fmap_size//4))
+                        p_g_fmap = roi_align(fmaps[frm_idx][None],
+                                             g_box.float(),
+                                             (self.fmap_size//4, self.fmap_size//4))
                         
-                        ### i_fmap = self.behavior_conv(i_fmap + g_fmap) # sum
-                        i_fmap = i_fmap + g_fmap
+                        ### p_fmap = self.behavior_conv(p_l_fmap + p_g_fmap)
+                        p_fmap = p_l_fmap + p_g_fmap
                     else:
-                        ### i_fmap = self.behavior_conv(i_fmap)
-                        pass
-                for jdx, p_box in enumerate(box):
-                    ### behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1) # flatten
-                    # behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].mean(dim=2).mean(dim=1) # avgpool
-                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx]
+                        p_fmap = p_l_fmap
+                for p_idx, p_box in enumerate(gt_boxes):
+                    p_id = int(p_box[4])
+                    behavior_tensor[frm_idx, p_id] = p_fmap[p_idx]
 
-                if len(behavior_label[idx]) > 0:
-                    b_labels.append(behavior_label[idx])
+            T = 5
+            assert len(labels) == len(behavior_labels)
+            for frm_idx, (gt_boxes, gt_behaviors) in enumerate(zip(labels, behavior_labels)):
+                assert len(gt_boxes) == len(gt_behaviors)
+                for p_box, b_label in zip(gt_boxes, gt_behaviors):
+                    p_id = int(p_box[4])
+                    p_fmap = behavior_tensor[:, p_id]
 
-            for idx, box in enumerate(label):
-                for jdx, p_box in enumerate(box):
-                    p_fmap = behavior_tensor[:, int(p_box[4])]
-
-                    sample_idxs = np.linspace(0, num_frames - 1, 3, dtype=int)
+                    start_idx = max(frm_idx - (T // 2), 0)
+                    end_idx = min(start_idx + T - 1, num_frames - 1)
+                    sample_idxs = np.linspace(start_idx, end_idx, T, dtype=int)
                     x = p_fmap[sample_idxs]
                     x = x.transpose(0, 1)[None, :, :, :, :]
 
-                    x = self.relu(self.conv1(x))
+                    x = self.relu(self.conv1a(x))
+                    x = self.relu(self.conv1b(x))
                     x = self.pool1(x)
 
                     x = x.squeeze(4).squeeze(3).squeeze(2)
@@ -241,11 +247,12 @@ class behavior_model(nn.Module):
 
                     ### p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
                     ### p_feat = self.behavior_conv1d(p_feat)[0].squeeze(1)
-                    ### cur_b = behavior_tensor[idx, int(p_box[4])]
+                    ### cur_b = behavior_tensor[frm_idx, int(p_box[4])]
                     ### i_logit = self.behavior_fc(p_feat + cur_b)
                     ### # i_logit = self.behavior_fc(cur_b) # w/o temporal modeling
                     b_logit = b_logit.squeeze(0)
                     b_logits.append(b_logit)
+                    b_labels.append(b_label)
 
             return logits, b_logits, b_labels
 

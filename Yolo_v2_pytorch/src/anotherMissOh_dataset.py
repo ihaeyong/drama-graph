@@ -28,15 +28,16 @@ PBeHavCLS_ORG = ["stand up","sit down","walk","hold","hug",
 
 # Small set of Behavior
 # ignore set : {0, 1, 3, 5, 10, 11, 15, 17, 24, 25, 26, 27, 28}
-PBeHavCLS = ["walk","hug",
-             "drink","eat",
-             "point out","dance",
-             "push away",
-             "cook", "sing",
-             "call",
-             "put arms around each other's shoulder",
-             "open", "shake hands", "wave hands",
-             "kiss", "high-five"]
+### PBeHavCLS = ["walk","hug",
+###              "drink","eat",
+###              "point out","dance",
+###              "push away",
+###              "cook", "sing",
+###              "call",
+###              "put arms around each other's shoulder",
+###              "open", "shake hands", "wave hands",
+###              "kiss", "high-five"]
+PBeHavCLS = [ "walk", "call" ]
 
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
@@ -56,73 +57,67 @@ def Splits(num_episodes):
 
     return train, val, test
 
-def SortFullRect(image,label, is_train=True):
-
+def SortFullRect(frames, label, is_train=True):
     width, height = (1024, 768)
     width_ratio = 448 / width
     height_ratio = 448 / height
 
-    fullrect_list = []
-    fullbehav_list = []
-    num_batch = len(label[0]) # per 1 video clip
+    num_frames = len(label[0]) # the number of frames in each clip
 
     # set sequence length
-    s_frm = 0
-    e_frm = num_batch
+    start_frm_idx = 0
+    end_frm_idx = num_frames
 
-    max_batch = 10
-    if num_batch > max_batch and is_train:
-        s_frm = np.random.choice(num_batch-max_batch, 1)[0]
-        e_frm = s_frm + max_batch
+    max_num_frames = 10
+    if num_frames > max_num_frames and is_train:
+        start_frm_idx = np.random.choice(num_frames - max_num_frames, 1)[0]
+        end_frm_idx = start_frm_idx + max_num_frames
     elif is_train is False:
-        s_frm = 0
-        e_frm = max_batch
+        start_frm_idx = 0
+        end_frm_idx = max_num_frames
 
     image_list = []
     frame_id_list = []
-    for frm in range(s_frm, e_frm):
-        try:
-            label_list = []
-            behavior_list = []
-            for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
+    fullrect_list = []
+    fullbehav_list = []
+    for frm_idx in range(start_frm_idx, end_frm_idx):
+        label_list = []
+        behavior_list = []
+        for p, p_id in enumerate(label[0][frm_idx]['persons']['person_id']):
 
-                frame_id = label[0][frm]['frame_id']
-                frame_id_list.append(frame_id)
+            frame_id = label[0][frm_idx]['frame_id']
 
+            if p_id in PersonCLS:
                 p_label = PersonCLS.index(p_id)
                 if p_label > 20:
                     print("sort full rect index error{}".format(p_label))
+            else:
+                continue
 
-                full_rect = label[0][frm]['persons']['full_rect'][p]
+            full_rect = label[0][frm_idx]['persons']['full_rect'][p]
 
-                # behavior label
-                behavior = label[0][frm]['persons']['behavior'][p]
-                if behavior in PBeHavCLS:
-                    behavior_label = PBeHavCLS.index(behavior)
-                else:
-                    continue
+            # behavior label
+            behavior = label[0][frm_idx]['persons']['behavior'][p]
+            if behavior in PBeHavCLS:
+                behavior_label = PBeHavCLS.index(behavior)
+            else:
+                continue
 
-                #scale:
-                xmin = max(full_rect[0] * width_ratio, 0)
-                ymin = max(full_rect[1] * height_ratio, 0)
-                xmax = min((full_rect[2]) * width_ratio, 448)
-                ymax = min((full_rect[3]) * height_ratio, 448)
-                full_rect = [xmin,ymin,xmax,ymax]
+            #scale:
+            xmin = max(full_rect[0] * width_ratio, 0)
+            ymin = max(full_rect[1] * height_ratio, 0)
+            xmax = min((full_rect[2]) * width_ratio, 448)
+            ymax = min((full_rect[3]) * height_ratio, 448)
+            full_rect = [xmin,ymin,xmax,ymax]
 
-                temp_label = np.concatenate((full_rect, [p_label]), 0)
-                label_list.append(temp_label)
-                behavior_list.append(behavior_label)
-        except:
-            continue
+            person_label = np.concatenate((full_rect, [p_label]), 0)
+            frame_id_list.append(frame_id)
+            label_list.append(person_label)
+            behavior_list.append(behavior_label)
 
-        if len(label_list) > 0 and is_train:
-            fullrect_list.append(label_list)
-            fullbehav_list.append(behavior_list)
-            image_list.append(image[frm])
-        else: # for test
-            fullrect_list.append(label_list)
-            fullbehav_list.append(behavior_list)
-            image_list.append(image[frm])
+        fullrect_list.append(label_list)
+        fullbehav_list.append(behavior_list)
+        image_list.append(frames[frm_idx])
 
     if is_train:
         return image_list, fullrect_list, fullbehav_list
@@ -291,6 +286,7 @@ class AnotherMissOh(Dataset):
                         image_info['persons']['full_rect_score'].append(
                             person['person_info']['full_rect_score'])
 
+                    # print(f'image_info > persons > behavior: {image_info["persons"]["behavior"]}')
                     clip['image_info'].append(image_info)
 
                 if num_persons > 0:
