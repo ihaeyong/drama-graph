@@ -102,8 +102,8 @@ def train(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
-    b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0}
+    #p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
+    #b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0, "10": opt.lr/100.0}
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -147,11 +147,11 @@ def train(opt):
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
 
-    p_scheduler = ReduceLROnPlateau(p_optimizer, 'max', patience=3,
+    p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
-    b_scheduler = ReduceLROnPlateau(b_optimizer, 'max', patience=3,
+    b_scheduler = ReduceLROnPlateau(b_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
@@ -165,14 +165,16 @@ def train(opt):
     focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
 
     for epoch in range(opt.num_epoches):
-        if str(epoch) in p_learning_rate_schedule.keys():
-            for param_group in p_optimizer.param_groups:
-                param_group['lr'] = p_learning_rate_schedule[str(epoch)]
-            for param_group in b_optimizer.param_groups:
-                param_group['lr'] = b_learning_rate_schedule[str(epoch)]
+        #if str(epoch) in p_learning_rate_schedule.keys():
+        #    for param_group in p_optimizer.param_groups:
+        #        param_group['lr'] = p_learning_rate_schedule[str(epoch)]
+        #    for param_group in b_optimizer.param_groups:
+        #        param_group['lr'] = b_learning_rate_schedule[str(epoch)]
 
         b_logit_list = []
         b_label_list = []
+        b_loss_list = []
+        p_loss_list = []
         for iter, batch in enumerate(train_loader):
 
             behavior_lr = iter % (1) == 0
@@ -258,14 +260,16 @@ def train(opt):
                 b_optimizer.step()
 
             print("Model:{}".format(opt.model))
-            print("Epoch: {}/{}, Iteration: {}/{}, lr:{}".format(
+            print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.7f}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
                 num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
             if behavior_lr:
-                print("+cls_behavior:{:.2f}".format(loss_behavior))
+                print("+lr:{:.7f}, cls_behavior:{:.2f}".format(
+                    b_optimizer.param_groups[0]['lr'],
+                    loss_behavior))
             print()
 
             loss_dict = {
@@ -277,6 +281,8 @@ def train(opt):
 
             if behavior_lr:
                 loss_dict['cls_behavior'] = loss_behavior.item()
+                b_loss_list.append(loss_behavior.item())
+                p_loss_list.append(loss_cls.item())
 
             # Log scalar values
             for tag, value in loss_dict.items():
@@ -290,9 +296,15 @@ def train(opt):
             print('mkdir_{}'.format(opt.saved_path))
 
         # learning rate schedular
-        #p_scheduler.step(mAP)
-        #b_scheduler.step(mAP)
+        b_loss_avg = np.stack(b_loss_list).mean()
+        p_loss_avg = np.stack(p_loss_list).mean()
 
+        p_scheduler.step(p_loss_avg)
+        b_scheduler.step(b_loss_avg)
+
+        torch.save(model.state_dict(),
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(
+                       opt.model))
         torch.save(model,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
                        opt.model))

@@ -102,19 +102,19 @@ class behavior_model(nn.Module):
             if len(boxes) > 0 :
                 for idx, box in enumerate(boxes):
                     num_box = len(box)
-                    #with torch.no_grad():
-                    box_ = np.clip(
-                        np.stack(box)[:,:4].astype('float32'),
-                        0.0, self.img_size)
-                    box_ = Variable(torch.from_numpy(box_)).cuda(
-                        self.device).detach() / self.img_size * self.fmap_size
-                    b_box = Variable(
-                        torch.zeros(num_box, 5).cuda(self.device)).detach()
-                    b_box[:,1:] = box_
-                    i_fmap = roi_align(fmap[idx][None],
-                                       b_box.float(),
-                                       (self.fmap_size//4,
-                                        self.fmap_size//4))
+                    with torch.no_grad():
+                        box_ = np.clip(
+                            np.stack(box)[:,:4].astype('float32'),
+                            0.0, self.img_size)
+                        box_ = Variable(torch.from_numpy(box_)).cuda(
+                            self.device).detach() / self.img_size * self.fmap_size
+                        b_box = Variable(
+                            torch.zeros(num_box, 5).cuda(self.device)).detach()
+                        b_box[:,1:] = box_
+                        i_fmap = roi_align(fmap[idx][None],
+                                           b_box.float(),
+                                           (self.fmap_size//4,
+                                            self.fmap_size//4))
 
                     if self.global_feat:
                         box_g = torch.from_numpy(
@@ -158,19 +158,19 @@ class behavior_model(nn.Module):
                 if num_box == 0 :
                     continue
 
-                #with torch.no_grad():
-                box_ = np.clip(
-                    np.stack(box)[:,:4].astype('float32')/self.img_size,
-                    0.0, self.fmap_size) * self.fmap_size
-                box_ = torch.from_numpy(box_).cuda(self.device).detach()
-                b_box = Variable(
-                    torch.zeros(num_box, 5).cuda(self.device)).detach()
-                b_box[:,1:] = torch.clamp(box_ + torch.randn(box_.shape).cuda(
-                    self.device), 0, self.fmap_size)
-                i_fmap = roi_align(fmap[idx][None],
-                                   b_box.float(),
-                                   (self.fmap_size//4,
-                                    self.fmap_size//4))
+                with torch.no_grad():
+                    box_ = np.clip(
+                        np.stack(box)[:,:4].astype('float32')/self.img_size,
+                        0.0, self.fmap_size) * self.fmap_size
+                    box_ = torch.from_numpy(box_).cuda(self.device).detach()
+                    b_box = Variable(
+                        torch.zeros(num_box, 5).cuda(self.device)).detach()
+                    b_box[:,1:] = torch.clamp(box_ + torch.randn(box_.shape).cuda(
+                        self.device), 0, self.fmap_size)
+                    i_fmap = roi_align(fmap[idx][None],
+                                       b_box.float(),
+                                       (self.fmap_size//4,
+                                        self.fmap_size//4))
 
                 # global feature
                 if self.global_feat:

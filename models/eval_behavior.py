@@ -227,11 +227,7 @@ def test(opt):
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
-                        if num_preds == 1:
-                            value, index = b_logit.max(0)
-                            import pdb; pdb.set_trace()
-                        else:
-                            value, index = b_logit[jdx].max(0)
+                        value, index = b_logit[jdx].max(0)
 
                         b_idx = index.cpu().numpy()
                         b_pred = PBeHavCLS[b_idx]
