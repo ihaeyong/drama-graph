@@ -49,6 +49,7 @@ class behavior_model(nn.Module):
         self.nms_threshold = opt.nms_threshold
         self.device=device
 
+        self.gt_boxes = True
         self.global_feat = False
 
     def is_not_blank(self, s):
@@ -99,9 +100,26 @@ class behavior_model(nn.Module):
                                     self.detector.anchors,
                                     self.conf_threshold,
                                     self.nms_threshold)
+            #if self.gt_boxes:
+            boxes_gt = []
+            for idx, box in enumerate(label):
+                b_boxes = []
+                for jdx, p_box in enumerate(box):
+                    p_box_ = p_box[0:4].tolist()
+                    p_conf_ = [1.0]
+                    p_cls_ = [PersonCLS[int(p_box[4])]]
+                    p_box = np.concatenate([p_box_, p_conf_, p_cls_])
+                    b_boxes.append(p_box)
+
+                boxes_gt.append(b_boxes)
+            if 0:
+                boxes = boxes_gt
+
             if len(boxes) > 0 :
                 for idx, box in enumerate(boxes):
                     num_box = len(box)
+                    if num_box == 0 :
+                        continue
                     with torch.no_grad():
                         box_ = np.clip(
                             np.stack(box)[:,:4].astype('float32'),

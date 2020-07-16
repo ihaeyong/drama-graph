@@ -17,7 +17,7 @@ from lib.logger import Logger
 
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
-from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot
+from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -136,14 +136,14 @@ def train(opt):
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}] # v1, v4
-    b_params = [{'params': non_fc_params, 'lr': opt.lr * 100.0}]
+    p_params = [{'params': fc_params, 'lr': opt.lr / 100.0}] # v1, v4
+    b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
-    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 10.0,
+    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 100.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
-    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr * 100.0,
+    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr * 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
 
@@ -162,15 +162,12 @@ def train(opt):
     loss_step = 0
 
     # define focal loss
-    focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
+    if opt.b_loss == 'ce_focal':
+        focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
+    elif opt.b_loss == 'ce':
+        ce_without_onehot = CELossWithOutOneHot()
 
     for epoch in range(opt.num_epoches):
-        #if str(epoch) in p_learning_rate_schedule.keys():
-        #    for param_group in p_optimizer.param_groups:
-        #        param_group['lr'] = p_learning_rate_schedule[str(epoch)]
-        #    for param_group in b_optimizer.param_groups:
-        #        param_group['lr'] = b_learning_rate_schedule[str(epoch)]
-
         b_logit_list = []
         b_label_list = []
         b_loss_list = []
@@ -245,7 +242,7 @@ def train(opt):
                 if opt.b_loss == 'ce_focal':
                     loss_behavior = focal_without_onehot(b_logits, b_labels)
                 elif opt.b_loss == 'ce':
-                    loss_behavior = F.cross_entropy(b_logits, b_labels)
+                    loss_behavior = ce_without_onehot(b_logits, b_labels)
 
                 loss_behavior.backward()
 
@@ -260,14 +257,14 @@ def train(opt):
                 b_optimizer.step()
 
             print("Model:{}".format(opt.model))
-            print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.7f}".format(
+            print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.9f}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
                 num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
             if behavior_lr:
-                print("+lr:{:.7f}, cls_behavior:{:.2f}".format(
+                print("+lr:{:.9f}, cls_behavior:{:.2f}".format(
                     b_optimizer.param_groups[0]['lr'],
                     loss_behavior))
             print()

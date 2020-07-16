@@ -4,4 +4,4 @@ export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
 
-python models/eval_behavior.py -model global_diff_subset_batch1_local_wfocal_output_1_noise_lr_schedule_with_grad
+python models/eval_behavior.py -model global_diff_subset_batch1_local_wloss_output_1_noise
