@@ -50,7 +50,6 @@ class behavior_model(nn.Module):
         self.device=device
 
         self.gt_boxes = True
-        self.global_feat = False
 
     def is_not_blank(self, s):
         return bool(s and s.strip())
@@ -72,6 +71,24 @@ class behavior_model(nn.Module):
                     label_array[idx, :, :] = label_array[idx-1, :, :]
 
         return label_array
+
+    def global_feat(self, fmap):
+        box_g = torch.from_numpy(
+            np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
+                self.device).detach()
+        g_box = Variable(
+            torch.zeros(1, 5).cuda(self.device)).detach()
+        g_box[:,1:] = box_g
+
+        g_fmap = roi_align(fmap[None],
+                           g_box.float(),
+                           (self.fmap_size//4,
+                            self.fmap_size//4))
+
+        g_fmap = self.behavior_conv(g_fmap)
+
+        return g_fmap
+
 
     def forward(self, image, label, behavior_label):
 
@@ -118,6 +135,9 @@ class behavior_model(nn.Module):
             if len(boxes) > 0 :
                 for idx, box in enumerate(boxes):
                     num_box = len(box)
+                    g_fmap = self.global_feat(fmap[idx])
+                    behavior_tensor[idx] = g_fmap.view(-1)
+
                     if num_box == 0 :
                         continue
                     with torch.no_grad():
@@ -134,26 +154,10 @@ class behavior_model(nn.Module):
                                            (self.fmap_size//4,
                                             self.fmap_size//4))
 
-                    if self.global_feat:
-                        box_g = torch.from_numpy(
-                            np.array(
-                                [0,0,self.fmap_size,self.fmap_size])).cuda(
-                                self.device).detach()
-                        g_box = Variable(
-                            torch.zeros(1, 5).cuda(self.device)).detach()
-                        g_box[:,1:] = box_g
-
-                        g_fmap = roi_align(fmap[idx][None],
-                                           g_box.float(),
-                                           (self.fmap_size//4,
-                                            self.fmap_size//4))
-
-                        i_fmap = self.behavior_conv(i_fmap + g_fmap)
-                    else:
-                        i_fmap = self.behavior_conv(i_fmap)
+                    i_fmap = self.behavior_conv(i_fmap)
                     for jdx, p_box in enumerate(box):
                         p_idx = PersonCLS.index(p_box[5])
-                        behavior_tensor[idx, p_idx] = i_fmap[jdx].view(-1)
+                        behavior_tensor[idx, p_idx] += i_fmap[jdx].view(-1)
 
                 for idx, box in enumerate(boxes):
                     i_logit_list = []
@@ -161,8 +165,8 @@ class behavior_model(nn.Module):
                         p_idx = PersonCLS.index(p_box[5])
                         p_feat = behavior_tensor[:,p_idx][None,:,:].transpose(1,2)
                         p_feat = self.behavior_conv1d(p_feat)[0]
-                        cur_b = behavior_tensor[idx, p_idx]
-                        i_logit = self.behavior_fc(p_feat[:,idx] - cur_b)
+                        #cur_b = behavior_tensor[idx, p_idx]
+                        i_logit = self.behavior_fc(p_feat[:,idx])
                         i_logit_list.append(i_logit)
                     b_logits.append(i_logit_list)
 
@@ -173,6 +177,9 @@ class behavior_model(nn.Module):
         if len(behavior_label) > 0 and self.training:
             for idx, box in enumerate(label):
                 num_box = len(box)
+                g_fmap = self.global_feat(fmap[idx])
+                behavior_tensor[idx] = g_fmap.view(-1)
+
                 if num_box == 0 :
                     continue
 
@@ -190,25 +197,11 @@ class behavior_model(nn.Module):
                                        (self.fmap_size//4,
                                         self.fmap_size//4))
 
-                # global feature
-                if self.global_feat:
-                    box_g = torch.from_numpy(
-                        np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
-                            self.device).detach()
-                    g_box = Variable(
-                        torch.zeros(1, 5).cuda(self.device)).detach()
-                    g_box[:,1:] = box_g
+                # local feature
+                i_fmap = self.behavior_conv(i_fmap)
 
-                    g_fmap = roi_align(fmap[idx][None],
-                                       g_box.float(),
-                                       (self.fmap_size//4,
-                                        self.fmap_size//4))
-
-                    i_fmap = self.behavior_conv(i_fmap + g_fmap)
-                else:
-                    i_fmap = self.behavior_conv(i_fmap)
                 for jdx, p_box in enumerate(box):
-                    behavior_tensor[idx, int(p_box[4])] = i_fmap[jdx].view(-1)
+                    behavior_tensor[idx, int(p_box[4])] += i_fmap[jdx].view(-1)
 
                 if len(behavior_label[idx]) > 0:
                     b_labels.append(behavior_label[idx])
@@ -217,8 +210,8 @@ class behavior_model(nn.Module):
                 for jdx, p_box in enumerate(box):
                     p_feat = behavior_tensor[:,int(p_box[4])][None,:,:].transpose(1,2)
                     p_feat = self.behavior_conv1d(p_feat)[0]
-                    cur_b = behavior_tensor[idx, int(p_box[4])]
-                    i_logit = self.behavior_fc(p_feat[:,idx] - cur_b)
+                    #cur_b = behavior_tensor[idx, int(p_box[4])]
+                    i_logit = self.behavior_fc(p_feat[:,idx])
                     b_logits.append(i_logit)
 
 
