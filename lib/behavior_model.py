@@ -72,7 +72,7 @@ class behavior_model(nn.Module):
 
         return label_array
 
-    def global_feat(self, fmap):
+    def ex_global_feat(self, fmap):
         box_g = torch.from_numpy(
             np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
                 self.device).detach()
@@ -135,7 +135,7 @@ class behavior_model(nn.Module):
             if len(boxes) > 0 :
                 for idx, box in enumerate(boxes):
                     num_box = len(box)
-                    g_fmap = self.global_feat(fmap[idx])
+                    g_fmap = self.ex_global_feat(fmap[idx])
                     behavior_tensor[idx] = g_fmap.view(-1)
 
                     if num_box == 0 :
@@ -177,7 +177,7 @@ class behavior_model(nn.Module):
         if len(behavior_label) > 0 and self.training:
             for idx, box in enumerate(label):
                 num_box = len(box)
-                g_fmap = self.global_feat(fmap[idx])
+                g_fmap = self.ex_global_feat(fmap[idx])
                 behavior_tensor[idx] = g_fmap.view(-1)
 
                 if num_box == 0 :
