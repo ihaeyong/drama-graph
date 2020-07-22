@@ -5,4 +5,4 @@ export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKING/Face_recog
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python models/train_behavior.py -model global_diff_subset_batch1_local_wloss_output_1_noise_global -b_loss ce
+python models/train_behavior.py -model global_diff_subset_batch1_local_wloss -b_loss ce

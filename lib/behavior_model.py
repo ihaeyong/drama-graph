@@ -37,11 +37,15 @@ class behavior_model(nn.Module):
 
         self.behavior_fc = nn.Sequential(
             nn.Linear(256 * 3 * 3, 1024),
-            nn.ReLU(),nn.Dropout(0.1),
+            nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
             nn.Linear(1024, num_behaviors))
 
         self.behavior_conv1d = nn.Sequential(
-            nn.Conv1d(2304, 2304, 3, stride=1, padding=1))
+            nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
+            nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
+            nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
+            nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
+        )
 
         self.num_behaviors = num_behaviors
         self.img_size = opt.image_size
