@@ -1,0 +1,1 @@
+{"none": 112721, "wearing": 3207, "on": 1607, "with": 775, "in front of": 110, "has": 2168, "in": 266, "near": 156, "attached to": 2, "under": 1, "at": 7}
