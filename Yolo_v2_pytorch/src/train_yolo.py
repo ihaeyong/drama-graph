@@ -5,6 +5,7 @@ from torch.utils.data import DataLoader
 from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect
 from .src.utils import *
 from .src.loss import YoloLoss
+from .src.relation_loss import Relation_YoloLoss
 from .src.yolo_net import Yolo
 from .src.yolo_tunning import YoloD
 import shutil
@@ -75,6 +76,7 @@ train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
+
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
 if os.path.exists(logger_path):
@@ -110,24 +112,25 @@ def train(opt):
                               strict=False)
 
     num_persons = 20
-    num_objects = 162
-    model = YoloD(pre_model, num_persons, num_objects).cuda()
+    num_objects = 47
+    num_relations = 13
+    model = YoloD(pre_model, num_persons, num_objects, num_relations).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
     p_criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
-    o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
+    # o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
+    o_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
     model.train()
     num_iter_per_epoch = len(train_loader)
 
-    loss_step = 0
-    empty_person = 0
-    empty_object = 0
-
     for epoch in range(opt.num_epoches):
+        loss_step = 0
+        empty_person = 0
+        empty_object = 0
         if str(epoch) in learning_rate_schedule.keys():
             for param_group in optimizer.param_groups:
                 param_group['lr'] = learning_rate_schedule[str(epoch)]
@@ -159,6 +162,7 @@ def train(opt):
 
             # losses for person detection
             # because sometimes there are times when there are persons but not objects, we need to accout for each case
+            # only test objects
             if np.array(label).size != 0:
                 loss, loss_coord, loss_conf, loss_cls = p_criterion(logits, label, device)
             else:
@@ -169,10 +173,14 @@ def train(opt):
                 loss_coord = torch.tensor(0, dtype=torch.float).cuda(device)
                 loss_conf = torch.tensor(0, dtype=torch.float).cuda(device)
                 loss_cls = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss_coord = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss_conf = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss_cls = torch.tensor(0, dtype=torch.float).cuda(device)
 
             # losses for object detection
             if np.array(object_label).size != 0:
-                loss_object, loss_coord_object, loss_conf_object, loss_cls_object = o_criterion(object_logits, object_label, device)
+                loss_object, loss_coord_object, loss_conf_object, loss_cls_object, loss_rel = o_criterion(object_logits, object_label, device)
             else:
                 print("iter:{} object bboxs are empty".format(
                     iter, object_label))
@@ -181,8 +189,17 @@ def train(opt):
                 loss_coord_object = torch.tensor(0, dtype=torch.float).cuda(device)
                 loss_conf_object = torch.tensor(0, dtype=torch.float).cuda(device)
                 loss_cls_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                continue
+
+            if loss == 0:
+                loss = loss_object
+            elif loss_object == 0:
+                loss = loss
+            else:
+                loss = loss * 0.5 + loss_object * 0.5
 
             loss += loss_object
+            # loss = loss_object
 
             loss.backward()
             optimizer.step()
@@ -198,7 +215,6 @@ def train(opt):
                 loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
             print()
 
-
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
@@ -211,8 +227,8 @@ def train(opt):
             }
 
             # Log scalar values
-            # for tag, value in loss_dict.items():
-            #     logger.scalar_summary(tag, value, loss_step)
+            for tag, value in loss_dict.items():
+                logger.scalar_summary(tag, value, loss_step)
 
             loss_step = loss_step + 1
 
@@ -225,6 +241,7 @@ def train(opt):
         print("Total number of missing Persons: %d" % empty_person)
         print("Total number of missing objects: %d" % empty_object)
         print("Total number of images: %d" % iter)
+        
 
 if __name__ == "__main__":
     train(opt)
