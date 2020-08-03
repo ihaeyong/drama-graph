@@ -20,3 +20,8 @@ swrc/data/bi-lang_utter/
 swrc/data/ignore/
 swrc/data/output/ignore/
 *.props
+
+# Emotion
+*.tar
+.temp/
+.ipynb_checkpoints/
