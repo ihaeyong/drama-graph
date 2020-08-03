@@ -72,7 +72,9 @@ We are constantly training about person detection.
 
 ### Train person detection:
 ```
-1. train person detection  
+1. set visdom for learning curves
+>> python -m visdom.server -port 6005
+2. train person detection  
 >> ./scripts/train_main.py #gpu
 
 ```
@@ -114,3 +116,9 @@ You can download [the trained model](https://drive.google.com/open?id=1BWcohLrtt
 
 ```
 
+# To Do List:
+```
+1. visualization bbox for person detection
+2. return bbox
+3. change some functions to latest pytorch function
+```
