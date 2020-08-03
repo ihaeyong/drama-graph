@@ -3,7 +3,7 @@
 >> git clone https://github.com/ihaeyong/drama-graph.git
 ```
 
-# Prepare virtual environments and install requirements:
+# Prepare env. and install requirements:
 ```
 1. create conda env.
 >> conda create -n vtt_env python=3.6
@@ -13,19 +13,9 @@
 >> pip install -r requirements.txt
 ```
 
-# Download datasets
+# Download AnotherMissOh datasets
 
-We used AnotherMissOh dataset.
-
-Currently, only 1 episode of AnotherMissOh data was used for learning, but it will be added other episodes continuously.
-
-All episodes have image files and annotated json file.
-
-You could find AnotherMissOh dataset in [this link](https://drive.google.com/open?id=1jcAhHCmq3fyhJ9Ggm9EA1Tf_xT3Roe48). 
-
-Password is required.
-
-After unzip,
+Unzip the anothermissoh dataset,
 
 ```
 >> mkdir ./data
@@ -33,92 +23,35 @@ After unzip,
 >> unzip datasets.zip
 ```
 
-you set your data path in 'Yolo_v2_pytorch/src/anotherMissOh_dataset.py' as below
+You can set your data path to 'Yolo_v2_pytorch/src/anotherMissOh_dataset.py' as follows:
 
 ```
 img_path = './data/AnotherMissOh/AnotherMissOh_images/AnotherMissOh01/'
 json_dir = './data/AnotherMissOh/AnotherMissOh_Visual/AnotherMissOh01_visual.json'
 ```
 
-# Face Recognition 
-We mainly use ArcFace: Additive Angular Margin Loss for Deep Face Recognition method. The code is based on [ArcFace-pytorch](https://github.com/TreB1eN/InsightFace_Pytorch) implementation.
 
-This repository is not completed. We will update new training code and add Person re-identification for undetected face.
+# Drama-graph model
 
-<img src="https://user-images.githubusercontent.com/37200420/77849986-86800e00-720a-11ea-82e7-59111a8963f4.JPG">
-<img src="https://user-images.githubusercontent.com/37200420/77849994-8e3fb280-720a-11ea-9dde-c18e51001996.JPG" width="40%">
-<img src="https://user-images.githubusercontent.com/37200420/77849995-90a20c80-720a-11ea-9d64-b567e2b56778.JPG" width="40%">
+We mainly use [YOLOv2-pytorch](https://github.com/uvipen/Yolo-v2-pytorch). 
 
-### Train face :
-```
-1. prepare AnotherMissOh dataset 
->> ./script/prepare_face_image.sh 
-after set your json and visual data path
-2. run train.py
->> ./script/train_face.sh
+You could find all trained models in [this link](https://drive.google.com/drive/folders/1LvDpPkkZ_18Zhf70rXUDaLoGFp2x6M5G) and make 'pre_model' folder and put the models. 
+
+We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
+
+### Train model:
 
 ```
-
-### Trained face models
-You could find all trained models.
-
-And make 'pre_model' folder and put the models.
-
-# Person Detection
-We mainly use YOLOv2.
-The code is based on [YOLOv2-pytorch](https://github.com/uvipen/Yolo-v2-pytorch) implementation.
-
-We are constantly training about person detection.
-
-### Train person detection:
-```
-1. set visdom for learning curves
->> python -m visdom.server -port 6005
-2. train person detection  
 >> ./scripts/train_main.py #gpu
-
 ```
 
-### Trained person detection models
-You could find all trained models in [this link](https://drive.google.com/drive/folders/1LvDpPkkZ_18Zhf70rXUDaLoGFp2x6M5G)
-
-And make 'pre_model' folder and put the models.
-
-We finetuned YOLOv2 w.r.t 20 persons for about 10 epoches.
-You can download [the trained model](https://drive.google.com/open?id=1BWcohLrttyY4dmqhqB6mGxD4BLNNPREa) 
-
-
-# Person identification using face and body
-
-### Train person identification:
-```
-1. set visdom for learning curves
->> python -m visdom.server -port 6005
-2. train person identification  
->> ./scripts/train_main.py #gpu
-
-```
-
-# Demo:
-### person face detection
-```
->> ./scripts/eval_face.sh #gpu
-
-```
-### person detection
+### Test model:
 ```
 >> ./scripts/eval_models.sh #gpu
-
-```
-### person identification using face
-```
->> ./scripts/eval_models.sh #gpu
-
 ```
 
-# To Do List:
-```
-1. visualization bbox for person detection
-2. return bbox
-3. change some functions to latest pytorch function
-```
+
+
+#### Acknowledgements
+
+This work was supported by Institute for Information & communications Technology Promotion(IITP) grant funded by the Korea government(MSIT) (2017-0-01780, The technology development for event recognition/relational reasoning and learning knowledge based system for video understanding)
