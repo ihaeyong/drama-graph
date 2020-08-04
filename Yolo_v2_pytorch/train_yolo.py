@@ -2,9 +2,10 @@ import os
 import argparse
 import torch.nn as nn
 from torch.utils.data import DataLoader
-from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
+from .src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect
 from .src.utils import *
 from .src.loss import YoloLoss
+from .src.relation_loss import Relation_YoloLoss
 from .src.yolo_net import Yolo
 from .src.yolo_tunning import YoloD
 import shutil
@@ -13,6 +14,9 @@ import cv2
 import pickle
 import numpy as np
 from lib.logger import Logger
+from tqdm import tqdm
+import pdb
+from collections import Counter
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -52,9 +56,9 @@ def get_args():
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
 
     args = parser.parse_args()
@@ -72,7 +76,6 @@ train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
 val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
-num_persons = len(PersonCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -102,28 +105,32 @@ def train(opt):
                    "collate_fn": custom_collate_fn}
 
     train_loader = DataLoader(train_set, **training_params)
+    test_loader = DataLoader(test_set, **training_params)
 
-    # define pre-model
-    pre_model = Yolo(num_persons).cuda()
+    pre_model = Yolo(20).cuda()
     pre_model.load_state_dict(torch.load(opt.pre_trained_model_path),
                               strict=False)
 
-    # define model
-    model = YoloD(pre_model, num_persons).cuda()
+    num_persons = 20
+    num_objects = 47
+    num_relations = 13
+    model = YoloD(pre_model, num_persons, num_objects, num_relations).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
+    p_criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
+    # o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
+    o_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
-                                momentum=opt.momentum,
-                                weight_decay=opt.decay)
+                                momentum=opt.momentum, weight_decay=opt.decay)
 
     model.train()
     num_iter_per_epoch = len(train_loader)
 
-    loss_step = 0
-
     for epoch in range(opt.num_epoches):
+        loss_step = 0
+        empty_person = 0
+        empty_object = 0
         if str(epoch) in learning_rate_schedule.keys():
             for param_group in optimizer.param_groups:
                 param_group['lr'] = learning_rate_schedule[str(epoch)]
@@ -132,11 +139,13 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label = SortFullRect(image, info)
+            image, label, _, object_label = SortFullRect(image, info)
 
-            if np.array(label).size == 0 :
-                print("iter:{}_person bboxs are empty".format(
+            if np.array(label).size == 0 and np.array(object_label).size == 0:
+                print("iter:{} person & objects bboxs are empty".format(
                     iter, label))
+                empty_person+=1
+                empty_object+=1
                 continue
 
             # image [b, 3, 448, 448]
@@ -148,10 +157,49 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits = model(image)
+            logits, object_logits = model(image)
+            device = logits.get_device()
 
             # losses for person detection
-            loss, loss_coord, loss_conf, loss_cls = criterion(logits,label)
+            # because sometimes there are times when there are persons but not objects, we need to accout for each case
+            # only test objects
+            if np.array(label).size != 0:
+                loss, loss_coord, loss_conf, loss_cls = p_criterion(logits, label, device)
+            else:
+                print("iter:{} person bboxs are empty".format(
+                    iter, label))
+                empty_person+=1
+                loss = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_coord = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_conf = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_cls = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss_coord = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss_conf = torch.tensor(0, dtype=torch.float).cuda(device)
+            # loss_cls = torch.tensor(0, dtype=torch.float).cuda(device)
+
+            # losses for object detection
+            if np.array(object_label).size != 0:
+                loss_object, loss_coord_object, loss_conf_object, loss_cls_object, loss_rel = o_criterion(object_logits, object_label, device)
+            else:
+                print("iter:{} object bboxs are empty".format(
+                    iter, object_label))
+                empty_object+=1
+                loss_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_coord_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_conf_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_cls_object = torch.tensor(0, dtype=torch.float).cuda(device)
+                continue
+
+            if loss == 0:
+                loss = loss_object
+            elif loss_object == 0:
+                loss = loss
+            else:
+                loss = loss * 0.5 + loss_object * 0.5
+
+            loss += loss_object
+            # loss = loss_object
 
             loss.backward()
             optimizer.step()
@@ -162,13 +210,20 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
+            #print("---- Object Detection ----")
+            print("+Object_loss:{:.2f}(coord_obj:{:.2f},conf_obj:{:.2f},cls_obj:{:.2f})".format(
+                loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
             print()
 
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
                 'conf' : loss_conf.item(),
-                'cls' : loss_cls.item()
+                'cls' : loss_cls.item(),
+                'object_loss' : loss_object.item(),
+                'coord_obj' : loss_coord_object.item(),
+                'conf_obj' : loss_conf_object.item(),
+                'cls_obj' : loss_cls.item()
             }
 
             # Log scalar values
@@ -183,6 +238,10 @@ def train(opt):
         torch.save(model,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
                        opt.model))
+        print("Total number of missing Persons: %d" % empty_person)
+        print("Total number of missing objects: %d" % empty_object)
+        print("Total number of images: %d" % iter)
+        
 
 if __name__ == "__main__":
     train(opt)
