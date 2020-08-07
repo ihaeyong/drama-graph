@@ -1,7 +1,7 @@
 # Face Recognition
-# from config import get_config
-# from Learner import face_learner
-# import argparse
+from config import get_config
+from Learner import face_learner
+import argparse
 
 # Person Detector
 from Yolo_v2_pytorch.train_yolo import get_args as get_pd_args
