@@ -58,6 +58,11 @@ ObjectCLS = ["bag", "bed", "beer_bottle", "bicycle", "book", "bookshelf", "bottl
 
 P2ORelCLS = ['none', 'wearing', 'on', 'with', 'in front of', 'has', 'in', 'near', 'attached to', 'under', 'at', 'N_P', 'N_O']
 
+# define face classes
+FaceCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
+            'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
+            'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
 
 def Splits(num_episodes):
     '''
@@ -80,6 +85,7 @@ def SortFullRect(image,label, is_train=True):
     fullbehav_list = []
     fullobj_list = []
     fullrelation_list = []
+    facerect_list = []
     num_batch = len(label[0]) # per 1 video clip
 
     # set sequence length
@@ -100,6 +106,8 @@ def SortFullRect(image,label, is_train=True):
         try:
             label_list = []
             behavior_list = []
+            face_list = []
+
             frame_id = label[0][frm]['frame_id']
             frame_id_list.append(frame_id)
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
@@ -115,6 +123,13 @@ def SortFullRect(image,label, is_train=True):
                 behavior = label[0][frm]['persons']['behavior'][p]
                 behavior_label = PBeHavCLS.index(behavior)
 
+                # face label
+                face_label = FaceCLS.index(p_id)
+                if face_label > 20:
+                    print("sort face rect index error{}".format(face_label))
+
+                face_rect = label[0][frm]['persons']['face_rect'][p]
+
                 #scale:
                 xmin = max(full_rect[0] * width_ratio, 0)
                 ymin = max(full_rect[1] * height_ratio, 0)
@@ -122,9 +137,19 @@ def SortFullRect(image,label, is_train=True):
                 ymax = min((full_rect[3]) * height_ratio, 448)
                 full_rect = [xmin,ymin,xmax,ymax]
 
+                # face rcet scale
+                xmin = max(face_rect[0] * width_ratio, 0)
+                ymin = max(face_rect[1] * height_ratio, 0)
+                xmax = min((face_rect[2]) * width_ratio, 448)
+                ymax = min((face_rect[3]) * height_ratio, 448)
+                face_rect = [xmin, ymin, xmax, ymax]
+
                 temp_label = np.concatenate((full_rect, [p_label]), 0)
                 label_list.append(temp_label)
                 behavior_list.append(behavior_label)
+
+                face_temp_label = np.concatenate((face_rect, [face_label]), 0)
+                face_list.append(face_temp_label)
         except:
             continue
 
@@ -163,16 +188,20 @@ def SortFullRect(image,label, is_train=True):
             image_list.append(image[frm])
             fullobj_list.append(object_list)
             # fullrelation_list.append(relation_list)
+            facerect_list.append(face_list)
+
         else: # for test
             fullrect_list.append(label_list)
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
             fullobj_list.append(object_list)
             # fullrelation_list.append(relation_list)
+            facerect_list.append(face_list)
+
 
     if is_train:
-        return image_list, fullrect_list, fullbehav_list, fullobj_list
-    return image_list, fullrect_list, fullbehav_list, fullobj_list, frame_id_list
+        return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list
+    return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, frame_id_list
 
 class AnotherMissOh(Dataset):
     def __init__(self, dataset, img_path, json_path, display_log=True):
