@@ -3,10 +3,10 @@
 """
 import torch.nn as nn
 import torch
-
+import pdb
 
 class YoloD(nn.Module):
-    def __init__(self, pre_model, num_cls, num_face_cls,
+    def __init__(self, pre_model, num_cls, num_objects_cls, num_relations, num_face_cls,
                  anchors=[(1.3221, 1.73145),
                           (3.19275, 4.00944),
                           (5.05587, 8.09892),
@@ -16,6 +16,8 @@ class YoloD(nn.Module):
 
 
         self.num_classes = num_cls
+        self.num_objects_cls = num_objects_cls
+        self.num_relations = num_relations
         self.anchors = anchors
 
         self.stage1_conv1 = pre_model.stage1_conv1
@@ -45,14 +47,21 @@ class YoloD(nn.Module):
 
         self.stage3_conv1 = pre_model.stage3_conv1
 
-        # define_person and behavior
+        # self.stage3_conv2 = nn.Conv2d(
+        #   1024, len(self.anchors) * (5 + num_classes), 1, 1, 0, bias=True)
         self.stage3_conv_person = nn.Conv2d(
-            1024, len(self.anchors) * (5 + num_cls),
-            1, 1, 0, bias=False)
+            1024, len(self.anchors) * (5 + num_cls), 1, 1, 0, bias=False)
+        self.stage3_conv_objects = nn.Conv2d(
+            1024, len(self.anchors) * (5 + num_objects_cls + num_relations), 1, 1, 0, bias=False)
+        # self.pool = nn.AvgPool2d(kernel_size=14, stride=14)
+        # self.stage3_relations = nn.Sequential(
+        #                                 nn.Linear(1024, 512),
+        #                                 nn.ReLU(),
+        #                                 nn.Linear(512, num_relations)
+        #                                 )
 
         self.stage3_conv_face = nn.Conv2d(
-            1024, len(self.anchors) * (5 + num_face_cls),
-            1, 1, 0, bias=False)
+            1024, len(self.anchors) * (5 + num_face_cls), 1, 1, 0, bias=False)
 
     def forward(self, input):
         output = self.stage1_conv1(input)
@@ -90,7 +99,14 @@ class YoloD(nn.Module):
         output = torch.cat((output_1, output_2), 1)
         output_fmap = self.stage3_conv1(output)
 
+        # output = self.stage3_conv2(output)
         output = self.stage3_conv_person(output_fmap)
+        output_object = self.stage3_conv_objects(output_fmap)
+        # pdb.set_trace()
+        # rela = self.pool(output_fmap)
+        # relations = self.stage3_relations(rela.squeeze())
+
         output_face = self.stage3_conv_face(output_fmap)
 
-        return output, output_face
+        return output, output_object, output_face
+        # return output, output_object, relations

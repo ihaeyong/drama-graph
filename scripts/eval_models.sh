@@ -1,10 +1,7 @@
-#!/usr/bin/env bash
-
 # Train Object Detection Model (YOLO_V2)
-export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKIng/Face_recog
+export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKING/Face_recog
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python test_missoh_all_images.py -model logger
 
-
+python models/eval_model.py -model global_diff_subset_batch1_local_wloss
