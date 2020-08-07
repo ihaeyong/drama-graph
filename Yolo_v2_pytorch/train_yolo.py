@@ -114,13 +114,17 @@ def train(opt):
     num_persons = 20
     num_objects = 47
     num_relations = 13
-    model = YoloD(pre_model, num_persons, num_objects, num_relations).cuda()
+    num_faces = 20
+
+    model = YoloD(pre_model, num_persons, num_objects, num_relations, num_faces).cuda()
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
     p_criterion = YoloLoss(num_persons, model.anchors, opt.reduction)
     # o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
     o_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
+    f_criterion = YoloLoss(num_faces, model.anchors, opt.reduction)
+
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
@@ -131,6 +135,7 @@ def train(opt):
         loss_step = 0
         empty_person = 0
         empty_object = 0
+        empty_face = 0
         if str(epoch) in learning_rate_schedule.keys():
             for param_group in optimizer.param_groups:
                 param_group['lr'] = learning_rate_schedule[str(epoch)]
@@ -139,7 +144,7 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, _, object_label = SortFullRect(image, info)
+            image, label, _, object_label, face_label = SortFullRect(image, info)
 
             if np.array(label).size == 0 and np.array(object_label).size == 0:
                 print("iter:{} person & objects bboxs are empty".format(
@@ -157,7 +162,7 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits, object_logits = model(image)
+            logits, object_logits, face_logits = model(image)
             device = logits.get_device()
 
             # losses for person detection
@@ -191,14 +196,29 @@ def train(opt):
                 loss_cls_object = torch.tensor(0, dtype=torch.float).cuda(device)
                 continue
 
+            # losses for face detection
+            if np.array(face_label).size != 0:
+                loss_face, loss_coord_face, loss_conf_face, loss_cls_face = f_criterion(face_logits, face_label, device)
+            else:
+                print("iter:{} face bboxs are empty".format(
+                    iter, face_label))
+                empty_face += 1
+                loss_face = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_coord_face = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_conf_face = torch.tensor(0, dtype=torch.float).cuda(device)
+                loss_cls_face = torch.tensor(0, dtype=torch.float).cuda(device)
+
+
             if loss == 0:
                 loss = loss_object
             elif loss_object == 0:
                 loss = loss
+            elif loss_face == 0:
+                loss = loss
             else:
-                loss = loss * 0.5 + loss_object * 0.5
+                loss = loss * 0.5 + loss_object * 0.5 + loss_face * 0.5
 
-            loss += loss_object
+            loss += loss_object + loss_face
             # loss = loss_object
 
             loss.backward()
@@ -213,6 +233,9 @@ def train(opt):
             #print("---- Object Detection ----")
             print("+Object_loss:{:.2f}(coord_obj:{:.2f},conf_obj:{:.2f},cls_obj:{:.2f})".format(
                 loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
+            # print("---- Face Detection ----")
+            print("+Face_loss:{:.2f}(coord_face:{:.2f},conf_face:{:.2f},cls_face:{:.2f})".format(
+                loss_face, loss_coord_face, loss_conf_face, loss_cls_face))
             print()
 
             loss_dict = {
@@ -223,7 +246,11 @@ def train(opt):
                 'object_loss' : loss_object.item(),
                 'coord_obj' : loss_coord_object.item(),
                 'conf_obj' : loss_conf_object.item(),
-                'cls_obj' : loss_cls.item()
+                'cls_obj' : loss_cls.item(),
+                'face_loss': loss_face.item(),
+                'coord_face': loss_coord_face.item(),
+                'conf_face': loss_conf_face.item(),
+                'cls_face': loss_cls_face.item()
             }
 
             # Log scalar values
