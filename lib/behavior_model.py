@@ -23,7 +23,10 @@ class behavior_model(nn.Module):
         super(behavior_model, self).__init__()
 
         pre_model = Yolo(num_persons).cuda(device)
-        self.detector = YoloD(pre_model, num_persons).cuda(device)
+        num_objects_cls = 47
+        num_relations = 13
+        num_face_cls = 20 
+        self.detector = YoloD(pre_model, num_persons, num_objects_cls, num_relations, num_face_cls).cuda(device)
         self.num_persons = num_persons
 
         # define behavior
@@ -97,7 +100,7 @@ class behavior_model(nn.Module):
     def forward(self, image, label, behavior_label):
 
         # person detector
-        logits, fmap = self.detector(image)
+        logits, fmap, _ = self.detector(image)
         batch = logits.size(0)
 
         fmap = fmap.detach()
