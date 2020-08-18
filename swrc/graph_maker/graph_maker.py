@@ -377,9 +377,9 @@ class graph_maker:
 
         for qid, graph in self.graphs:
             if self.config['graph']['visualization'] != 'frame':
-                dot_triple = Digraph(comment='The Round Table')
+                dot_triple = Digraph(comment='The Round Table', format='pdf')
             if self.config['graph']['visualization'] != 'triple':
-                dot_frame = Digraph(comment='The Round Table')
+                dot_frame = Digraph(comment='The Round Table', format='pdf')
             t_name_to_i = {}
             t_i_to_name = {}
             f_name_to_i = {}
@@ -437,6 +437,6 @@ class graph_maker:
                             dot_frame.edge(f_name_to_i[f['frame']], f_name_to_i[v], label=k)
 
             if self.config['graph']['visualization'] != 'frame':
-                dot_triple.render(os.path.join(self.config['graph']['graph_path'], '{}_triple.gv').format(qid), view=False, format='pdf')
+                dot_triple.render(os.path.join(self.config['graph']['graph_path'], '{}_triple.gv'.format(qid)), view=False)
             if self.config['graph']['visualization'] != 'triple':
-                dot_frame.render(os.path.join(self.config['graph']['graph_path'], '{}_frame.gv').format(qid), view=False, format='pdf')
+                dot_frame.render(os.path.join(self.config['graph']['graph_path'], '{}_frame.gv'.format(qid)), view=False)

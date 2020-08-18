@@ -1,0 +1,22 @@
+// The Round Table
+digraph {
+	0 [label=Sukyung fillcolor=gray style=filled]
+	1 [label="random inspection of our flagship"]
+	0 -> 1 [label=do]
+	2 [label="inspection of our flagship"]
+	0 -> 2 [label=do]
+	3 [label=inspection]
+	0 -> 3 [label=do]
+	4 [label="random inspection"]
+	0 -> 4 [label=do]
+	5 [label=44]
+	0 -> 5 [label=age fillcolor=red fontcolor=red style=filled]
+	6 [label=director]
+	0 -> 6 [label=job fillcolor=red fontcolor=red style=filled]
+	7 [label=Dokyung]
+	0 -> 7 [label=sister fillcolor=red fontcolor=red style=filled]
+	8 [label=Hun]
+	0 -> 8 [label=sister fillcolor=red fontcolor=red style=filled]
+	9 [label=Jiya]
+	0 -> 9 [label=daughter fillcolor=red fontcolor=red style=filled]
+}

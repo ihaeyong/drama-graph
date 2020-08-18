@@ -1,0 +1,21 @@
+// The Round Table
+digraph {
+	0 [label=Haeyoung1 fillcolor=gray style=filled]
+	1 [label=Mom]
+	0 -> 1 [label="Indeed 've got nothing but"]
+	0 -> 1 [label="'ve got nothing but"]
+	2 [label=drunk]
+	0 -> 2 [label=got]
+	3 [label=32]
+	0 -> 3 [label=age fillcolor=red fontcolor=red style=filled]
+	4 [label=employee]
+	0 -> 4 [label=job fillcolor=red fontcolor=red style=filled]
+	5 [label=Deogi]
+	0 -> 5 [label=daughter fillcolor=red fontcolor=red style=filled]
+	6 [label=Kyungsu]
+	0 -> 6 [label=daughter fillcolor=red fontcolor=red style=filled]
+	7 [label=Seohee]
+	0 -> 7 [label=cousin fillcolor=red fontcolor=red style=filled]
+	8 [label=Jeongsuk]
+	0 -> 8 [label=niece fillcolor=red fontcolor=red style=filled]
+}

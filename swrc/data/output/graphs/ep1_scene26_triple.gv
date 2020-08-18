@@ -1,0 +1,16 @@
+// The Round Table
+digraph {
+	0 [label=Hun fillcolor=gray style=filled]
+	1 [label=someone]
+	0 -> 1 [label="Did fight with"]
+	2 [label=33]
+	0 -> 2 [label=age fillcolor=red fontcolor=red style=filled]
+	3 [label=employee]
+	0 -> 3 [label=job fillcolor=red fontcolor=red style=filled]
+	4 [label=Sukyung]
+	0 -> 4 [label=brother fillcolor=red fontcolor=red style=filled]
+	5 [label=Dokyung]
+	0 -> 5 [label=brother fillcolor=red fontcolor=red style=filled]
+	6 [label=Jiya]
+	0 -> 6 [label=son fillcolor=red fontcolor=red style=filled]
+}
