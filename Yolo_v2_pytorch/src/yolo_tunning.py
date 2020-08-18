@@ -1,9 +1,10 @@
 """
 @author: Viet Nguyen <nhviet1009@gmail.com>
+modified by Haeyong.Kang
 """
+
 import torch.nn as nn
 import torch
-import pdb
 
 class YoloD(nn.Module):
     def __init__(self, pre_model, num_cls, num_objects_cls, num_relations, num_face_cls,
@@ -101,12 +102,8 @@ class YoloD(nn.Module):
 
         # output = self.stage3_conv2(output)
         output = self.stage3_conv_person(output_fmap)
+        output_behavior = output_1
         output_object = self.stage3_conv_objects(output_fmap)
-        # pdb.set_trace()
-        # rela = self.pool(output_fmap)
-        # relations = self.stage3_relations(rela.squeeze())
-
         output_face = self.stage3_conv_face(output_fmap)
 
-        return output, output_object, output_face
-        # return output, output_object, relations
+        return output, output_behavior, output_object, output_face

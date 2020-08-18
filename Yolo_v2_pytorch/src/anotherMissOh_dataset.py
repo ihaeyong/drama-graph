@@ -15,7 +15,7 @@ PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
 
 # define behavior
-PBeHavCLS = ["stand up","sit down","walk","hold","hug",
+PBeHavCLS_ORG = ["stand up","sit down","walk","hold","hug",
              "look at/back on",
              "drink","eat",
              "point out","dance", "look for","watch",
@@ -25,6 +25,20 @@ PBeHavCLS = ["stand up","sit down","walk","hold","hug",
              "put arms around each other's shoulder",
              "open", "shake hands", "wave hands",
              "kiss", "high-five", "write", "none"]
+
+# Subset of behavior
+# ignore set : {0, 1, 3, 5, 10, 11, 15, 17, 24, 25, 26, 27, 28}
+PBeHavCLS = ["walk","hug",
+             "drink","eat",
+             "point out","dance",
+             "push away",
+             "cook", "sing",
+             "call",
+             "put arms around each other's shoulder",
+             "open", "shake hands", "wave hands",
+             "kiss", "high-five"]
+
+
 
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
