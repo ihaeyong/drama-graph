@@ -1,20 +1,17 @@
 ## SWRC
 
-### requirements
-Install pakages
+### Install pakages
 ```
 > pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz --no-deps
 > apt-get install default-jdk
 ````
 
-Downloads [stanford-corenlp-4.0.0.zip](https://stanfordnlp.github.io/CoreNLP/history.html) and unzip the package in data folder.
-
+Downloads [stanford-corenlp-4.0.0.zip](https://stanfordnlp.github.io/CoreNLP/history.html) and unzip the downloaded package in data folder.
 
 
 ### Execute
 ```
 > ./train_swrc.sh
-
 ```
 
 ### Output
