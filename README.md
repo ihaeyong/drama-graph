@@ -50,6 +50,16 @@ We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 >> ./scripts/eval_models.sh #gpu
 ```
 
+#### Evaluation
+mAP for person
+```
+>> python eval_mAP.py -rtype person
+```
+
+mAP for behavior
+```
+>> python eval_mAP.py -rtype behave
+```
 
 
 #### Acknowledgements
