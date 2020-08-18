@@ -63,6 +63,10 @@ mAP for behavior
 >> python eval_mAP.py -rtype behave
 ```
 
+mAP for face
+```
+>> python eval_mAP.py -rtype face
+```
 
 #### Acknowledgements
 
