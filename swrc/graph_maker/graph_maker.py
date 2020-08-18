@@ -12,7 +12,6 @@ def eng_frameBERT(text):
     return response.json()
 
 def virtuoso(text):
-    print('call virtuoso: {}'.format(text))
     host = 'http://kbox.kaist.ac.kr:1259/vtt_virtuoso'
     data = {
         'text': text.lower()
@@ -94,8 +93,6 @@ class graph_maker:
         elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for ep in self.input:
                 for scene in ep:
-                    if scene['scene_number'] == 24:
-                        print()
                     for uid, u in enumerate(scene['scene']):
                         coref_dict = {}  # {form:character}
                         for coref in u['corefs']:
@@ -199,17 +196,23 @@ class graph_maker:
                 common_sense = []
                 wiki = []
                 done = []
+                ch_list = ['dokyung', 'haeyoung1', 'haeyoung2', 'sukyung', 'jinsang', 'taejin', 'hun', 'jiya', 'kyungsu', 'deogi',
+                 'heeran', 'jeongsuk', 'anna', 'hoijang', 'soontack', 'sungjin', 'gitae', 'sangseok', 'yijoon',
+                 'seohee']
+
+
                 for arg in args:
-                    if arg in exist_ch:
+                    if arg.lower() in ch_list:
                         continue
                     sents = nlp(arg).sents
                     for sent in sents:
                         tokenized = [(tok.text, tok.pos_) for tok in sent]
-                        print(tokenized)
                     if tokenized[-1][-1][0] == 'N':
                         sbj = tokenized[-1][0]
 
                         if sbj in done:
+                            continue
+                        if sbj.lower() in ch_list:
                             continue
 
                         cs_knowledges, wiki_knowledges = virtuoso(sbj)

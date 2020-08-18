@@ -45,7 +45,6 @@ class sentence_processor:
                         for s in sents:
                             s_type, tokenized = self.sentence_typing(s)
                             t = {'type': s_type, 'origin': s.text, 'info': tokenized}
-                            print(t)
                             utter['sents'].append(t)
         return json
 

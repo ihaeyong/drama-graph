@@ -1,6 +1,6 @@
 mode: subtitle  #qa or subtitle
 preprocessing:
-    load: False
+    load: True
     substitle_file: data/temp # AnotherMissOh_Sence_Subtitle
     qa_file: data/0529_specific_qa.json
     output_path: data/output/preprocessed.json

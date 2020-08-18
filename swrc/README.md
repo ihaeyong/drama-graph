@@ -24,7 +24,7 @@
     - scene 내에 등장하는 Noun의 ConceptNet 지식.
     - form: subject - relation - object
   - key: entity_background
-    - TODO
+    - Acryl에서 제공해준 wiki 기반 지식.
     - form: subject - relation - object
   - triples
     - open IE로 추출한 triple events.
@@ -41,6 +41,3 @@
 - graph visualization
   - triples & char_background로 이루어진 그래프.
   - frames로 이루어진 그래프.
-
-### Visualization
-> 
