@@ -6,8 +6,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 
-from face_emotion import cfg
-from face_emotion.dataset_face_emotion import face_emotion_dataset
+import Yolo_v2_pytorch.src.face_emotion_cfg as cfg
+from Yolo_v2_pytorch.src.face_emotion_dataset import Face_emotion_dataset
 from lib.yolo_face_emotion import Yolo_v2_face_emotion
 
 
