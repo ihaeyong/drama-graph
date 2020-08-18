@@ -7,7 +7,7 @@ preprocessing:
     coreference: gold
 
 extraction:
-    load: False
+    load: True
     oie: stanford
     frame: frameBERT
     output_path: data/output/extracted.json

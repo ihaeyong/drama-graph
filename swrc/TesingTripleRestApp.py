@@ -5,12 +5,11 @@ sys.path.append('../')
 
 from flask import Flask
 from flask_restful import Api, Resource, reqparse
-# from flask_cors import CORS
 from DemoParser import Parser
+from openie import StanfordOpenIE
 
 
 app = Flask(__name__)
-# CORS(app)
 api = Api(app)
 
 # import jpype
@@ -25,10 +24,38 @@ args = parser.parse_args()
 # In[1]:
 
 demo_parser = Parser()
+client = StanfordOpenIE()
 
 class WebService(Resource):
     def __init__(self):
         print()
+
+
+    def text2input(self, utters):
+        origin = utters
+        output = [{'scene':[], 'scene_number':"-1"}]
+
+        for u in utters:
+            speaker, text = u.split(':')
+            speaker = speaker.strip()
+            text = text.strip()
+
+            utter = {
+                'utter': text,
+                'speaker': speaker,
+                'scene_num': '-1'
+            }
+            output[0]['scene'].append(utter)
+
+
+        return origin, output
+
+    def stanfordOIE(self, texts):
+        result = []
+        for text in texts:
+            result.append(client.annotate(text))
+        return result
+
     def post(self):
         try:
             req_parser = reqparse.RequestParser()
@@ -38,9 +65,10 @@ class WebService(Resource):
             args = req_parser.parse_args()
             print(args)
 
-            result = demo_parser.parser(args['script'], args['mode'])
-            if args['utter_info'] == 'False':
-                del result['utters']
+
+            text = "let's meet at the real estate office."
+            result = self.stanfordOIE([text])
+
 
             return result, 200
         except KeyboardInterrupt:

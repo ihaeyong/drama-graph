@@ -17,6 +17,8 @@ __pycache__/
 swrc/data/AnotherMissOh_Sence_Bi-lang_Subtitle/
 swrc/data/AnotherMissOh_Sence_Subtitle/
 swrc/data/bi-lang_utter/
+swrc/data/demo_example/
+swrc/data/stanford-corenlp-4.0.0/
 swrc/data/ignore/
 swrc/data/output/ignore/
 *.props

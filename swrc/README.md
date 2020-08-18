@@ -9,5 +9,38 @@
 ### Execute
 > ./train_swrc.sh
 
+### Output
+
+`data/output/graph.json`
+
+- dictionary
+  - key: scene id
+  - value: scene graph
+- scene graph
+  - key: char_background
+    - scene 내에 등장하는 등장인물의 배경지식.
+    - form: subject - relation - object
+  - key: common_sense
+    - scene 내에 등장하는 Noun의 ConceptNet 지식.
+    - form: subject - relation - object
+  - key: entity_background
+    - TODO
+    - form: subject - relation - object
+  - triples
+    - open IE로 추출한 triple events.
+    - form: subject - relation - object
+  - frames
+    - frameBERT로 추출한 frame events.
+    - form: frame - lu - args
+      - frame: 추출된 frame type
+      - lu: 추출된 frame의 trigger.
+      - args: frame의 arguments
+
+`data/output/graphs`
+
+- graph visualization
+  - triples & char_background로 이루어진 그래프.
+  - frames로 이루어진 그래프.
+
 ### Visualization
 > 

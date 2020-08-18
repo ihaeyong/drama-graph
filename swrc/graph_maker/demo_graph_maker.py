@@ -168,6 +168,7 @@ class graph_maker:
                     triples = [triple for u in us for sent in u['sents'] for triple in
                                sent['char_triples']]
                     frames = [triple for u in us for sent in u['sents'] for triple in sent['char_frames']]
+                    backs = []
 
                     exist_ch = set()
                     for triple in triples:
@@ -176,6 +177,8 @@ class graph_maker:
                         if triple['object'] in self.char_names:
                             exist_ch.add(triple['object'])
                     exist_ch = list(exist_ch)
+
+
 
 
                     for char in self.back_KB:
@@ -192,6 +195,7 @@ class graph_maker:
                                 'object': k[1]
                             }
                             triples.append(k_dict)
+                            backs.append(k_dict)
 
                     for t in triples:
                         if t['subject'] not in self.char_names:
@@ -207,10 +211,13 @@ class graph_maker:
 
                     for f in frames:
                         for k, v in f.items():
-
                             if v in self.char_names:
                                 whole_graph[v]['frame'].append(f)
                                 graph[v]['frame'].append(f)
+
+                    # for back in backs:
+
+
                     self.graphs.append(('ep{}_scene{}'.format(ep_id, s_id), graph))
 
 

@@ -15,12 +15,12 @@ class sentence_processor:
         '''
         tokenized = [(tok.text, tok.pos_) for tok in sent]
         if tokenized[0][0].lower() in ['what', 'how'] and tokenized[-1][0] == '!':
-            return 'exclamation'
+            return 'exclamation', tokenized
         if tokenized[-1][0] == '?' and (tokenized[0][1] == 'AUX' or tokenized[0][0].lower()[:2] == 'wh'):
-            return 'question'
+            return 'question', tokenized
         if tokenized[0][1] == 'VERB':
-            return 'command'
-        return 'statement'
+            return 'command', tokenized
+        return 'statement', tokenized
 
     def segmentation(self):
         nlp = spacy.load('en_core_web_sm')
@@ -32,7 +32,7 @@ class sentence_processor:
                     sents = nlp(text).sents
                     utter['sents'] = []
                     for s in sents:
-                        s_type = self.sentence_typing(s)
+                        s_type, tokenized = self.sentence_typing(s)
                         t = {'type': s_type, 'origin': s.text}
                         utter['sents'].append(t)
         elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
@@ -43,8 +43,8 @@ class sentence_processor:
                         sents = nlp(text).sents
                         utter['sents'] = []
                         for s in sents:
-                            s_type = self.sentence_typing(s)
-                            t = {'type': s_type, 'origin': s.text}
+                            s_type, tokenized = self.sentence_typing(s)
+                            t = {'type': s_type, 'origin': s.text, 'info': tokenized}
                             print(t)
                             utter['sents'].append(t)
         return json
