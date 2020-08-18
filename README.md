@@ -40,10 +40,12 @@ You could find all trained models in [this link](https://drive.google.com/drive/
 We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 
 ### Train model:
+train model from scratch
 
 ```
 >> ./scripts/train_main.py #gpu
 ```
+[trained model](https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM?usp=sharing)
 
 ### Test model:
 ```
