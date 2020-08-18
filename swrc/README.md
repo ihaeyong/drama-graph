@@ -26,6 +26,7 @@
   - entity_background
     - scene 내에 등장하는 Noun의 wiki 기반 지식. (from Acryl)
     - form: subject - relation - object
+    - 배경지식 범위는 영문 위키피디아 기반.
   - triples
     - open IE로 추출한 triple events.
     - form: subject - relation - object
