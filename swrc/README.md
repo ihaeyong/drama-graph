@@ -17,14 +17,14 @@
   - key: scene id
   - value: scene graph
 - scene graph
-  - key: char_background
+  - char_background
     - scene 내에 등장하는 등장인물의 배경지식.
     - form: subject - relation - object
-  - key: common_sense
+  - common_sense
     - scene 내에 등장하는 Noun의 ConceptNet 지식.
     - form: subject - relation - object
-  - key: entity_background
-    - Acryl에서 제공해준 wiki 기반 지식.
+  - entity_background
+    - scene 내에 등장하는 Noun의 wiki 기반 지식. (from Acryl)
     - form: subject - relation - object
   - triples
     - open IE로 추출한 triple events.
