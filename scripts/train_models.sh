@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 
 # Train Object Detection Model (YOLO_V2)
-# export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKIng/Face_recog
+#export PYTHONPATH=/root/workspace/drama-graph
+export PYTHONPATH=/root/workspaces/vtt/drama-graph
 export PYTHONIOENCODING=utf-8
-export CUDA_VISIBLE_DEVICES=0
+export CUDA_VISIBLE_DEVICES=$1
 
-python train_main.py -model obj47_person_relation
+python models/train_model.py -model integration
 
 

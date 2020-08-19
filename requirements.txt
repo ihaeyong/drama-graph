@@ -1,7 +1,7 @@
 matplotlib==3.2.1
 tqdm==4.45.0
 opencv-python
-tensorboard
+tensorflow==1.9
 visdom
 easydict
 bcolz==1.2.1
@@ -10,3 +10,7 @@ scikit-learn==0.22.2
 Pillow==6.1
 future==0.18.2
 dill
+pyaml
+spacy
+stanfordnlp
+stanford-openie

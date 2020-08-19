@@ -4,4 +4,4 @@ export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
 
-python models/eval_model.py -model global_diff_subset_batch1_local_wloss
+python models/eval_model.py -model integration

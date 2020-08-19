@@ -1,0 +1,10 @@
+// The Round Table
+digraph {
+	0 [label=Sukyung fillcolor=gray style=filled]
+	1 [label="Statement#4_1_1"]
+	2 [label=say]
+	3 [label="it was a random inspection"]
+	1 -> 2 [label=lu]
+	1 -> 0 [label=Speaker]
+	1 -> 3 [label=Message]
+}

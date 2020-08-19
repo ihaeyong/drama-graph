@@ -1,12 +1,13 @@
 """
 @author: Viet Nguyen <nhviet1009@gmail.com>
+modified by Haeyong.Kang
 """
+
 import torch.nn as nn
 import torch
-import pdb
 
 class YoloD(nn.Module):
-    def __init__(self, pre_model, num_cls, num_objects_cls, num_relations,
+    def __init__(self, pre_model, num_cls, num_objects_cls, num_relations, num_face_cls,
                  anchors=[(1.3221, 1.73145),
                           (3.19275, 4.00944),
                           (5.05587, 8.09892),
@@ -60,6 +61,8 @@ class YoloD(nn.Module):
         #                                 nn.Linear(512, num_relations)
         #                                 )
 
+        self.stage3_conv_face = nn.Conv2d(
+            1024, len(self.anchors) * (5 + num_face_cls), 1, 1, 0, bias=False)
 
     def forward(self, input):
         output = self.stage1_conv1(input)
@@ -99,10 +102,8 @@ class YoloD(nn.Module):
 
         # output = self.stage3_conv2(output)
         output = self.stage3_conv_person(output_fmap)
+        output_behavior = output_1
         output_object = self.stage3_conv_objects(output_fmap)
-        # pdb.set_trace()
-        # rela = self.pool(output_fmap)
-        # relations = self.stage3_relations(rela.squeeze())
+        output_face = self.stage3_conv_face(output_fmap)
 
-        return output, output_object
-        # return output, output_object, relations
+        return output, output_behavior, output_object, output_face
