@@ -6,7 +6,7 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS, FaceCLS
 from Yolo_v2_pytorch.src.utils import *
 from Yolo_v2_pytorch.src.loss import YoloLoss
 from Yolo_v2_pytorch.src.relation_loss import Relation_YoloLoss
@@ -18,6 +18,7 @@ from lib.logger import Logger
 
 from lib.behavior_model import behavior_model
 from lib.relation_model import relation_model
+from lib.face_model import face_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 
@@ -88,6 +89,7 @@ test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
+num_faces = len(FaceCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -134,17 +136,34 @@ def train(opt):
 
     model.cuda(device)
 
+    # define face_model
+    model_face = face_model(num_persons, num_behaviors, opt, device)
+    trained_persons = opt.trained_model_path + os.sep + "{}".format(
+        'anotherMissOh_only_params_person.pth')
+
+    ckpt = torch.load(trained_persons)
+    if optimistic_restore(model_face.detector, ckpt):
+        print(".....")
+        print("loaded pre-trained detector sucessfully.")
+        print(".....")
+
+    model_face.cuda(device)
+
     # get optim
     fc_params = [p for n,p in model.named_parameters()
                  if n.startswith('detector') and p.requires_grad]
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
+    face_params = [p for n, p in model_face.named_parameters()
+                   if not n.startswith('detector') and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr / 100.0}] # v1, v4
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
+    f_params = [{'params': face_params, 'lr': opt.lr * 10.0}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
     r_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
+    f_criterion = YoloLoss(num_faces, face_model.detector.anchors, opt.reduction)
 
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 100.0,
                                   momentum=opt.momentum,
@@ -155,6 +174,9 @@ def train(opt):
     r_optimizer = torch.optim.SGD(model_relation.params, lr = opt.lr * 10.0,
     							  momentum=opt.momentum,
     							  weight_decay=opt.decat)
+    f_optimizer = torch.optim.SGD(f_params, lr=opt.lr * 10.0,
+                                  momentum=opt.momentum,
+                                  weight_decay=opt.decay)
 
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
@@ -168,9 +190,13 @@ def train(opt):
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
-
+    f_scheduler = ReduceLROnPlateau(f_optimizer, 'min', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
     model.train()
     model_relation.train()
+    model_face.train()
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
@@ -186,6 +212,7 @@ def train(opt):
         b_label_list = []
         b_loss_list = []
         p_loss_list = []
+        f_loss_list = []
         for iter, batch in enumerate(train_loader):
 
             behavior_lr = iter % (1) == 0
@@ -280,6 +307,24 @@ def train(opt):
                         max_norm=opt.clip, verbose=verbose, clip=True)
                 b_optimizer.step()
 
+            if np.array(face_label).size != 0:
+                # ------- face learning -------
+                f_optimizer.zero_grad()
+
+                # face_logits [b, 125, 14, 14]
+                face_logits = model_face(image)
+
+                # losses for face detection
+                loss_face, loss_coord_face, loss_conf_face, loss_cls_face = f_criterion(
+                    face_logits, face_label, device)
+
+                loss_face.backward()
+                clip_grad_norm(
+                    [(n, p) for n, p in model_face.named_parameters()
+                     if p.grad is not None and n.startswith('detector')],
+                    max_norm=opt.clip, verbose=verbose, clip=True)
+                f_optimizer.step()
+
             print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.9f}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
@@ -291,6 +336,10 @@ def train(opt):
                 print("+lr:{:.9f}, cls_behavior:{:.2f}".format(
                     b_optimizer.param_groups[0]['lr'],
                     loss_behavior))
+            if np.array(face_label).size != 0:
+                # print("---- Face Detection ---- ")
+                print("+Face_loss:{:.2f}(coord_face:{:.2f},conf_face:{:.2f},cls_face:{:.2f})".format(
+                    loss_face, loss_coord_face, loss_conf_face, loss_cls_face))
             print()
 
             loss_dict = {
@@ -304,6 +353,17 @@ def train(opt):
                 loss_dict['cls_behavior'] = loss_behavior.item()
                 b_loss_list.append(loss_behavior.item())
                 p_loss_list.append(loss_cls.item())
+
+            if np.array(face_label).size != 0:
+                loss_dict['face_loss'] = loss_face.item()
+                loss_dict['coord_face'] = loss_coord_face.item()
+                loss_dict['conf_face'] = loss_conf_face.item()
+                loss_dict['cls_face'] = loss_cls_face.item()
+
+                f_loss_list.append(loss_face.item())
+                f_loss_list.append(loss_coord_face.item())
+                f_loss_list.append(loss_conf_face.item())
+                f_loss_list.append(loss_cls_face.item())
 
             # Log scalar values
             for tag, value in loss_dict.items():
@@ -323,6 +383,7 @@ def train(opt):
         p_scheduler.step(p_loss_avg)
         b_scheduler.step(b_loss_avg)
         r_scheduler.step()
+        f_scheduler.step()
 
         torch.save(model.state_dict(),
                    opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(
