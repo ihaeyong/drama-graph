@@ -9,6 +9,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
 from Yolo_v2_pytorch.src.utils import *
 from Yolo_v2_pytorch.src.loss import YoloLoss
+from Yolo_v2_pytorch.src.relation_loss import Relation_YoloLoss
 import shutil
 import cv2
 import pickle
@@ -16,6 +17,7 @@ import numpy as np
 from lib.logger import Logger
 
 from lib.behavior_model import behavior_model
+from lib.relation_model import relation_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 
@@ -122,6 +124,8 @@ def train(opt):
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
 
+    model_relation = relation_model(num_persons, num_objects, num_behaviors).cuda(device)
+
     ckpt = torch.load(trained_persons)
     if optimistic_restore(model.detector, ckpt):
         print(".....")
@@ -140,12 +144,17 @@ def train(opt):
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
+    r_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
+
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 100.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
     b_optimizer = torch.optim.SGD(b_params, lr = opt.lr * 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
+    r_optimizer = torch.optim.SGD(model_relation.params, lr = opt.lr * 10.0,
+    							  momentum=opt.momentum,
+    							  weight_decay=opt.decat)
 
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
@@ -155,8 +164,13 @@ def train(opt):
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
+    r_scheduler = ReduceLROnPlateau(r_optimizer, 'min', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
 
     model.train()
+    model_relation.train()
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
@@ -197,10 +211,18 @@ def train(opt):
 
             # logits [b, 125, 14, 14]
             logits, b_logits, b_labels = model(image, label, behavior_label)
+            # this is where it gets tricky, but either way, I will write down what
+            # my model needs
+            _, o_logits = model_relation(image)
+            # Then we need to loss this.
+            loss_object, loss_coord_object, loss_conf_object, loss_cls_object, loss_rel = r_criterion(object_logits, object_label, device)
 
             # losses for person detection
             loss, loss_coord, loss_conf, loss_cls = criterion(
                 logits, label, device)
+
+            # if doing the object loss together
+            loss += loss_object
 
             loss.backward()
             clip_grad_norm(
@@ -208,6 +230,7 @@ def train(opt):
                  if p.grad is not None and n.startswith('detector')],
                 max_norm=opt.clip, verbose=verbose, clip=True)
             p_optimizer.step()
+            r_optimizer.step()
 
             # ------- behavior learning -------
             if behavior_lr:
@@ -299,6 +322,7 @@ def train(opt):
 
         p_scheduler.step(p_loss_avg)
         b_scheduler.step(b_loss_avg)
+        r_scheduler.step()
 
         torch.save(model.state_dict(),
                    opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(
