@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
 
-# Train Motifnet using different orderings
-export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKInG/Face_recog
+# Train Object Detection Model (YOLO_V2)
+export PYTHONPATH=/root/workspace/drama-graph
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python train.py
-
+python models/train.face.py
 
