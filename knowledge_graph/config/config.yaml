@@ -1,7 +1,7 @@
 mode: subtitle  #demo or subtitle
 preprocessing:
     load: False
-    substitle_file: data/temp # AnotherMissOh_Sence_Subtitle
+    substitle_file: data/input #AnotherMissOh01_subtitle.json
     output_path: data/output/preprocessed.json
     coreference: gold
 

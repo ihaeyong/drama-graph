@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 logger.info('Config: %s' % config)
 
 subtitles_dir = config['preprocessing']['substitle_file']
-
 print('preprocessing..')
 preprocessor = preprocessor(config, '')
 preprocessor.save_output()
