@@ -1,0 +1,18 @@
+// The Round Table
+digraph {
+	0 [label=Heeran fillcolor=gray style=filled]
+	1 [label="Possession#0_1_0"]
+	2 [label=have]
+	3 [label="a man who wants to see a movie with you"]
+	1 -> 2 [label=lu]
+	1 -> 0 [label=Owner]
+	1 -> 3 [label=Possession]
+	4 [label="Possession#6_0_0"]
+	4 -> 2 [label=lu]
+	4 -> 0 [label=Owner]
+	5 [label="Possession#6_1_0"]
+	6 [label="to be happy"]
+	5 -> 2 [label=lu]
+	5 -> 0 [label=Owner]
+	5 -> 6 [label=Possession]
+}

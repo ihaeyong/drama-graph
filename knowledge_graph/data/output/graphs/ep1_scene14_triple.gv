@@ -1,0 +1,22 @@
+// The Round Table
+digraph {
+	0 [label=Dokyung fillcolor=gray style=filled]
+	1 [label=that]
+	0 -> 1 [label="could talk like"]
+	2 [label="your mother"]
+	0 -> 2 [label="have insulted"]
+	3 [label="my best"]
+	0 -> 3 [label="'m doing"]
+	4 [label=36]
+	0 -> 4 [label=age fillcolor=red fontcolor=red style=filled]
+	5 [label="sound director"]
+	0 -> 5 [label=job fillcolor=red fontcolor=red style=filled]
+	6 [label=CEO]
+	0 -> 6 [label=job fillcolor=red fontcolor=red style=filled]
+	7 [label=Jiya]
+	0 -> 7 [label=son fillcolor=red fontcolor=red style=filled]
+	8 [label=Sukyung]
+	0 -> 8 [label=brother fillcolor=red fontcolor=red style=filled]
+	9 [label=Hun]
+	0 -> 9 [label=brother fillcolor=red fontcolor=red style=filled]
+}

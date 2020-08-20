@@ -1,0 +1,10 @@
+// The Round Table
+digraph {
+	0 [label=Hun fillcolor=gray style=filled]
+	1 [label="Hostile_encounter#0_0_0"]
+	2 [label=fight]
+	3 [label="with someone"]
+	1 -> 2 [label=lu]
+	1 -> 0 [label=Side_1]
+	1 -> 3 [label=Side_2]
+}
