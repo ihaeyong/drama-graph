@@ -16,7 +16,7 @@ Downloads [stanford-corenlp-4.0.0.zip](https://stanfordnlp.github.io/CoreNLP/his
 
 ### Graph
 
-input : scene 단위 대본.
+input path: `data/input/***.json`
 
 output path: `data/output/graph.json`
 
@@ -29,6 +29,9 @@ Haeyoung1: I have to pack a lunchbox.
 ```
 
 ##### output
+```
+data/ouput/graphs/
+```
 
 - char_background
 
@@ -48,12 +51,15 @@ Haeyoung1: I have to pack a lunchbox.
 
 
 
-#### graph.json
+#### Graph in a json format
+```
+data/output/graph.json
+```
 
 - dictionary
   - key: scene id
   - value: scene graph
-- scene graph
+- scene graph : 
   - char_background
     - function
       - 사전 구축된 Knowledge base에서 scene 내에 등장하는 등장인물의 배경지식 추출.
