@@ -54,7 +54,7 @@ Haeyoung1: I have to pack a lunchbox.
   - key: scene id
   - value: scene graph
 - scene graph
-  - char_background (인물 배경지식)
+  - char_background
     - function
       - 사전 구축된 Knowledge base에서 scene 내에 등장하는 등장인물의 배경지식 추출.
   - triples
