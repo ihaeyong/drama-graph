@@ -54,43 +54,7 @@ class graph_maker:
                 return True, name
             return False, form
 
-        if self.config['mode'] == 'qa':
-            for qa in self.input:
-                for uid, u in enumerate(qa['utterances']):
-
-                    coref_dict = {}  # {form:character}
-                    for coref in u['corefs']:
-                        coref_dict[coref['form'].lower()] = coref['coref']
-
-                    for sid, sent in enumerate(u['sents']):
-                        sent['char_triples'] = []
-                        sent['char_frames'] = []
-                        if 'triples' not in sent.keys():
-                            sent['triples'] = []
-                        if 'frames' not in sent.keys():
-                            sent['frames'] = []
-
-                        for triple in sent['triples']:  # for directed edge
-                            keys = triple.keys()
-                            flag = False
-                            for key in keys:
-                                cur_flag, triple[key] = form_to_character(triple[key], coref_dict)
-                                flag = flag or cur_flag
-                            if flag:
-                                sent['char_triples'].append(triple)
-
-                        if type(sent['frames']) is dict:  # error case
-                            continue
-                        for id, frame in enumerate(sent['frames']):
-                            frame['frame'] += '#{}_{}_{}'.format(uid,sid,id)
-                            flag = False
-                            for k in frame:
-                                cur_flag, frame[k] = form_to_character(frame[k], coref_dict)
-                                flag = flag or cur_flag
-                            if flag:
-                                sent['char_frames'].append(frame)
-
-        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
+        if self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for ep in self.input:
                 for scene in ep:
                     for uid, u in enumerate(scene['scene']):
@@ -264,46 +228,7 @@ class graph_maker:
         for name in self.char_names:
             whole_graph[name] = {'frame': [], 'triple': []}
 
-        if self.config['mode'] == 'qa':  # qa 당 그래프 1개.
-            for qa in self.input:
-                graph = {}
-                for name in self.char_names:
-                    graph[name] = {'frame': [], 'triple': []}
-
-                triples = [triple for u in qa['utterances'] for sent in u['sents'] for triple in sent['char_triples']]
-                frames = [triple for u in qa['utterances'] for sent in u['sents'] for triple in sent['char_frames']]
-
-                for char in self.back_KB:
-                    ks = self.back_KB[char]
-                    for k in ks:
-                        k_dict = {
-                            'subject': char,
-                            'relation': k[0],
-                            'object': k[1]
-                        }
-
-                        if self.config['graph']['only_use'] == 'None':  #특정인물만.
-                            only_rel = []
-                        else:
-                            only_rel = self.config['graph']['only_use'].split(',')
-
-                        if k[0] in only_rel:
-                            triples.append(k_dict)
-
-                for t in triples:
-                    if t['subject'] not in self.char_names:
-                        continue
-                    whole_graph[t['subject']]['triple'].append((t['relation'], t['object']))
-                    graph[t['subject']]['triple'].append((t['relation'], t['object']))
-
-                for f in frames:
-                    for k, v in f.items():
-                        if v in self.char_names:
-                            whole_graph[v]['frame'].append(f)
-                            graph[v]['frame'].append(f)
-                self.graphs.append((qa['qid'], graph))
-
-        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':  # scene 당 그래프 1개.
+        if self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':  # scene 당 그래프 1개.
             for i, ep in enumerate(self.input):
                 ep_id = i+1
                 for scene in ep:

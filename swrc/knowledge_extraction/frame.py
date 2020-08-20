@@ -15,15 +15,7 @@ class frame:
         self.output = self.run()
 
     def run(self):
-        if self.config['mode'] == 'qa':
-            for qa in self.input:
-                for utter in qa['utterances']:
-                    for sent in utter['sents']:
-                        if self.config['extraction']['frame'] == 'None':
-                            sent['frames'] = []
-                        else:
-                            sent['frames'] = eng_frameBERT(sent['statement'])
-        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
+        if self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for ep in self.input:
                 for scene in ep:
                     for u in scene['scene']:

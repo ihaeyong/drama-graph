@@ -14,8 +14,6 @@ class preprocessor:
             self.subtitle_loader()
         elif config['mode'] == 'demo':
             self.demo_loader(demo_json)
-        else:
-            self.qa_loader()
 
         self.coref = coreference(config, self.input)
         self.sentence_processor = sentence_processor(config, self.coref.output)
@@ -32,10 +30,6 @@ class preprocessor:
         for path in diriter(subtitle_path):
             self.input.append(jsonload(path))
         return
-
-    def qa_loader(self):
-        qa_path = self.config['preprocessing']['qa_file']
-        self.input = jsonload(qa_path)
 
     def save_output(self):
         if self.config['preprocessing']['load']:

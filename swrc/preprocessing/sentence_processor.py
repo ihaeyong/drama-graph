@@ -25,17 +25,7 @@ class sentence_processor:
     def segmentation(self):
         nlp = spacy.load('en_core_web_sm')
         json = self.input
-        if self.config['mode'] == 'qa':
-            for qa in json:
-                for utter in qa['utterances']:
-                    text = utter['utter']
-                    sents = nlp(text).sents
-                    utter['sents'] = []
-                    for s in sents:
-                        s_type, tokenized = self.sentence_typing(s)
-                        t = {'type': s_type, 'origin': s.text}
-                        utter['sents'].append(t)
-        elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
+        if self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for j in self.input:
                 for scene in j:
                     for utter in scene['scene']:

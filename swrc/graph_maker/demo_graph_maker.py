@@ -66,8 +66,6 @@ class graph_maker:
         elif self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':
             for ep in self.input:
                 for scene in ep:
-                    if scene['scene_number'] == 24:
-                        print()
                     for uid, u in enumerate(scene['scene']):
                         coref_dict = {}  # {form:character}
                         for coref in u['corefs']:
