@@ -44,7 +44,7 @@ def valid_step(net):
     
 
 # def dataset, dataloader object
-edb = face_emotion_dataset(cfg)
+edb = Face_emotion_dataset(cfg)
 dbl = DataLoader(edb, batch_size=cfg.bat_size, num_workers=4, pin_memory=False)
 
 # def net, loss, optim

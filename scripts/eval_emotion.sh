@@ -3,4 +3,4 @@
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python models/train_emotion.py
+python models/eval_emotion.py

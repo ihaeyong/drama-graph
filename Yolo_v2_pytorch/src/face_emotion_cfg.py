@@ -1,16 +1,14 @@
 # training params
 load_ckpt  = (False,'')    # load previous ckpt with experiment code
 im_size    = (448,448)     # sizeof input image
-num_iter   = int(1e+4)     # numof training iterations per epoch
-num_epoc   = int(1e+3)     # numof epoch
+num_epoc   = int(1e+2)     # numof epoch
 err_step   = int(50)       # numof steps per displaying error(loss)
 val_step   = int(1e+5)     # numof steps per saving checkpoint
 ckp_step   = int(1e+5)     # numof steps per saving network ckpt
 bat_size   = int(4)        # sizeof batch
 lr_start   = 1e-4          # learning rate param
 w_decay    = 1e-5          # weight decay param
-val_sets   = [7,8]         # episode indices to use for validation
-val_size   = int(20000)    # sizeof validation set
+val_sets   = [7,8]         # episode indices to use for validation/test
 
 # network params
 emo_net_ch = 64
