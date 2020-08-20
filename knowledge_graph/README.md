@@ -1,0 +1,59 @@
+## Knowledge Graph
+
+### Install pakages
+```
+> pip install https://github.com/explosion/spacy-models/releases/download/en_core_web_sm-2.2.0/en_core_web_sm-2.2.0.tar.gz --no-deps
+> apt-get install default-jdk
+````
+
+Downloads [stanford-corenlp-4.0.0.zip](https://stanfordnlp.github.io/CoreNLP/history.html) and unzip the downloaded package in data folder.
+
+
+### Execute
+```
+> ./run_knowledge_graph.sh
+```
+
+### graphs
+
+input : scene 단위 대본.
+
+output path: `data/output/graph.json`
+
+#### output
+
+- dictionary
+  - key: scene id
+  - value: scene graph
+- scene graph
+  - char_background
+    - function
+      - 사전 구축된 Knowledge base에서 scene 내에 등장하는 등장인물의 배경지식 추출.
+    - example
+      - (Dokyung; job; Sound director)
+  - triples
+    - function : scene내의 발화를 [Stanford open IE](https://nlp.stanford.edu/software/openie.html)로 triple 추출.
+    - example
+      - 입력 :  Barack Obama was born in Hawaii.
+      - 출력 : (Barack Obama; was born in; Hawaii)
+  - frames
+    - scene내의 발화를 [frameBERT](https://github.com/machinereading/frameBERT)로 추출한 [frame graph](https://framenet.icsi.berkeley.edu/fndrupal/WhatIsFrameNet)
+    - form
+      - frame - lu - args
+        - frame: 추출된 frame type
+        - lu: 추출된 frame의 trigger가 되는 lexical unit
+        - args: frame의 arguments (frame elements)
+  - common_sense
+    - function
+      - 사전 구축된 Knowledge base에서 추출된 triple element, frame element의 ConceptNet 지식 추출.
+    - 예시
+      - (umbrella; RelatedTo; rain)
+  - entity_background
+    - function
+      - 사전 구축된 Knowledge base에서 추출된 triple element, frame element의  wiki 기반 지식(from Acryl) 추출.
+
+#### Visualization
+
+- path : `data/output/graphs`
+- triples & char_background로 이루어진 그래프.
+- frames로 이루어진 그래프.
