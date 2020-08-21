@@ -383,7 +383,7 @@ def train(opt):
         p_scheduler.step(p_loss_avg)
         b_scheduler.step(b_loss_avg)
         r_scheduler.step()
-        f_scheduler.step()
+        f_scheduler.step(loss_cls_face)
 
         torch.save(model.state_dict(),
                    opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(

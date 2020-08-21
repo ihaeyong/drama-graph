@@ -226,12 +226,12 @@ def train(opt):
             os.makedirs(opt.saved_path + os.sep + "{}".format(opt.model))
             print('mkdir_{}'.format(opt.saved_path))
 
-        f_scheduler.step()
+        f_scheduler.step(loss_cls_face)
 
-        torch.save(face_model.state_dict(),
+        torch.save(model_face.state_dict(),
                    opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(
                        opt.model))
-        torch.save(face_model,
+        torch.save(model_face,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
                        opt.model))
 
