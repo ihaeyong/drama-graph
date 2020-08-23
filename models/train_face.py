@@ -54,7 +54,7 @@ def get_args():
                         default="./checkpoint/detector") # Pre-training path
 
     parser.add_argument("--saved_path", type=str,
-                        default="./checkpoint/behavior") # saved training path
+                        default="./checkpoint/face") # saved training path
     parser.add_argument("--conf_threshold", type=float, default=0.35)
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
