@@ -16,22 +16,21 @@ from Yolo_v2_pytorch.src.yolo_tunning import YoloD
 from Yolo_v2_pytorch.src.rois_utils import anchorboxes
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import PersonCLS, PBeHavCLS
 
+from lib.person_model import person_model
+
 import numpy as np
 
 class behavior_model(nn.Module):
     def __init__(self, num_persons, num_behaviors, opt, device):
         super(behavior_model, self).__init__()
 
-        pre_model = Yolo(num_persons).cuda(device)
+        # just for reference (anchor information)
         num_objects_cls = 47
         num_relations = 13
         num_face_cls = 20
 
-        self.detector = YoloD(pre_model,
-                              num_persons,
-                              num_objects_cls,
-                              num_relations,
-                              num_face_cls).cuda(device)
+        self.person_model = person_model(num_persons, device)
+        self.detector = self.person_model.detector
 
         self.num_persons = num_persons
 
@@ -106,7 +105,7 @@ class behavior_model(nn.Module):
     def forward(self, image, label, behavior_label):
 
         # person detector
-        logits, fmap = self.detector(image)
+        logits, fmap = self.person_model(image)
         batch = logits.size(0)
 
         fmap = fmap.detach()

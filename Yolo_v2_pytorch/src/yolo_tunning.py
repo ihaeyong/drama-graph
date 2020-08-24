@@ -44,7 +44,6 @@ class YoloD(nn.Module):
 
         self.stage3_conv1 = pre_model.stage3_conv1
 
-
     def forward(self, input):
         output = self.stage1_conv1(input)
         output = self.stage1_conv2(output)
