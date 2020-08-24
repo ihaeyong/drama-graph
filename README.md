@@ -40,7 +40,7 @@ You could find all trained models in [this link](https://drive.google.com/drive/
 We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 
 ### Train model:
-train model from scratch
+train model from scratch. For place recognition, please download [places365 pre-trained model](https://drive.google.com/file/d/1fe-CnmM-1XcGBCPxtF3L4vjM7s0OJA6-/view?usp=sharing).
 
 ```
 >> ./scripts/train_main.py #gpu
