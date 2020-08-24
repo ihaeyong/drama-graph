@@ -87,7 +87,7 @@ def test(opt):
 
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
-            model1 = torch.load(model_path)
+            model1 = torch.load(model_path
             print("loaded with gpu {}".format(model_path))
         else:
             model1 = Yolo(num_persons)
@@ -98,7 +98,7 @@ def test(opt):
         pl_model = torch.nn.Sequential(fe, place_model())
 
         # load model
-        pl_model_path = './checkpoint/clsf/9_lstm_load2.pt'
+        pl_model_path = './pre_model/9_lstm_load2.pt'
         checkpoint2 = torch.load(pl_model_path)
         state_dict2 = {str.replace(k,'module.',''): v for k,v in checkpoint2['model'].items()}
         pl_model.load_state_dict(state_dict2, False)
