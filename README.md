@@ -35,7 +35,7 @@ json_dir = './data/AnotherMissOh/AnotherMissOh_Visual/AnotherMissOh01_visual.jso
 
 We mainly use [YOLOv2-pytorch](https://github.com/uvipen/Yolo-v2-pytorch). 
 
-You could find all trained models in [this link](https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM?usp=sharing), [this link](https://drive.google.com/file/d/1yqkTXGAGHqs_0B1Z5OsyGxL2sbfGbs6k/view)(place) and make 'pre_model' folder and put the models. 
+You could find all trained models in [this link](https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM?usp=sharing) and make 'pre_model' folder and put the models. 
 
 We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 
