@@ -123,7 +123,7 @@ def place_train(opt):
                    "collate_fn": custom_collate_fn}
 
 
-    checkpoint = torch.load('./checkpoint/resnet/resnet50_places365.pth.tar')
+    checkpoint = torch.load('./pre_model/resnet50_places365.pth.tar')
     # print("checkpoint load complete")
     print("loaded pre-trained resnet sucessfully.")
     train_loader = DataLoader(train_set, **training_params)
