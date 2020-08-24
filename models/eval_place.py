@@ -98,7 +98,7 @@ def test(opt):
         pl_model = torch.nn.Sequential(fe, place_model())
 
         # load model
-        pl_model_path = './pre_model/9_lstm_load2.pt'
+        pl_model_path = './pre_model/place_seqres.pt'
         checkpoint2 = torch.load(pl_model_path)
         state_dict2 = {str.replace(k,'module.',''): v for k,v in checkpoint2['model'].items()}
         pl_model.load_state_dict(state_dict2, False)
