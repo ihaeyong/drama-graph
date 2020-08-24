@@ -81,8 +81,6 @@ class YoloD(nn.Module):
         output = torch.cat((output_1, output_2), 1)
         output_fmap = self.stage3_conv1(output)
 
-        # output = self.stage3_conv2(output)
-        # output = self.stage3_conv_person(output_fmap)
-        # we need to have this type of output
+        # output_1 is used for behavior learning
 
-        return output_fmap
+        return output_fmap, output_1

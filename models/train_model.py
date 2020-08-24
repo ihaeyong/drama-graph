@@ -229,12 +229,6 @@ def train(opt):
     else:
         torch.manual_seed(123)
     print(torch.cuda.is_available())
-    #p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
-    #b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0, "10": opt.lr/100.0}
-
-
-
-
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -308,7 +302,7 @@ def train(opt):
             behavior_lr = iter % (1) == 0
             verbose=iter % (opt.print_interval*10) == 0
             image, info = batch
-            
+
             # sort label info on fullrect
             image, label, behavior_label = SortFullRect(image, info)
 

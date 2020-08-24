@@ -106,7 +106,7 @@ class behavior_model(nn.Module):
     def forward(self, image, label, behavior_label):
 
         # person detector
-        logits, fmap, _ ,_ = self.detector(image)
+        logits, fmap = self.detector(image)
         batch = logits.size(0)
 
         fmap = fmap.detach()
