@@ -68,6 +68,36 @@ mAP for face
 >> python eval_mAP.py -rtype face
 ```
 
+# Sound event model:
+More information you could find from README in `./sound_event_detection/` directory.
+
+### Train model:
+Train model from scratch
+
+```
+>> ./scripts/train_sound_event.sh
+```
+The trained model is saved in `./sound_event_detection/checkpoint/torch_model.pt`
+
+### Test model:
+To  evaluate the trained model on the provided data, run the following command:
+```
+>> ./scripts/eval_sound_event.sh
+
+Testing metrics:
+    accuracy:       62.720,
+    avg. precision: 0.627,
+    avg. recall:    0.627,
+    avg. F1:        0.622.
+```
+
+### Inference model:
+Inference on a single file and create its visualization.
+```
+>> ./scripts/inference_sound_event.sh
+```
+sed_vis folder should be in the directory from which you run the file(`./`), so here the directory is (`drama-graph/sed_vis/`).
+
 #### Acknowledgements
 
 This work was supported by Institute for Information & communications Technology Promotion(IITP) grant funded by the Korea government(MSIT) (2017-0-01780, The technology development for event recognition/relational reasoning and learning knowledge based system for video understanding)
