@@ -77,7 +77,6 @@ def get_args():
 # get args.
 opt = get_args()
 print(opt)
-print(torch.cuda.is_available())
 # splits the episodes int train, val, test
 train, val, test = Splits(num_episodes=18)
 
@@ -106,7 +105,6 @@ def train(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    print(torch.cuda.is_available())
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -123,6 +121,7 @@ def train(opt):
     # define behavior-model
 
     model = behavior_model(num_persons, num_behaviors, opt, device)
+    
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
 
@@ -131,7 +130,7 @@ def train(opt):
         print(".....")
         print("loaded pre-trained detector sucessfully.")
         print(".....")
-
+    
     model.cuda(device)
 
 
@@ -297,7 +296,8 @@ def train(opt):
             info_place = []
 
             for idx in range(len(image)):
-                images_norm.append(normalize(image[idx][0, :, :, :]))
+                image_resize = F.interpolate(normalize(image[idx]).unsqueeze(0), (224, 224)).squeeze(0)
+                images_norm.append(image_resize)
                 info_place.append(info[0][idx]['place'])
             info_place = label_mapping(info_place)
             #exit()
@@ -319,13 +319,18 @@ def train(opt):
                     target = torch.Tensor(temp_info).to(torch.int64).cuda(device)
                     output = pl_model(batch_images)
                     pl_loss = F.cross_entropy(output, target)
-
-
                     pl_losses.update(pl_loss.item(), batch_images.size(0))
+
+                    prec1 = []; prec5 = []
+                    prec1_tmp, prec5_tmp = accuracy(output, target, topk=(1, 5))
+                    prec1.append(prec1_tmp.view(1, -1)); prec5.append(prec5_tmp.view(1, -1))
+                    prec1 = torch.stack(prec1); prec5 = torch.stack(prec5)
+                    prec1 = prec1.view(-1).float().mean(0)
+                    prec5 = prec5.view(-1).float().mean(0)
                     pl_top1.update(prec1.item(), batch_images.size(0))
                     pl_top5.update(prec5.item(), batch_images.size(0))
-                    pl_optimizer.zero_grad()
 
+                    pl_optimizer.zero_grad()
                     pl_loss.backward()
                     pl_optimizer.step()
 
