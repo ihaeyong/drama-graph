@@ -5,5 +5,5 @@ export PYTHONPATH=/root/workspace/drama-graph
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
-python models/train_face.py
+python models/train_place.py
 
