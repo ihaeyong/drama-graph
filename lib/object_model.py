@@ -26,11 +26,10 @@ class object_model(nn.Module):
 
         self.conv = nn.Conv2d(
             1024, len(self.detector.anchors) * (5 + num_objects), 1, 1, 0, bias=False)
-        
 
     def forward(self, input):
         # run the model through the main detector
-        output = self.detector(input)
+        output, output_1 = self.detector(input)
 
         # run each individual model
         output = self.conv(output)

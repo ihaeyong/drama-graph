@@ -260,7 +260,7 @@ def train(opt):
                  if n.startswith('detector') and p.requires_grad]
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
-    
+
     p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}]
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 
