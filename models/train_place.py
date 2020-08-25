@@ -107,9 +107,6 @@ def train(opt):
     else:
         torch.manual_seed(123)
     print(torch.cuda.is_available())
-    #p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
-    #b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0, "10": opt.lr/100.0}
-
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -215,9 +212,10 @@ def train(opt):
             behavior_lr = iter % (1) == 0
             verbose=iter % (opt.print_interval*10) == 0
             image, info = batch
-            
+
             # sort label info on fullrect
-            image, label, behavior_label = SortFullRect(image, info)
+            image, label, behavior_label, obj_label, face_label = SortFullRect(
+                image, info, is_train=True)
 
             if np.array(label).size == 0 :
                 print("iter:{}_person bboxs are empty".format(
@@ -294,7 +292,6 @@ def train(opt):
                         max_norm=opt.clip, verbose=verbose, clip=True)
                 b_optimizer.step()
 
-            
             ### place learning
             images_norm = []
             info_place = []
@@ -311,7 +308,7 @@ def train(opt):
                 temp_images += images_norm[:(10-temp_len)]
                 images_norm = images_norm[(10-temp_len):]
                 #print(len(info))
-                
+
                 temp_info += info_place[:(10-temp_len)]
                 info_place = info_place[(10-temp_len):]
                 temp_len = len(temp_images)
@@ -338,7 +335,7 @@ def train(opt):
                     pl_updated = True
                 elif temp_len < 10:
                     break
-            
+
             print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.9f}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
@@ -350,10 +347,10 @@ def train(opt):
                 print("+lr:{:.9f}, cls_behavior:{:.2f}".format(
                     b_optimizer.param_groups[0]['lr'],
                     loss_behavior))
-            
+
             if pl_updated:
                 print("+place(loss:{:.2f},acc@1:{:.2f},acc@5:{:.2f})".format(pl_loss,prec1,prec5))
-            
+
             print()
 
             loss_dict = {
@@ -374,14 +371,14 @@ def train(opt):
             # Log scalar values
             for tag, value in loss_dict.items():
                 logger.scalar_summary(tag, value, loss_step)
-            
+
             loss_step = loss_step + 1
 
         print("SAVE MODEL")
         if not os.path.exists(opt.saved_path):
             os.makedirs(opt.saved_path + os.sep + "{}".format(opt_model))
             print('mkdir_{}'.format(opt.saved_path))
-        
+
         # learning rate schedular
         b_loss_avg = np.stack(b_loss_list).mean()
         p_loss_avg = np.stack(p_loss_list).mean()
@@ -395,9 +392,7 @@ def train(opt):
         torch.save(model,
                    opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
                        opt.model))
-
-        
-    ## place
+        ## place
         pl_scheduler.step()
 
         if not os.path.exists('./checkpoint/place'):

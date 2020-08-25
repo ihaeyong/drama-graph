@@ -107,10 +107,6 @@ def place_train(opt):
     else:
         torch.manual_seed(123)
     print(torch.cuda.is_available())
-    #p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
-    #b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0, "10": opt.lr/100.0}
-
-
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -167,7 +163,7 @@ def place_train(opt):
                 temp_images += images_norm[:(10-temp_len)]
                 images_norm = images_norm[(10-temp_len):]
                 #print(len(info))
-                
+
                 temp_info += info_place[:(10-temp_len)]
                 info_place = info_place[(10-temp_len):]
                 temp_len = len(temp_images)
@@ -304,8 +300,8 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            #image, label, behavior_label = SortFullRect(image, info)
-            image, label, behavior_label, obj_label, face_label = SortFullRect(image, info, is_train=True)
+            image, label, behavior_label, obj_label, face_label = SortFullRect(
+                image, info, is_train=True)
 
             if np.array(label).size == 0 :
                 print("iter:{}_person bboxs are empty".format(
