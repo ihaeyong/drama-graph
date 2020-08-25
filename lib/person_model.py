@@ -30,7 +30,7 @@ class person_model(nn.Module):
             1024, len(self.detector.anchors) * (5 + num_persons), 1, 1, 0, bias=False)
 
     def forward(self, image):
-        
+
         # feature map of backbone
         fmap, output_1 = self.detector(image)
 

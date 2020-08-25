@@ -35,7 +35,7 @@ class face_model(nn.Module):
     def forward(self, image):
 
         # feature map of backbone
-        fmap = self.detector(image)
+        fmap, output_1 = self.detector(image)
 
         output_face_logits = self.face_conv(fmap)
 
