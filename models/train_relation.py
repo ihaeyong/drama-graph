@@ -117,8 +117,8 @@ def train(opt):
     # load the model
 
     model = relation_model(num_objects, num_relations).cuda(device)
-    trained_relations = opt.trained_model_path + os.sep + "{}".format(
-        'anotherMissOh_only_params_relations.pth')
+    trained_relation = opt.trained_model_path + os.sep + "{}".format(
+        'anotherMissOh_only_params_relation.pth')
     ckpt = torch.load(trained_persons)
 
     if optimistic_restore(model.detector, ckpt):
@@ -158,7 +158,7 @@ def train(opt):
             optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits = model(image)
+            logits, _ = model(image)
             device = logits.get_device()
 
             # losses for object detection

@@ -30,9 +30,9 @@ class object_model(nn.Module):
 
     def forward(self, input):
         # run the model through the main detector
-        output = self.detector(input)
+        output, output_1 = self.detector(input)
 
         # run each individual model
         output = self.conv(output)
 
-        return output
+        return output, output_1
