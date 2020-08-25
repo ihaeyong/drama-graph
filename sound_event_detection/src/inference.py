@@ -13,18 +13,6 @@ import numpy as np
 import sed_vis
 import dcase_util
 
-def sound_extraction(args):
-    video_list = [f for f in  os.listdir('../'+args.video_dir) if f.endswith('.'+args.video_format)]
-
-    print("Audio extraction from the videos:\n", video_list)
-    print("Conversion format:", args.video_format, '-> wav')
-    print('Conversion...')
-    
-    print("Saving files to", '../'+args.wav_dir, '...')
-    for video in tqdm.tqdm(video_list):
-        video_to_wav('../'+args.video_dir+video, save_directory='../'+args.wav_dir, video_format=args.video_format)
-    print('Conversion finished!')
-
 def librosa_get_data_chunk(X, sr, json_data, labels_exist=True):
     labeled_wav_list = []
     if labels_exist:
@@ -48,13 +36,12 @@ def get_model(features):
     model = model_torch(40, 9)
 
     print("Loading model weights...")
-    PATH = "../checkpoint/torch_model.pt"
+    PATH = "./sound_event_detection/checkpoint/torch_model.pt"
     checkpoint = torch.load(PATH)
     model.load_state_dict(checkpoint['model_state_dict'])
     epoch = checkpoint['epoch']
     prev_loss = checkpoint['loss']
     model.eval()
-    #model.to(device)
     print("Loading finished.")
     return model
 
@@ -93,26 +80,26 @@ def visualize(pred, gt, path):
                                                     audio_signal=audio_container.data,
                                                     sampling_rate=audio_container.fs)
     vis.show()
-    vis.save('../figures/prediction_visualization.png')
+    vis.save('./sound_event_detection/figures/prediction_visualization.png')
     return
 
 def predict(args):
     labels = None
     if args.gt != None:
         print("Loading json label files...")
-        path = '../'+args.gt
+        path = args.gt
         with open(path) as js_file:
             js_data = json.load(js_file)
             print("JS_data of ", js_data['file_name'], 'is loaded')
             labels = js_data
 
     print("Loading input audio file...")
-    path = '../'+args.input
+    path = args.input
     #(audio, _) = get_wav(path)
     X, sr = read_audio_file(path)
     #print('Extracted.', len(audio))
     print("shape and sr:", X.shape, sr)
-    classes = np.load('classes.npy', allow_pickle=True)
+    classes = np.load('./sound_event_detection/src/classes.npy', allow_pickle=True)
     for it in range(len(classes)):
         cl = classes[it]
         classes[it] = cl.replace('-','/')
@@ -186,10 +173,10 @@ def parse_args():
 if __name__ == "__main__": 
     args = parse_args()
     if args.input == None:
-        args.input = 'wavs/AnotherMissOh02.wav'
-        args.gt = 'data/AnotherMissOh_Sound/AnotherMissOh02_sound.json'
+        args.input = './sound_event_detection/wavs/AnotherMissOh02.wav'
+        args.gt = './sound_event_detection/data/AnotherMissOh_Sound/AnotherMissOh02_sound.json'
     if args.output == None:
-        args.output = '../predictions/prediction.json'
+        args.output = './sound_event_detection/predictions/prediction.json'
     print("Inference stage...")
     predict(args)
     
@@ -200,7 +187,7 @@ if __name__ == "__main__":
     save_directory = args.output[:args.output.rfind("/")]
     with open(save_directory+'/'+'gt_labels.json') as js_file:
         gt_labels = json.load(js_file)
-    path = '../'+args.input
+    path = args.input
     print("Predictions and GT labels are loaded.")
     print("Begin visualization...")
     visualize(json_dict, gt_labels, path)

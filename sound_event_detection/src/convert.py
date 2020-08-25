@@ -6,19 +6,20 @@ import statistics
 import argparse
 from utils import video_to_wav, get_msecs, get_data_chunk, get_wav
 
-def sound_extraction(args):
-    video_list = [f for f in  os.listdir('../'+args.video_dir) if f.endswith('.'+args.video_format)]
+
+def sound_extraction(args, prefix = './sound_event_detection/'):
+    video_list = [f for f in  os.listdir(prefix+args.video_dir) if f.endswith('.'+args.video_format)]
 
     print("Audio extraction from the videos:\n", video_list)
     print("Conversion format:", args.video_format, '-> wav')
     print('Conversion...')
     
-    print("Saving files to", '../'+args.wav_dir, '...')
+    print("Saving files to", prefix+args.wav_dir, '...')
     for video in tqdm.tqdm(video_list):
-        video_to_wav('../'+args.video_dir+video, save_directory='../'+args.wav_dir, video_format=args.video_format)
+        video_to_wav(prefix+args.video_dir+video, save_directory=prefix+args.wav_dir, video_format=args.video_format)
     print('Conversion finished!')
 
-def get_audio_file_paths(prefix='../wavs/', name='AnotherMissOh', suffix='', format='wav', min_num=1, max_num=19):
+def get_audio_file_paths(prefix='./sound_event_detection/wavs/', name='AnotherMissOh', suffix='', format='wav', min_num=1, max_num=19):
     file_paths = []
     for i in tqdm.tqdm(range(min_num, max_num)):
         zero = ''
@@ -27,7 +28,7 @@ def get_audio_file_paths(prefix='../wavs/', name='AnotherMissOh', suffix='', for
         file_paths.append(prefix + name + zero + str(i) + suffix + '.' + format)
     return file_paths
 
-def get_labels_file_paths(prefix='../data/AnotherMissOh_Sound/', name='AnotherMissOh', suffix='_sound', format='json', min_num=1, max_num=19):
+def get_labels_file_paths(prefix='./sound_event_detection/data/AnotherMissOh_Sound/', name='AnotherMissOh', suffix='_sound', format='json', min_num=1, max_num=19):
     file_paths = []
     for i in tqdm.tqdm(range(min_num, max_num)):
         zero = ''
@@ -47,7 +48,7 @@ def pre_proc(args):
             print("JS_data of ", js_data['file_name'], 'is loaded')
             labels_list.append(js_data)
 
-    audio_file_paths = get_audio_file_paths(prefix='../'+args.wav_dir, format='wav')
+    audio_file_paths = get_audio_file_paths(prefix='./sound_event_detection/'+args.wav_dir, format='wav')
     audio_list = []
     
     print("Loading wav files...")
@@ -63,7 +64,7 @@ def pre_proc(args):
 
     counter = 0
     lens = []
-    folder = './pre_proc/'
+    folder = './sound_event_detection/src/pre_proc/'
     
     if not os.path.exists(folder):
         os.makedirs(folder)

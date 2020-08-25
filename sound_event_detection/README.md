@@ -16,9 +16,9 @@ All the audio from the video dataset (`./sound_event_detection/data/AnotherMissO
 After that WAV files are preprocessed: divided into audio chunks according to the given ground truth annotations (`./sound_event_detection/data/AnotherMissOh_Sound/`) and saved to `./sound_event_detection/src/pre_proc/`.
 
 Finally, sound features are extracted from each audio file (`./sound_event_detection/src/pre_proc/*`), split into train/test (80%/20%) sets, and saved to `./sound_event_detection/src/train.csv` and `sound_event_detection/src/test.csv`
-
->> ./scripts/preprocess_sound_event.sh
 ```
+>> ./scripts/preprocess_sound_event.sh
+
 Note: all scripts are need to be run from the parent directory (`./drama-graph/`).
 ```
 
@@ -26,14 +26,14 @@ Note: all scripts are need to be run from the parent directory (`./drama-graph/`
 1-D CNN PyTorch model (`./sound_event_detection/src/models.model_torch`) with 4 CNN and 2 FC layers is trained for 300 epochs.
 
 The trained model is saved in `./sound_event_detection/checkpoint/torch_model.pt`. 
-
+```
 >> ./scripts/train_sound_event.sh
-
+```
 ## Evaluate the trained model:
 To  evaluate the trained model on the provided data, run the following command:
-
->> ./scripts/eval_sound_event.sh
 ```
+>> ./scripts/eval_sound_event.sh
+
 Testing metrics:
     accuracy:       62.720,
     avg. precision: 0.627,
@@ -42,11 +42,13 @@ Testing metrics:
 ```
 
 The confusion matrix is saved to `./sound_event_detection/figures/confusion_matrix.png`.
+![alt text](./figures/confusion_matrix.png "Confusion matrix")
 
 ## Inference on a single file and create its visualization
 To inference or evaluate with a single audio file:
+```
 >> ./scripts/inference_sound_event.sh
-
+```
 sed_vis folder should be in the directory from which you run the file(`./`), so here the directory is (`drama-graph/sed_vis/`).
 
 This script will display a window by matplotlib as the following figure:

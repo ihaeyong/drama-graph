@@ -86,5 +86,5 @@ def model_torch(in_shape, out_shape):
 
 
     net = Net()
-    #print(net)
+    print(net)
     return net

@@ -30,7 +30,7 @@ def visualize_conf_matrix(matrix, class_list):
     sn.set(font_scale=1.8)
     sn.heatmap(df_cm, annot=True, cmap='Greys', fmt='g', annot_kws={"size": 20})
     plt.show(block=False); 
-    folder = '../figures/'
+    folder = './sound_event_detection/figures/'
     if not os.path.exists(folder):
         os.makedirs(folder)
     plt.savefig(folder + 'confusion_matrix' + '.png', bbox_inches='tight')
@@ -64,7 +64,7 @@ def get_metrics(conf_matrix):
 print('#'*40, "\n\t\tTesting\n")
 token = ''
     
-test_reader = pd.read_table('test'+token+'.csv', sep='\t', encoding='utf-8')
+test_reader = pd.read_table('./sound_event_detection/src/test'+token+'.csv', sep='\t', encoding='utf-8')
 file_test_df = pd.DataFrame(test_reader)
 testfeatures = file_test_df.iloc[:, 1:-1]
 testlabel = file_test_df.iloc[:, -1:]
@@ -83,7 +83,7 @@ print("Executing model on:", device)
 model = get_model_torch(x_testcnn.shape[1], 9)
 
 print("Loading model weights...")
-PATH = "../checkpoint/torch_model.pt"
+PATH = "./sound_event_detection/checkpoint/torch_model.pt"
 checkpoint = torch.load(PATH)
 model.load_state_dict(checkpoint['model_state_dict'])
 epoch = checkpoint['epoch']
@@ -99,7 +99,7 @@ print("Shape of prediction:", y_pred.shape)
 conf_matrix = get_conf_matrix(y_pred, y_test)
 print("Visualizing confusion matrix...")
 visualize_conf_matrix(conf_matrix, lb.classes_)
-print("Visual of confusion matrix is saved to ./Figures/confusion_matrix.png")
+print("Visual of confusion matrix is saved to ./sound_event_detection/figures/confusion_matrix.png")
 
 tp, precision, recall, f1 = get_metrics(conf_matrix)
 accuracy = 100 * tp / len(x_testcnn)

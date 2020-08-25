@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix
 import os
 from tqdm import tqdm
 
-#os.environ['CUDA_VISIBLE_DEVICES'] = "7"
+#os.environ['CUDA_VISIBLE_DEVICES'] = "0"
 delta = False
 
 def get_model_keras(in_shape, out_shape):
@@ -34,14 +34,14 @@ token = ''
 if delta:
     token = '_delta'
     
-train_reader = pd.read_table('train'+token+'.csv', sep='\t', encoding='utf-8')
+train_reader = pd.read_table('./sound_event_detection/src/train'+token+'.csv', sep='\t', encoding='utf-8')
 file_train_df = pd.DataFrame(train_reader)
 print('Train'+token+'.csv:\n', file_train_df.head())
 
 trainfeatures = file_train_df.iloc[:, 1:-1]
 trainlabel = file_train_df.iloc[:, -1:]
 
-test_reader = pd.read_table('test'+token+'.csv', sep='\t', encoding='utf-8')
+test_reader = pd.read_table('./sound_event_detection/src/test'+token+'.csv', sep='\t', encoding='utf-8')
 file_test_df = pd.DataFrame(test_reader)
 print('Test'+token+'.csv:\n', file_test_df.head())
 
@@ -63,7 +63,7 @@ y_test = to_categorical(lb.fit_transform(y_test.ravel()), 9)
 print("Label train & test shape:", y_train.shape, y_test.shape)
 
 print("save classes...")
-np.save('classes.npy', lb.classes_)
+np.save('./sound_event_detection/src/classes.npy', lb.classes_)
 #
 
 x_traincnn = np.expand_dims(X_train, axis=2)
@@ -129,7 +129,7 @@ for epoch in tqdm(range(epochs)):
         if best_test_acc < accuracy:
             best_test_acc = accuracy
             EPOCH = epoch + 1
-            folder = '../checkpoint/'
+            folder = './sound_event_detection/checkpoint/'
             if not os.path.exists(folder):
                 os.makedirs(folder)
             PATH = folder+"torch_model.pt"

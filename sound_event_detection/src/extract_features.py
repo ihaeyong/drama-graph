@@ -56,7 +56,7 @@ def extr(df, X, sr, bookmark):
     features = extract_features(X, sr, delta=delta)
     df.loc[bookmark] = [features]
 
-samples = os.listdir('./pre_proc/')
+samples = os.listdir('./sound_event_detection/src/pre_proc/')
 print("There are {} samples.".format(len(samples)))
 
 class_list = get_classes(samples)
@@ -71,7 +71,7 @@ test_labels = []
 for index, sample in tqdm(enumerate(test)):    
     file_name = sample[0]
     file_class = sample[1]
-    data, sr = read_audio_file('./pre_proc/'+file_name)
+    data, sr = read_audio_file('./sound_event_detection/src/pre_proc/'+file_name)
     data_len.add(len(data)/sr)    
     extr(test_df, data, sr, index)
     test_labels.append(sample[1])
@@ -91,8 +91,8 @@ print("New Test DF length:", len(test_rnewdf))
 token = ''
 if delta:
     token = '_delta'
-print("Saving {} ...".format('test'+token+'.csv'))
-test_rnewdf.to_csv('test'+token+'.csv', sep='\t', encoding='utf-8')
+print("Saving {} ...".format('./sound_event_detection/src/test'+token+'.csv'))
+test_rnewdf.to_csv('./sound_event_detection/src/test'+token+'.csv', sep='\t', encoding='utf-8')
 
 data_len = set()
 print("Feature extraction for train set...")
@@ -101,7 +101,7 @@ train_labels = []
 for index, sample in tqdm(enumerate(train)):    
     file_name = sample[0]
     file_class = sample[1]
-    data, sr = read_audio_file('./pre_proc/'+file_name)
+    data, sr = read_audio_file('./sound_event_detection/src/pre_proc/'+file_name)
     data_len.add(len(data)/sr)    
     extr(train_df, data, sr, index)
     train_labels.append(sample[1])
@@ -118,8 +118,8 @@ train_rnewdf = shuffle(train_rnewdf)
 train_rnewdf = train_rnewdf.fillna(0)
 print("New Train DF length:", len(train_rnewdf))
 
-print("Saving {} ...".format('train'+token+'.csv'))
-train_rnewdf.to_csv('train'+token+'.csv', sep='\t', encoding='utf-8')
+print("Saving {} ...".format('./sound_event_detection/src/train'+token+'.csv'))
+train_rnewdf.to_csv('./sound_event_detection/src/train'+token+'.csv', sep='\t', encoding='utf-8')
 
 
 
