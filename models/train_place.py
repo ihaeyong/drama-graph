@@ -369,7 +369,7 @@ def train(opt):
                 p_loss_list.append(loss_cls.item())
 
             if pl_updated:
-		loss_dict['place'] = pl_loss.item()
+                loss_dict['place'] = pl_loss.item()
 
             # Log scalar values
             for tag, value in loss_dict.items():
@@ -397,7 +397,7 @@ def train(opt):
                        opt.model))
 
         
-	## place
+    ## place
         pl_scheduler.step()
 
         if not os.path.exists('./checkpoint/place'):
