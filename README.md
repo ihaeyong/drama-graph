@@ -43,14 +43,40 @@ We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 train model from scratch. For place recognition, make 'pre_model' folder and put [places365 pre-trained model](https://drive.google.com/file/d/1fe-CnmM-1XcGBCPxtF3L4vjM7s0OJA6-/view?usp=sharing).
 
 ```
->> ./scripts/train_main.py #gpu
+>> ./scripts/train_models.sh #gpu
 ```
+
+train sound event model from scratch
+
+```
+>> ./scripts/train_sound_event.sh #gpu
+```
+The trained model is saved in `./sound_event_detection/checkpoint/torch_model.pt`
 
 
 ### Test model:
+test the integrated model on testset
 ```
 >> ./scripts/eval_models.sh #gpu
 ```
+
+To  evaluate the trained sound event model 
+```
+>> ./scripts/eval_sound_event.sh
+
+Testing metrics:
+    accuracy:       62.720,
+    avg. precision: 0.627,
+    avg. recall:    0.627,
+    avg. F1:        0.622.
+```
+
+Inference on a single file and create its visualization.
+```
+>> ./scripts/inference_sound_event.sh
+```
+sed_vis folder should be in the directory from which you run the file(`./`), so here the directory is (`drama-graph/sed_vis/`).
+
 
 #### Evaluation
 mAP for person
@@ -78,36 +104,6 @@ mAP for object
 >> python eval_mAP.py -rtype object
 ```
 
-
-# Sound event model:
-More information you could find from README in `./sound_event_detection/` directory.
-
-### Train model:
-Train model from scratch
-
-```
->> ./scripts/train_sound_event.sh
-```
-The trained model is saved in `./sound_event_detection/checkpoint/torch_model.pt`
-
-### Test model:
-To  evaluate the trained model on the provided data, run the following command:
-```
->> ./scripts/eval_sound_event.sh
-
-Testing metrics:
-    accuracy:       62.720,
-    avg. precision: 0.627,
-    avg. recall:    0.627,
-    avg. F1:        0.622.
-```
-
-### Inference model:
-Inference on a single file and create its visualization.
-```
->> ./scripts/inference_sound_event.sh
-```
-sed_vis folder should be in the directory from which you run the file(`./`), so here the directory is (`drama-graph/sed_vis/`).
 
 #### Acknowledgements
 
