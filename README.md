@@ -93,11 +93,6 @@ accuracy for sound event
 ```
 >> ./scripts/eval_sound_event.sh
 
-Testing metrics:
-    accuracy:       62.720,
-    avg. precision: 0.627,
-    avg. recall:    0.627,
-    avg. F1:        0.622.
 ```
 
 Inference on a single file and create its visualization.
