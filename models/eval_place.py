@@ -129,7 +129,8 @@ def test(opt):
         info_place = []
         info_filename = []
         for idx in range(len(image)):
-            images_norm.append(pl_normalize(image[idx][0, :, :, :]))
+            image_resize = F.interpolate(normalize(image[idx]).unsqueeze(0), (224, 224)).squeeze(0)
+            images_norm.append(image_resize)
             info_place.append(info[0][idx]['place'])
             info_filename.append(info[0][idx]['frame_id'][0])
             save_place_dir = './results/place/{}/'.format(
