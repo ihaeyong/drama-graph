@@ -190,8 +190,6 @@ def SortFullRect(image,label, is_train=True):
                 object_rect = [xmin,ymin,xmax,ymax]
 
                 temp_label = np.concatenate((object_rect, [p_label], [r_label]), 0)
-                # temp_label = np.concatenate((object_rect, [p_label]), 0)
-                # relation_list.append(r_label)
                 object_list.append(temp_label)
         except:
             continue
@@ -201,7 +199,6 @@ def SortFullRect(image,label, is_train=True):
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
             fullobj_list.append(object_list)
-            # fullrelation_list.append(relation_list)
             facerect_list.append(face_list)
 
         else: # for test
@@ -209,7 +206,6 @@ def SortFullRect(image,label, is_train=True):
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
             fullobj_list.append(object_list)
-            # fullrelation_list.append(relation_list)
             facerect_list.append(face_list)
 
 

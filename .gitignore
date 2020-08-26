@@ -5,6 +5,9 @@ checkpoint/
 work_space/log
 Yolo_v2_pytorch/trained_models/
 jupyter/.ipynb_checkpoints/
+swrc/data/stanford-corenlp-4.0.0
+swrc/data/tmp
+swrc/data/zip_files
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

@@ -29,7 +29,7 @@ parser.add_argument('-i', '--ignore', nargs='+', type=str,
 parser.add_argument('--set-class-iou', nargs='+', type=str,
                     help="set IoU for a specific class.")
 parser.add_argument('-rtype', dest='rtype', type=str, default='person',
-                    help="set type for evaluation.")
+                    help="set type for evaluation: person, object, or relation.")
 
 parser.add_argument('-show_animation', dest='show_animation', action='store_true')
 parser.add_argument('-draw_plot', dest='draw_plot', action='store_true')
@@ -66,10 +66,19 @@ if args.rtype == 'person':
                            'results/input_person', 'ground-truth')
     DR_PATH = os.path.join(os.getcwd(),
                            'results/input_person', 'detection')
-elif args.rtype == 'behave':
+elif args.rtype == 'object':
     GT_PATH = os.path.join(os.getcwd(),
-                           'results/input_person', 'ground-truth-behave')
+                           'results/input_person', 'ground-truth-object')
     DR_PATH = os.path.join(os.getcwd(),
+<<<<<<< HEAD
+                           'results/input_person', 'detection-object')
+elif args.rtype == 'relation':
+    GT_PATH = os.path.join(os.getcwd(),
+                           'results/input_person', 'ground-truth-relation')
+    DR_PATH = os.path.join(os.getcwd(),
+                           'results/input_person', 'detection-relation')
+
+=======
                            'results/input_person', 'detection-behave')
 elif args.rtype == 'face':
     GT_PATH = os.path.join(os.getcwd(),
@@ -77,6 +86,7 @@ elif args.rtype == 'face':
     DR_PATH = os.path.join(os.getcwd(),
                            'results/input_person', 'detection-face')
     
+>>>>>>> cf8f747b10848a7fc099cdb4536f9ad17a44ef69
 # if there are no images then no animation can be shown
 IMG_PATH = os.path.join(os.getcwd(), 'results/input_person', 'images-optional')
 if os.path.exists(IMG_PATH):

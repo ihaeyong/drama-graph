@@ -40,7 +40,7 @@ You could find all trained models in [this link](https://drive.google.com/drive/
 We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 
 ### Train model:
-train model from scratch
+train model from scratch. For place recognition, make 'pre_model' folder and put [places365 pre-trained model](https://drive.google.com/file/d/1fe-CnmM-1XcGBCPxtF3L4vjM7s0OJA6-/view?usp=sharing).
 
 ```
 >> ./scripts/train_main.py #gpu
@@ -67,6 +67,17 @@ mAP for face
 ```
 >> python eval_mAP.py -rtype face
 ```
+
+mAP for relation
+```
+>> python eval_mAP.py -rtype relation
+```
+
+mAP for object
+```
+>> python eval_mAP.py -rtype object
+```
+
 
 # Sound event model:
 More information you could find from README in `./sound_event_detection/` directory.
