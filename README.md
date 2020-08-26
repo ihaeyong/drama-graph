@@ -89,18 +89,14 @@ mAP for object
 >> python eval_mAP.py -rtype object
 ```
 
-accuracy for sound event 
-```
->> ./scripts/eval_sound_event.sh
-
-```
-
-Inference on a single file and create its visualization.
-```
->> ./scripts/inference_sound_event.sh
-```
+accuracy for sound event and its visualization.
 sed_vis folder should be in the directory from which you run the file(`./`), 
 so here the directory is (`drama-graph/sed_vis/`).
+```
+>> ./scripts/eval_sound_event.sh
+>> ./scripts/inference_sound_event.sh
+
+```
 
 
 #### Acknowledgements
