@@ -20,7 +20,6 @@ from lib.place_model import place_model, resnet50, label_mapping, accuracy, Aver
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
-
 from lib.face_model import face_model
 
 def get_args():
@@ -140,8 +139,12 @@ def train(opt):
     # predicate model
 
     # place model
-
-
+    pl_ckpt = torch.load('./checkpoint/resnet/resnet50_places365.pth.tar')
+    state_dict = {str.replace(k,'module.',''): v for k,v in pl_ckpt['state_dict'].items()}
+    fe = resnet50()
+    fe.load_state_dict(state_dict, False)
+    model_place = torch.nn.Sequential(fe, place_model())
+    model_place = torch.nn.DataParallel(model_place).cuda(device)
     # ---------------define optimizers ------------------------------------
     # person optim
     fc_params = [p for n,p in model.named_parameters()
@@ -178,7 +181,8 @@ def train(opt):
     # predicate optim
 
     # place optim
-
+    pl_optimizer = torch.optim.SGD(model_place.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
+    
     # ------------ define criterions --------------------------------------
     # person criterion
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
@@ -200,7 +204,7 @@ def train(opt):
     # predicate criterion
 
     # place criterion
-
+    # CrossEntropy
     # ------------ define learning schedulers -----------------------------
     # person scheduler
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
@@ -226,9 +230,12 @@ def train(opt):
     # predicate scheduler
 
     # place scheduler
+    pl_scheduler = torch.optim.lr_scheduler.MultiStepLR(pl_optimizer, [int(opt.num_epoches/8), int(opt.num_epoches/4), int(opt.num_epoches/2)], gamma=0.1, last_epoch=-1)
+    pl_normalize = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
     model.train()
     model_face.train()
+    model_place.train()
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
@@ -239,6 +246,12 @@ def train(opt):
         b_loss_list = []
         p_loss_list = []
         f_loss_list = []
+
+
+        temp_images = []
+        temp_info = []
+        batch_stack = []
+
         for iter, batch in enumerate(train_loader):
 
             behavior_lr = iter % (1) == 0
@@ -354,7 +367,51 @@ def train(opt):
 
 
             # ---------- Train Place module---------------
+            images_norm = []
+            info_place = []
 
+            for idx in range(len(image)):
+                image_resize = F.interpolate(pl_normalize(image[idx]).unsqueeze(0), (224, 224)).squeeze(0)
+                images_norm.append(image_resize)
+                info_place.append(info[0][idx]['place'])
+            info_place = label_mapping(info_place)
+
+            # 10 frame
+            pl_updated=False
+            while True:
+                temp_len = len(temp_images)
+                temp_images += images_norm[:(10-temp_len)]
+                images_norm = images_norm[(10-temp_len):]
+                #print(len(info))
+
+                temp_info += info_place[:(10-temp_len)]
+                info_place = info_place[(10-temp_len):]
+                temp_len = len(temp_images)
+                if temp_len == 10:
+                    batch_images = (torch.stack(temp_images).cuda(device))
+                    batch_images = batch_images.unsqueeze(0)
+
+                    target = torch.Tensor(temp_info).to(torch.int64).cuda(device)
+                    output = model_place(batch_images)
+                    pl_loss = F.cross_entropy(output, target)
+
+                    prec1 = []; prec5 = []
+                    prec1_tmp, prec5_tmp = accuracy(output, target, topk=(1, 5))
+                    prec1.append(prec1_tmp.view(1, -1)); prec5.append(prec5_tmp.view(1, -1))
+                    prec1 = torch.stack(prec1); prec5 = torch.stack(prec5)
+                    prec1 = prec1.view(-1).float().mean(0)
+                    prec5 = prec5.view(-1).float().mean(0)
+
+                    pl_optimizer.zero_grad()
+                    pl_loss.backward()
+                    pl_optimizer.step()
+
+                    end = time.time()
+
+                    temp_images = []; temp_info = []
+                    pl_updated = True
+                elif temp_len < 10:
+                    break
 
             print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.9f}".format(
@@ -371,6 +428,8 @@ def train(opt):
                 # print("---- Face Detection ---- ")
                 print("+Face_loss:{:.2f}(coord_face:{:.2f},conf_face:{:.2f},cls_face:{:.2f})".format(
                     loss_face, loss_coord_face, loss_conf_face, loss_cls_face))
+            if pl_updated:
+                print("+place(loss:{:.2f},acc@1:{:.2f},acc@5:{:.2f})".format(pl_loss,prec1,prec5))
             print()
 
             loss_dict = {
@@ -384,6 +443,9 @@ def train(opt):
                 loss_dict['cls_behavior'] = loss_behavior.item()
                 b_loss_list.append(loss_behavior.item())
                 p_loss_list.append(loss_cls.item())
+
+            if pl_updated:
+                loss_dict['place'] = pl_loss.item()
 
             if np.array(face_label).size != 0:
                 loss_dict['face_loss'] = loss_face.item()
@@ -414,6 +476,7 @@ def train(opt):
         p_scheduler.step(p_loss_avg)
         b_scheduler.step(b_loss_avg)
         f_scheduler.step(loss_cls_face)
+        pl_scheduler.step()
 
         # ------------ save model params -----------------------------
         # person
@@ -438,8 +501,13 @@ def train(opt):
         # predicate
 
         # place
-
+        torch.save({
+                    #'val_loss' : val_loss,
+                    'model' : model_place.state_dict(),
+                    'optimizer' : pl_optimizer.state_dict(),
+                    'scheduler' : pl_scheduler.state_dict()
+                    }, opt.saved_path + os.sep + "anotherMissOh_place_{}.pth".format(
+                       opt.model))
 
 if __name__ == "__main__":
     train(opt)
-
