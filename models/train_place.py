@@ -121,7 +121,7 @@ def train(opt):
     # define behavior-model
 
     model = behavior_model(num_persons, num_behaviors, opt, device)
-    
+
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
 
@@ -130,9 +130,8 @@ def train(opt):
         print(".....")
         print("loaded pre-trained detector sucessfully.")
         print(".....")
-    
-    model.cuda(device)
 
+    model.cuda(device)
 
     # define place-model
     pl_ckpt = torch.load('./checkpoint/resnet/resnet50_places365.pth.tar')
