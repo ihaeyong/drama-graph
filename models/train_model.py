@@ -7,9 +7,10 @@ import torchvision
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS, FaceCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS, FaceCLS, ObjectCLS, P2ORelCLS
 from Yolo_v2_pytorch.src.utils import *
 from Yolo_v2_pytorch.src.loss import YoloLoss
+from Yolo_v2_pytorch.src.relation_loss import Relation_YoloLoss
 import shutil
 import cv2
 import pickle
@@ -21,6 +22,9 @@ from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 from lib.face_model import face_model
+from lib.object_model import object_model
+from lib.relation_model import relation_model
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -91,6 +95,8 @@ test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
 num_faces = len(FaceCLS)
+num_objects = len(ObjectCLS)
+num_relations = len(P2ORelCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -135,8 +141,13 @@ def train(opt):
     # emotion model
 
     # object model
+    model_object = object_model(num_objects)
+    model_object.cuda(device)
 
-    # predicate model
+    # relation model
+    model_relation = relation_model(num_objects, num_relations)
+    model_relation.cuda(device)
+
 
     # place model
     pl_ckpt = torch.load('./checkpoint/resnet/resnet50_places365.pth.tar')
@@ -145,6 +156,9 @@ def train(opt):
     fe.load_state_dict(state_dict, False)
     model_place = torch.nn.Sequential(fe, place_model())
     model_place = torch.nn.DataParallel(model_place).cuda(device)
+
+
+
     # ---------------define optimizers ------------------------------------
     # person optim
     fc_params = [p for n,p in model.named_parameters()
@@ -177,8 +191,22 @@ def train(opt):
     # emotion optim
 
     # object optim
+    object_params = [p for n, p in model_object.named_parameters()]
 
-    # predicate optim
+    o_params = [{'params': object_params, 'lr': opt.lr * 10.0}]
+
+    o_optimizer = torch.optim.SGD(o_params, lr=opt.lr * 10.0,
+                                  momentum=opt.momentum,
+                                  weight_decay=opt.decay)
+
+    # relation optim
+    relation_params = [p for n, p in model_relation.named_parameters()]
+
+    r_params = [{'params': relation_params, 'lr': opt.lr * 10.0}]
+
+    r_optimizer = torch.optim.SGD(r_params, lr=opt.lr * 10.0,
+                                  momentum=opt.momentum,
+                                  weight_decay=opt.decay)
 
     # place optim
     pl_optimizer = torch.optim.SGD(model_place.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
@@ -200,8 +228,10 @@ def train(opt):
     # emotion criterion
 
     # object criterion
+    o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
 
-    # predicate criterion
+    # relation criterion
+    p_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
 
     # place criterion
     # CrossEntropy
@@ -226,8 +256,16 @@ def train(opt):
     # emotion scheduler
 
     # object scheduler
+    o_scheduler = ReduceLROnPlateau(o_optimizer, 'min', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
 
-    # predicate scheduler
+    # relation scheduler
+    r_scheduler = ReduceLROnPlateau(r_optimizer, 'min', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
 
     # place scheduler
     pl_scheduler = torch.optim.lr_scheduler.MultiStepLR(pl_optimizer, [int(opt.num_epoches/8), int(opt.num_epoches/4), int(opt.num_epoches/2)], gamma=0.1, last_epoch=-1)
@@ -236,6 +274,8 @@ def train(opt):
     model.train()
     model_face.train()
     model_place.train()
+    model_object.train()
+    model_relation.train()
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
@@ -246,6 +286,8 @@ def train(opt):
         b_loss_list = []
         p_loss_list = []
         f_loss_list = []
+        o_loss_list = []
+        r_loss_list = []
 
 
         temp_images = []
@@ -361,9 +403,37 @@ def train(opt):
 
 
             # ---------- Train Object module--------------
+            if np.array(object_label).size != 0:
+                o_optimizer.zero_grad()
+
+                object_logits, _ = model_object(image)
+
+                loss_object, loss_coord_object, loss_conf_object, loss_cls_object = o_criterion(
+                    object_logits, object_label, device)
+
+                loss_object.backward()
+                clip_grad_norm(
+                    [(n, p) for n, p in model_object.named_parameters()
+                     if p.grad is not None and n.startswith('detector')],
+                     max_norm=opt.clip, verbose=verbose, clip=True)
+                o_optimizer.step()
 
 
-            # ---------- Train Predicate module-----------
+            # ---------- Train Relation module-----------
+            if np.array(object_label).size != 0:
+                r_optimizer.zero_grad()
+
+                relation_logits, _ = model_relation(image)
+
+                loss_relation, loss_coord_relation, loss_conf_relation, loss_cls_relation, loss_rel = r_criterion(
+                    relation_logits, object_label, device)
+
+                loss_relation.backward()
+                clip_grad_norm(
+                    [(n, p) for n, p in model_relation.named_parameters(),
+                     if p.grad is not None and n.startswith('detector')],
+                     max_norm=opt.clip, verbose=verbose, clip=True)
+                r_optimizer.step()
 
 
             # ---------- Train Place module---------------
@@ -432,6 +502,14 @@ def train(opt):
                 print("+place(loss:{:.2f},acc@1:{:.2f},acc@5:{:.2f})".format(pl_loss,prec1,prec5))
             print()
 
+            #print("---- Object Detection ---- ")
+            #print("---- Relation Detection ---- ")
+            if np.array(object_label).size != 0:
+                print("+object_loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
+                    loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
+                print("+relation_loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
+                    loss_relation, loss_coord_relation, loss_conf_relation, loss_cls_relation))
+
             loss_dict = {
                 'total' : loss.item(),
                 'coord' : loss_coord.item(),
@@ -497,8 +575,20 @@ def train(opt):
         # emotion
 
         # object
+        torch.save(model_object.state_dict(),
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_object_{}.pth".format(
+                       opt.model))
+        torch.save(model_object,
+                   opt.saved_path + os.sep + "anotherMissOh_object_{}.pth".format(
+                       opt.model))
 
-        # predicate
+        # relation
+        torch.save(model_relation.state_dict(),
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_relation_{}.pth".format(
+                       opt.model))
+        torch.save(model_relation,
+                   opt.saved_path + os.sep + "anotherMissOh_relation_{}.pth".format(
+                       opt.model))
 
         # place
         torch.save({
