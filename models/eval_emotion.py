@@ -194,10 +194,10 @@ def test(opt):
         for i,img in enumerate(image_c):
             for j in range(np.array(face_label).size):
                 # face corrdinates
-                face_x, face_y, face_w, face_h = int(face_label[i][j][0]), int(face_label[i][j][1]), int(face_label[i][j][2])-int(face_label[i][j][0]), int(face_label[i][j][3])-int(face_label[i][j][1])
+                fl = face_label[i][j]
+                face_x, face_y, face_w, face_h = int(fl[0]), int(fl[1]), int(fl[2])-int(fl[0]), int(fl[3])-int(fl[1])
                 # crop face region, resize
-                w_r, h_r = opt.image_size/1024., opt.image_size/768.
-                img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x*w_r), int(face_y*h_r), int(face_w*w_r), int(face_h*r)).copy(), (opt.image_size, opt.image_size)) )
+                img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h)).copy(), (opt.image_size, opt.image_size)) )
                 # store
                 face_crops.append(img_crop)
 
@@ -213,9 +213,10 @@ def test(opt):
         emo_logits = model_emo(face_crops)
         # emo_gt labels
         emo_gt = []
-        for i in range(len(info)):
-            for j in range(len(info[i])):
-                emo_text = info[i]['persons']['emotion'][j]
+        for i in range(len(info[0])):
+            info_emo_i = info[0][i]['persons']['emotion']
+            for j in range(len(info_emo_i)):
+                emo_text = info_emo_i[j]
                 emo_idx = emo_char_idx(emo_text.lower())
                 emo_gt.append(emo_idx)
         emo_gt = torch.Tensor(emo_gt).long().cuda(device)

@@ -241,8 +241,8 @@ def train(opt):
             emo_logits = model_emo(face_crops)
             # emo_gt labels
             emo_gt = []
-            for i in range(len(info)):
-                info_emo_i = info[i]['persons']['emotion']
+            for i in range(len(info[0])):
+                info_emo_i = info[0][i]['persons']['emotion']
                 for j in range(len(info_emo_i)):
                     emo_text = info_emo_i[j]
                     emo_idx = emo_char_idx(emo_text.lower())
