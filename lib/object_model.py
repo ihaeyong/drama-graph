@@ -19,6 +19,7 @@ class object_model(nn.Module):
     def __init__(self, num_objects):
         super(object_model, self).__init__()
 
+        num_persons=20
         pre_model = Yolo(num_persons)
         self.detector = YoloD(pre_model)
 

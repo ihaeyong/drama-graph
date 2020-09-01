@@ -19,6 +19,7 @@ class relation_model(nn.Module):
     def __init__(self, num_objects, num_relations):
         super(relation_model, self).__init__()
 
+        num_persons=20
         pre_model = Yolo(num_persons)
         self.detector = YoloD(pre_model)
 
@@ -27,7 +28,7 @@ class relation_model(nn.Module):
 
         self.conv = nn.Conv2d(
             1024, len(self.detector.anchors) * (5 + num_objects + num_relations), 1, 1, 0, bias=False)
-        
+
 
     def forward(self, input):
         # run the model through the main detector

@@ -190,6 +190,9 @@ def train(opt):
 
     # emotion optim
 
+
+
+
     # object optim
     object_params = [p for n, p in model_object.named_parameters()]
 
@@ -209,8 +212,9 @@ def train(opt):
                                   weight_decay=opt.decay)
 
     # place optim
-    pl_optimizer = torch.optim.SGD(model_place.parameters(), lr=0.1, momentum=0.9, weight_decay=5e-4)
-    
+    pl_optimizer = torch.optim.SGD(model_place.parameters(), lr=0.1,
+                                   momentum=0.9, weight_decay=5e-4)
+
     # ------------ define criterions --------------------------------------
     # person criterion
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
@@ -228,10 +232,12 @@ def train(opt):
     # emotion criterion
 
     # object criterion
-    o_criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
+    o_criterion = YoloLoss(num_objects, model_object.detector.anchors,
+                           opt.reduction)
 
     # relation criterion
-    p_criterion = Relation_YoloLoss(num_objects, num_relations, model.anchors, opt.reduction)
+    r_criterion = Relation_YoloLoss(num_objects, num_relations,
+                                    model_relation.detector.anchors, opt.reduction)
 
     # place criterion
     # CrossEntropy
@@ -403,13 +409,13 @@ def train(opt):
 
 
             # ---------- Train Object module--------------
-            if np.array(object_label).size != 0:
+            if np.array(obj_label).size != 0:
                 o_optimizer.zero_grad()
 
                 object_logits, _ = model_object(image)
 
                 loss_object, loss_coord_object, loss_conf_object, loss_cls_object = o_criterion(
-                    object_logits, object_label, device)
+                    object_logits, obj_label, device)
 
                 loss_object.backward()
                 clip_grad_norm(
@@ -420,19 +426,19 @@ def train(opt):
 
 
             # ---------- Train Relation module-----------
-            if np.array(object_label).size != 0:
+            if np.array(obj_label).size != 0:
                 r_optimizer.zero_grad()
 
                 relation_logits, _ = model_relation(image)
 
                 loss_relation, loss_coord_relation, loss_conf_relation, loss_cls_relation, loss_rel = r_criterion(
-                    relation_logits, object_label, device)
+                    relation_logits, obj_label, device)
 
                 loss_relation.backward()
                 clip_grad_norm(
-                    [(n, p) for n, p in model_relation.named_parameters(),
+                    [(n, p) for n, p in model_relation.named_parameters()
                      if p.grad is not None and n.startswith('detector')],
-                     max_norm=opt.clip, verbose=verbose, clip=True)
+                    max_norm=opt.clip, verbose=verbose, clip=True)
                 r_optimizer.step()
 
 
@@ -504,7 +510,7 @@ def train(opt):
 
             #print("---- Object Detection ---- ")
             #print("---- Relation Detection ---- ")
-            if np.array(object_label).size != 0:
+            if np.array(obj_label).size != 0:
                 print("+object_loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                     loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
                 print("+relation_loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(

@@ -15,7 +15,6 @@ import pickle
 import numpy as np
 from lib.logger import Logger
 from tqdm import tqdm
-import pdb
 from collections import Counter
 
 from lib.relation_model import relation_model
