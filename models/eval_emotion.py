@@ -116,9 +116,9 @@ def measure_acc(out, lbl):
     num_l = float(out.shape[0])
     out_s = F.softmax(out, dim=1)
     out_e = out_s.max(dim=1)[1]
-    num_c = (out_e == lbl).long().sum()
-    accu  = num_c / num_l 
-    return accu.detach().cpu().numpy()
+    num_c = (out_e == lbl).long()
+    accu  = num_c.sum() / num_l 
+    return accu.detach().cpu().numpy(), num_c.cpu().numpy()
 
 # get args.
 opt = get_args()
@@ -183,37 +183,46 @@ def test(opt):
         image, label, behavior_label, object_label, face_label, frame_id = SortFullRect(
             image, info, is_train=False)
         
-        # image [b, 3, 448, 448]
+        if np.array(face_label).size == 0:
+            continue
+            
+        # crop faces from img [b,3,h,w] -> [b,h,w,3]
         image = torch.cat(image)
+        image_c = image.permute(0,2,3,1)
+        face_crops = list()
 
-        # crop faces from img
-        image_crops = torch.zeros_like(image)
-        for i,img in enumerate(image):
-            # face corrdinates
-            face_x, face_y, face_w, face_h = face_label[i][0], face_label[i][1], face_label[i][2]-face_label[i][0], face_label[i][3]-face_label[i][1]
-            # crop face region, resize
-            img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), face_x, face_y, face_w, face_h).copy(), (opt.image_size, opt.image_size)) )
-            # store
-            image_crops[i] = img_crop
+        for i,img in enumerate(image_c):
+            for j in range(np.array(face_label).size):
+                # face corrdinates
+                face_x, face_y, face_w, face_h = int(face_label[i][j][0]), int(face_label[i][j][1]), int(face_label[i][j][2])-int(face_label[i][j][0]), int(face_label[i][j][3])-int(face_label[i][j][1])
+                # crop face region, resize
+                w_r, h_r = opt.image_size/1024., opt.image_size/768.
+                img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x*w_r), int(face_y*h_r), int(face_w*w_r), int(face_h*r)).copy(), (opt.image_size, opt.image_size)) )
+                # store
+                face_crops.append(img_crop)
 
-        image = image_crops
+        face_crops = torch.stack(face_crops).permute(0,3,1,2) # [f,h,w,3]->[f,3,h,w]
+
         if torch.cuda.is_available():
-            image = image.cuda(device)
+            face_crops = face_crops.cuda(device)
+
+        # emo_logits [b, 7]
+        emo_logits = model_emo(face_crops)
         
         # emo_logits [b, 7]
-        emo_logits = model_emo(image)
-        
+        emo_logits = model_emo(face_crops)
         # emo_gt labels
         emo_gt = []
-        for i in len(info):
-            emo_text = info[i]['persons']['emotion']
-            emo_idx = emo_char_idx(emo_text)
-            emo_gt.append(emo_idx)
-        emo_gt = torch.Tensor(emo_gt).long()
+        for i in range(len(info)):
+            for j in range(len(info[i])):
+                emo_text = info[i]['persons']['emotion'][j]
+                emo_idx = emo_char_idx(emo_text.lower())
+                emo_gt.append(emo_idx)
+        emo_gt = torch.Tensor(emo_gt).long().cuda(device)
         
         # check accuracy for batch
-        acc_batch = measure_acc(out, lbl)
-        emo_accu.append(acc_batch)
+        acc_batch, corr_batch = measure_acc(emo_logits, emo_gt)
+        emo_accu.append(corr_batch)
 
         except Exception as ex:
             print(ex)

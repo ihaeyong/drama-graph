@@ -24,7 +24,8 @@ from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWi
 from lib.face_model import face_model
 from lib.object_model import object_model
 from lib.relation_model import relation_model
-
+from lib.emotion import emotion_model
+from models.train_emotion import emo_char_idx, crop_img, EmoCLS
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -75,6 +76,8 @@ def get_args():
     parser.add_argument("-b_loss", dest='b_loss', type=str, default='ce')
     parser.add_argument("-f_gamma", dest='f_gamma', type=float, default=1.0)
     parser.add_argument("-clip_grad", dest='clip_grad',action='store_true')
+    parser.add_argument("-yolo_w_path", dest='yolo_w_path',type=str, default='Yolo_v2_pytorch/trained_models/only_params_trained_yolo_voc')
+    parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
 
     args = parser.parse_args()
     return args
@@ -97,6 +100,7 @@ num_behaviors = len(PBeHavCLS)
 num_faces = len(FaceCLS)
 num_objects = len(ObjectCLS)
 num_relations = len(P2ORelCLS)
+num_emos = len(EmoCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -139,7 +143,9 @@ def train(opt):
     model_face.cuda(device)
 
     # emotion model
-
+    model_emo = emotion_model(yolo_w_path=opt.yolo_w_path, emo_net_ch=opt.emo_net_ch)
+    model_emo.cuda(device)
+    
     # object model
     model_object = object_model(num_objects)
     model_object.cuda(device)
@@ -189,9 +195,9 @@ def train(opt):
                                   weight_decay=opt.decay)
 
     # emotion optim
-
-
-
+    e_optimizer = torch.optim.Adam(model_emo.parameters(), lr=opt.lr * 10.0,
+                                   weight_decay=opt.decay,
+                                   amsgrad=True)
 
     # object optim
     object_params = [p for n, p in model_object.named_parameters()]
@@ -230,6 +236,7 @@ def train(opt):
 
 
     # emotion criterion
+    e_criterion = nn.CrossEntropyLoss()
 
     # object criterion
     o_criterion = YoloLoss(num_objects, model_object.detector.anchors,
@@ -260,7 +267,11 @@ def train(opt):
                                     cooldown=1)
 
     # emotion scheduler
-
+    e_scheduler = ReduceLROnPlateau(e_optimizer, 'min', patience=3,
+                                    factor=0.1, verbose=True,
+                                    threshold=0.0001, threshold_mode='abs',
+                                    cooldown=1)
+    
     # object scheduler
     o_scheduler = ReduceLROnPlateau(o_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
@@ -282,6 +293,7 @@ def train(opt):
     model_place.train()
     model_object.train()
     model_relation.train()
+    model_emo.train()
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
@@ -294,6 +306,7 @@ def train(opt):
         f_loss_list = []
         o_loss_list = []
         r_loss_list = []
+        e_loss_list = []
 
 
         temp_images = []
@@ -406,7 +419,44 @@ def train(opt):
                 f_optimizer.step()
 
             # ---------- Train Emotion module-------------
-
+            if np.array(face_label).size != 0:
+                # crop faces from img [b,3,h,w] -> [b,h,w,3]
+                image_c = image.cpu().permute(0,2,3,1)
+                face_crops = list()
+                
+                for i,img in enumerate(image_c):
+                    for j in range(np.array(face_label).size):
+                        # face corrdinates
+                        fl = face_label[i][j]
+                        face_x, face_y, face_w, face_h = int(fl[0]), int(fl[1]), int(fl[2])-int(fl[0]), int(fl[3])-int(fl[1])
+                        # crop face region, resize
+                        img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h)).copy(), (opt.image_size, opt.image_size)) )
+                        # store
+                        face_crops.append(img_crop)
+                
+                face_crops = torch.stack(face_crops).permute(0,3,1,2) # [f,h,w,3]->[f,3,h,w]
+                
+                if torch.cuda.is_available():
+                    face_crops = face_crops.cuda(device)
+                
+                # emo_logits [f, 7]
+                emo_logits = model_emo(face_crops)
+                # emo_gt labels
+                emo_gt = []
+                for i in range(len(info[0])):
+                    info_emo_i = info[0][i]['persons']['emotion']
+                    for j in range(len(info_emo_i)):
+                        emo_text = info_emo_i[j]
+                        emo_idx = emo_char_idx(emo_text.lower())
+                        emo_gt.append(emo_idx)
+                emo_gt = torch.Tensor(emo_gt).long().cuda(device)
+                # loss
+                e_optimizer.zero_grad()
+                loss_emo = e_criterion(emo_logits, emo_gt)
+                loss_emo.backward()
+                e_optimizer.step()
+            else:
+                loss_emo = None
 
             # ---------- Train Object module--------------
             if np.array(obj_label).size != 0:
@@ -506,6 +556,9 @@ def train(opt):
                     loss_face, loss_coord_face, loss_conf_face, loss_cls_face))
             if pl_updated:
                 print("+place(loss:{:.2f},acc@1:{:.2f},acc@5:{:.2f})".format(pl_loss,prec1,prec5))
+            if loss_emo is not None:
+                print("+Emotion_loss:{:.2f}".format(loss_emo.item()))
+                
             print()
 
             #print("---- Object Detection ---- ")
@@ -579,6 +632,12 @@ def train(opt):
                        opt.model))
 
         # emotion
+        torch.save(model_emo.state_dict(),
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_emo_{}.pth".format(
+                       opt.model))
+        torch.save(model_emo,
+                   opt.saved_path + os.sep + "anotherMissOh_emo_{}.pth".format(
+                       opt.model))
 
         # object
         torch.save(model_object.state_dict(),
