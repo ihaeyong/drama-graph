@@ -192,7 +192,7 @@ def test(opt):
         face_crops = list()
 
         for i,img in enumerate(image_c):
-            for j in range(np.array(face_label).size):
+            for j in range(len(face_label[i])):
                 # face corrdinates
                 fl = face_label[i][j]
                 face_x, face_y, face_w, face_h = int(fl[0]), int(fl[1]), int(fl[2])-int(fl[0]), int(fl[3])-int(fl[1])

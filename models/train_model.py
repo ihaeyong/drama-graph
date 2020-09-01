@@ -425,12 +425,13 @@ def train(opt):
                 face_crops = list()
                 
                 for i,img in enumerate(image_c):
-                    for j in range(np.array(face_label).size):
+                    for j in range(len(face_label[i])):
                         # face corrdinates
                         fl = face_label[i][j]
                         face_x, face_y, face_w, face_h = int(fl[0]), int(fl[1]), int(fl[2])-int(fl[0]), int(fl[3])-int(fl[1])
                         # crop face region, resize
-                        img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h)).copy(), (opt.image_size, opt.image_size)) )
+                        img_crop = crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h))
+                        img_crop = torch.Tensor(cv2.resize(img_crop.copy(), (opt.image_size, opt.image_size)))
                         # store
                         face_crops.append(img_crop)
                 
