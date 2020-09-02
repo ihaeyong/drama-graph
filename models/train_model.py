@@ -132,8 +132,18 @@ def train(opt):
     # --------------- define models ---------------------------------------
     # behavior-model
     model = behavior_model(num_persons, num_behaviors, opt, device)
+    # get the trained models from
+    # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
+
+    # load pre-trained model
+    ckpt = torch.load(trained_persons)
+    if optimistic_restore(model.detector, ckpt):
+        print(".....")
+        print("loaded pre-trained detector sucessfully.")
+        print(".....")
+
     model.cuda(device)
 
     # face_model
@@ -277,7 +287,7 @@ def train(opt):
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
-    
+
     # object scheduler
     o_scheduler = ReduceLROnPlateau(o_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
@@ -545,11 +555,8 @@ def train(opt):
                 print("+place(loss:{:.2f},acc@1:{:.2f},acc@5:{:.2f})".format(pl_loss,prec1,prec5))
             if loss_emo is not None:
                 print("+Emotion_loss:{:.2f}".format(loss_emo.item()))
-                
             print()
 
-            #print("---- Object Detection ---- ")
-            #print("---- Relation Detection ---- ")
             if np.array(obj_label).size != 0:
                 print("+object_loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                     loss_object, loss_coord_object, loss_conf_object, loss_cls_object))
