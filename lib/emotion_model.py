@@ -90,13 +90,11 @@ def crop_face_emotion(image, face_label, emo_label, opt):
             emo_text = emo_label[i][j]
             el = emo_char_idx(emo_text.lower())
             emo_gt.append(el)
-        
+
     face_crops = torch.stack(face_crops).permute(0,3,1,2) # [f,h,w,3]->[f,3,h,w]
     emo_gt = torch.Tensor(emo_gt).long()
-    
-    return face_crops, emo_gt
-    
 
+    return face_crops, emo_gt
 
 class emotion_model(nn.Module):
     def __init__(self, emo_net_ch=64, num_persons=21, device=None):
@@ -104,11 +102,7 @@ class emotion_model(nn.Module):
         # load backbone network
         pre_model = Yolo(num_persons).cuda(device)
         self.yolo_net = YoloD(pre_model).cuda(device)
-        
-        # freeeze yolo net weights
-#         for p in self.yolo_net.parameters():
-#             p.requires_grad = False
-            
+
         # branch for emotion classification
         f_dim = self.yolo_net.stage3_conv1[0].weight.shape[0]
         h_dim = emo_net_ch
@@ -116,22 +110,13 @@ class emotion_model(nn.Module):
                                          nn.Conv2d(h_dim,h_dim,3,1,1), nn.AdaptiveAvgPool2d((1,1)), nn.ReLU(),
                                          nn.Conv2d(h_dim,7,1,1,0)])
 
-        
+
     def forward(self, img):
         # extract feats from yolo
         fmap,_ = self.yolo_net(img)
-        
+
         # branch for face emotion classification
         emo = self.emo_branch(fmap)
         emo = emo.flatten(1)
-        
-        return emo
-        
-        
-        
-        
-        
-        
-        
 
-    
+        return emo

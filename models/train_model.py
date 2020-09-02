@@ -143,7 +143,7 @@ def train(opt):
     # emotion model
     model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
     model_emo.cuda(device)
-    
+
     # object model
     model_object = object_model(num_objects)
     model_object.cuda(device)
@@ -184,7 +184,8 @@ def train(opt):
                                   weight_decay=opt.decay)
 
     # face optim
-    face_params = [p for n, p in model_face.named_parameters()]
+    face_params = [p for n, p in model_face.named_parameters()
+                   if not n.startswith('detector') and p.requires_grad]
 
     f_params = [{'params': face_params, 'lr': opt.lr * 10.0}]
 
@@ -193,12 +194,18 @@ def train(opt):
                                   weight_decay=opt.decay)
 
     # emotion optim
-    e_optimizer = torch.optim.Adam(model_emo.parameters(), lr=opt.lr * 10.0,
+    emo_params = [p for n, p in model_emo.named_parameters()
+                   if not n.startswith('detector') and p.requires_grad]
+
+    e_params = [{'params': emo_params, 'lr': opt.lr * 10.0}]
+
+    e_optimizer = torch.optim.Adam(e_params, lr=opt.lr * 10.0,
                                    weight_decay=opt.decay,
                                    amsgrad=True)
 
     # object optim
-    object_params = [p for n, p in model_object.named_parameters()]
+    object_params = [p for n, p in model_object.named_parameters()
+                     if not n.startswith('detector') and p.requires_grad]
 
     o_params = [{'params': object_params, 'lr': opt.lr * 10.0}]
 
@@ -207,7 +214,8 @@ def train(opt):
                                   weight_decay=opt.decay)
 
     # relation optim
-    relation_params = [p for n, p in model_relation.named_parameters()]
+    relation_params = [p for n, p in model_relation.named_parameters()
+                       if not n.startswith('detector') and p.requires_grad]
 
     r_params = [{'params': relation_params, 'lr': opt.lr * 10.0}]
 
