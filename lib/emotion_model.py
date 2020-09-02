@@ -5,6 +5,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import matplotlib.pyplot as plt
+
 from Yolo_v2_pytorch.src.yolo_net import Yolo
 
 EmoCLS = ['Anger', 'Disgust', 'Fear', 'Happiness', 'Sandess', 'Surprise', 'Neutral']
@@ -78,7 +80,7 @@ def crop_face_emotion(image, face_label, emo_label, opt):
         for j in range(len(face_label[i])):
             # face corrdinates
             fl = face_label[i][j]
-            face_x, face_y, face_w, face_h = int(fl[0]), int(fl[1]), int(fl[2])-int(fl[0]), int(fl[3])-int(fl[1])
+            face_x, face_y, face_w, face_h = float(fl[0]), float(fl[1]), float(fl[2])-float(fl[0]), float(fl[3])-float(fl[1])
             # crop face region, resize
             img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h)).copy(), (opt.image_size, opt.image_size)) )
             # store
