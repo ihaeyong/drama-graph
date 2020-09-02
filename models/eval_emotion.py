@@ -10,7 +10,7 @@ import shutil
 import cv2
 import pickle
 import numpy as np
-from lib.logger import Logger
+#from lib.logger import Logger
 
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 
@@ -43,7 +43,6 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
     parser.add_argument("--json_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
-
     parser.add_argument("-model", dest='model', type=str, default="emotion")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
@@ -114,6 +113,8 @@ def test(opt):
 
     # emotion accuracy
     emo_accu = []
+    # save dir
+    save_emo_img_dir = './results/emotion/'
     
     # load test clips
     for iter, batch in enumerate(test_loader):
@@ -123,7 +124,9 @@ def test(opt):
         image, label, behavior_label, object_label, face_label, emo_label, frame_id = SortFullRect(
             image, info, is_train=False)
         
-        if np.array(face_label).size == 0:
+        if np.array(face_label).size == 0 :
+            print("iter:{}_face bboxs are empty".format(
+                iter, label))
             continue
             
         # crop faces from img [b,3,h,w] -> [b,h,w,3]
@@ -141,12 +144,42 @@ def test(opt):
         
         # check accuracy for batch
         acc_batch, corr_batch = measure_acc(emo_logits, emo_gt)
-        emo_accu.append(corr_batch)
+        emo_accu += corr_batch.tolist()
+        
+        # draw
+        if not os.path.exists(save_emo_img_dir):
+            os.makedirs(save_emo_img_dir)
+        
+        emo_count = 0
+        for i in range(len(image_c)):
+            img_i = image_c[i].numpy()
+            img_i = cv2.resize(img_i.copy(), (width, height))
+            fid = frame_id[i][0].split('/')
+            imd = fid[-1].split('_')[1].split('.')[0]
+            fid = '%s_%s_%s_%s'%(fid[-4], fid[-3], fid[-2], imd)
+            
+            for j in range(len(face_label[i])):
+                # face coor
+                fl = face_label[i][j]
+                face_x0, face_y0 = int(fl[0]/width_ratio), int(fl[1]/height_ratio)
+                face_x1, face_y1 = int(fl[2]/width_ratio), int(fl[3]/height_ratio)
+                # get emotion idx
+                emo_ij = F.softmax(emo_logits[emo_count,:], dim=0).argmax()
+                emo_ij = emo_ij.detach().cpu().numpy()
+                # emotion text
+                emo_txt = EmoCLS[emo_ij]                
+                # img_i
+                img_i_bb = cv2.rectangle(img_i, (face_x0,face_y0), (face_x1,face_y1), (1,1,0), 2)
+                # img_text
+                img_i_tt = cv2.putText(img_i_bb, emo_txt, (face_x0, face_y0-5), cv2.FONT_HERSHEY_SIMPLEX,
+                                           1, (1,1,0), 2, cv2.LINE_AA)
+                emo_count += 1
 
-        except Exception as ex:
-            print(ex)
-            continue
-    
+            img_out = img_i_tt*255
+            # save
+            fname = fid + ('_%03d.jpg'%(emo_count))
+            cv2.imwrite( os.path.join(save_emo_img_dir, fname), cv2.cvtColor(img_out, cv2.COLOR_RGB2BGR) )
+                
     print( 'accuracy:'+ str(np.mean(emo_accu)) )
 
 
