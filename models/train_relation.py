@@ -146,7 +146,7 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, _, _, object_label = SortFullRect(image, info)
+            image, _, _, object_label, _, _ = SortFullRect(image, info)
 
             # image [b, 3, 448, 448]
             if torch.cuda.is_available():

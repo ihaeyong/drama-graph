@@ -24,8 +24,7 @@ from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWi
 from lib.face_model import face_model
 from lib.object_model import object_model
 from lib.relation_model import relation_model
-from lib.emotion import emotion_model
-from models.train_emotion import emo_char_idx, crop_img, EmoCLS
+from lib.emotion_model import emotion_model, crop_face_emotion, EmoCLS
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -320,7 +319,7 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label, obj_label, face_label = SortFullRect(
+            image, label, behavior_label, obj_label, face_label, emo_label = SortFullRect(
                 image, info, is_train=True)
 
             if np.array(label).size == 0 :
@@ -422,35 +421,15 @@ def train(opt):
             if np.array(face_label).size != 0:
                 # crop faces from img [b,3,h,w] -> [b,h,w,3]
                 image_c = image.cpu().permute(0,2,3,1)
-                face_crops = list()
-                
-                for i,img in enumerate(image_c):
-                    for j in range(len(face_label[i])):
-                        # face corrdinates
-                        fl = face_label[i][j]
-                        face_x, face_y, face_w, face_h = int(fl[0]), int(fl[1]), int(fl[2])-int(fl[0]), int(fl[3])-int(fl[1])
-                        # crop face region, resize
-                        img_crop = crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h))
-                        img_crop = torch.Tensor(cv2.resize(img_crop.copy(), (opt.image_size, opt.image_size)))
-                        # store
-                        face_crops.append(img_crop)
-                
-                face_crops = torch.stack(face_crops).permute(0,3,1,2) # [f,h,w,3]->[f,3,h,w]
-                
+                face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
+
                 if torch.cuda.is_available():
-                    face_crops = face_crops.cuda(device)
-                
-                # emo_logits [f, 7]
+                    face_crops = face_crops.cuda(device).contiguous()
+                    emo_gt = emo_gt.cuda(device)
+
+                # emo_logits [b, 7]
                 emo_logits = model_emo(face_crops)
-                # emo_gt labels
-                emo_gt = []
-                for i in range(len(info[0])):
-                    info_emo_i = info[0][i]['persons']['emotion']
-                    for j in range(len(info_emo_i)):
-                        emo_text = info_emo_i[j]
-                        emo_idx = emo_char_idx(emo_text.lower())
-                        emo_gt.append(emo_idx)
-                emo_gt = torch.Tensor(emo_gt).long().cuda(device)
+
                 # loss
                 e_optimizer.zero_grad()
                 loss_emo = e_criterion(emo_logits, emo_gt)

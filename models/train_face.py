@@ -165,7 +165,7 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label, obj_label, face_label = SortFullRect(image, info, is_train=True)
+            image, label, behavior_label, obj_label, face_label, _ = SortFullRect(image, info, is_train=True)
 
             if np.array(face_label).size == 0 :
                 print("iter:{}_face bboxs are empty".format(

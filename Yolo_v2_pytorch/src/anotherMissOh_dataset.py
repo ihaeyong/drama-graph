@@ -100,6 +100,7 @@ def SortFullRect(image,label, is_train=True):
     fullobj_list = []
     fullrelation_list = []
     facerect_list = []
+    fullemo_list = []
     num_batch = len(label[0]) # per 1 video clip
 
     # set sequence length
@@ -121,6 +122,7 @@ def SortFullRect(image,label, is_train=True):
             label_list = []
             behavior_list = []
             face_list = []
+            emo_list = []
 
             frame_id = label[0][frm]['frame_id']
             frame_id_list.append(frame_id)
@@ -164,6 +166,10 @@ def SortFullRect(image,label, is_train=True):
 
                 face_temp_label = np.concatenate((face_rect, [face_label]), 0)
                 face_list.append(face_temp_label)
+                
+                emo_label = label[0][frm]['persons']['emotion'][p]
+                emo_list.append(emo_label)
+                
         except:
             continue
 
@@ -200,6 +206,7 @@ def SortFullRect(image,label, is_train=True):
             image_list.append(image[frm])
             fullobj_list.append(object_list)
             facerect_list.append(face_list)
+            fullemo_list.append(emo_list)
 
         else: # for test
             fullrect_list.append(label_list)
@@ -207,11 +214,11 @@ def SortFullRect(image,label, is_train=True):
             image_list.append(image[frm])
             fullobj_list.append(object_list)
             facerect_list.append(face_list)
-
+            fullemo_list.append(emo_list)
 
     if is_train:
-        return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list
-    return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, frame_id_list
+        return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, fullemo_list
+    return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, fullemo_list, frame_id_list
 
 class AnotherMissOh(Dataset):
     def __init__(self, dataset, img_path, json_path, display_log=True):

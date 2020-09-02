@@ -212,7 +212,7 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label, obj_label, face_label = SortFullRect(
+            image, label, behavior_label, obj_label, face_label, _ = SortFullRect(
                 image, info, is_train=True)
 
             if np.array(label).size == 0 :
