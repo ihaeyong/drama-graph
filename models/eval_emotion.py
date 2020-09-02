@@ -96,17 +96,18 @@ def test(opt):
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
 
+    
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
-            model1 = torch.load(model_path)
+            model_emo = torch.load(model_path)
             print("loaded with gpu {}".format(model_path))
         else:
-            model1 = emotion_model(yolo_w_path=None, emo_net_ch=opt.emo_net_ch)
-            model1.load_state_dict(torch.load(model_path))
+            model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
+            model_emo.load_state_dict(torch.load(model_path))
             print("loaded with cpu {}".format(model_path))
-        model1.cuda(device)
+        model_emo.cuda(device)
 
-    model1.eval()
+    model_emo.eval()
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height

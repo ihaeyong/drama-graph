@@ -75,7 +75,6 @@ def get_args():
     parser.add_argument("-b_loss", dest='b_loss', type=str, default='ce')
     parser.add_argument("-f_gamma", dest='f_gamma', type=float, default=1.0)
     parser.add_argument("-clip_grad", dest='clip_grad',action='store_true')
-    parser.add_argument("-yolo_w_path", dest='yolo_w_path',type=str, default='Yolo_v2_pytorch/trained_models/only_params_trained_yolo_voc')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
 
     args = parser.parse_args()
@@ -142,7 +141,7 @@ def train(opt):
     model_face.cuda(device)
 
     # emotion model
-    model_emo = emotion_model(yolo_w_path=opt.yolo_w_path, emo_net_ch=opt.emo_net_ch)
+    model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
     model_emo.cuda(device)
     
     # object model
