@@ -168,8 +168,8 @@ def train(opt):
     # object model
     model_object = object_model(num_objects)
     trained_object = './checkpoint/object/' + os.sep + "{}".format(
-        'anotherMissOh_only_params_object.pth')
-    if False:
+        'anotherMissOh_only_params_object_47.pth')
+    if True:
         ckpt_object = torch.load(trained_object)
         if optimistic_restore(model_object, ckpt_object):
             print("loaded pre-trained object sucessfully.")
@@ -178,8 +178,8 @@ def train(opt):
     # relation model
     model_relation = relation_model(num_objects, num_relations)
     trained_relation = './checkpoint/relation/' + os.sep + "{}".format(
-        'anotherMissOh_only_params_relation.pth')
-    if False:
+        'anotherMissOh_only_params_obj47_person_relation.pth')
+    if True:
         ckpt_relation = torch.load(trained_relation)
         if optimistic_restore(model_relation, ckpt_relation):
             print("loaded pre-trained relation sucessfully.")
@@ -239,9 +239,9 @@ def train(opt):
     object_params = [p for n, p in model_object.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
 
-    o_params = [{'params': object_params, 'lr': opt.lr * 10.0}]
+    o_params = [{'params': object_params, 'lr': opt.lr / 10.0}]
 
-    o_optimizer = torch.optim.SGD(o_params, lr=opt.lr * 10.0,
+    o_optimizer = torch.optim.SGD(o_params, lr=opt.lr / 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
 
@@ -249,9 +249,9 @@ def train(opt):
     relation_params = [p for n, p in model_relation.named_parameters()
                        if not n.startswith('detector') and p.requires_grad]
 
-    r_params = [{'params': relation_params, 'lr': opt.lr * 10.0}]
+    r_params = [{'params': relation_params, 'lr': opt.lr / 10.0}]
 
-    r_optimizer = torch.optim.SGD(r_params, lr=opt.lr * 10.0,
+    r_optimizer = torch.optim.SGD(r_params, lr=opt.lr / 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
 
