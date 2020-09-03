@@ -140,10 +140,13 @@ def train(opt):
             image, _, _, object_label, _, _ = SortFullRect(image, info)
 
             # image [b, 3, 448, 448]
-            if torch.cuda.is_available():
-                image = torch.cat(image).cuda()
-            else:
-                image = torch.cat(image)
+            try:
+                if torch.cuda.is_available():
+                    image = torch.cat(image).cuda()
+                else:
+                    image = torch.cat(image)
+            except:
+                continue
 
             optimizer.zero_grad()
 
