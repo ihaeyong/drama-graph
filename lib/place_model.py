@@ -348,3 +348,67 @@ class place_model(nn.Module):
 
         return x
 
+class place_model_yolo(nn.Module):
+    def __init__(self, num_persons, num_faces, device):
+        super(place_model_yolo, self).__init__()
+
+        pre_model = Yolo(num_persons).cuda(device)
+
+        num_face_cls = num_faces
+
+        self.detector = YoloD(pre_model).cuda(device)
+        self.place_conv = nn.Sequential(nn.Conv2d(1024, 128, 3, 1, 1, bias=False), nn.BatchNorm2d(128),
+                                          nn.LeakyReLU(0.1, inplace=True), nn.MaxPool2d(2, 2))
+        self.avgpool = nn.AvgPool2d(7, stride=1)
+
+        self.lstm_sc = torch.nn.LSTM(input_size=128, hidden_size=128, num_layers=2, batch_first=True)
+        self.fc2 = torch.nn.Linear(128, 1)
+        self.fc3 = torch.nn.Linear(128, 22)
+        self.softmax = torch.nn.Softmax(dim=1)
+
+
+
+        # # define face
+        # self.face_conv = nn.Conv2d(
+        #     1024, len(self.detector.anchors) * (5 + num_face_cls), 1, 1, 0, bias=False)
+
+    def forward(self, image):
+        N, T , C, H, W = image.size(0), image.size(1), image.size(2), image.size(3), image.size(4)
+        image = image.reshape(N*T, C, H, W)
+        # feature map of backbone
+        fmap, output_1 = self.detector(image)
+        fmap = self.place_conv(fmap)
+        x = self.avgpool(fmap)
+        x = x.reshape(N, T, -1)
+        
+        self.lstm_sc.flatten_parameters()
+        N, T = x.size(0), x.size(1)
+        x = self.lstm_sc(x)[0]
+        
+        change = x.reshape(N*T, -1)
+        #x = self.fc1(x)
+        change = self.fc2(change)
+        change = change.reshape(N, T)
+        #x = x.reshape(N*T, -1)
+        
+        M, _ = change.max(1)
+        w = change - M.view(-1,1)
+        w = w.exp()
+        w = w.unsqueeze(1).expand(-1,w.size(1),-1)
+        w = w.triu(1) - w.tril()
+        w = w.cumsum(2)
+        w = w - w.diagonal(dim1=1,dim2=2).unsqueeze(2)
+        ww = w.new_empty(w.size())
+        idx = M>=0
+        ww[idx] = w[idx] + M[idx].neg().exp().view(-1,1,1)
+        idx = ~idx
+        ww[idx] = M[idx].exp().view(-1,1,1)*w[idx] + 1
+        ww = (ww+1e-10).pow(-1)
+        ww = ww/ww.sum(1,True)
+        x = ww.transpose(1,2).bmm(x)
+       
+        x = x.reshape(N*T, -1)
+        x = self.fc3(x)
+        x = x.reshape(N*T, -1)
+        
+        return x
