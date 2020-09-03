@@ -134,7 +134,7 @@ def train(opt):
     model = behavior_model(num_persons, num_behaviors, opt, device)
     # get the trained models from
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
-    trained_persons = './checkpoint/detector/' + os.sep + "{}".format(
+    trained_persons = './checkpoint/detector' + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
 
     # load pre-trained model
@@ -146,7 +146,7 @@ def train(opt):
 
     # face_model
     model_face = face_model(num_persons, num_faces, device)
-    trained_face = './checkpoint/face/' + os.sep + "{}".format(
+    trained_face = './checkpoint/face' + os.sep + "{}".format(
         'anotherMissOh_only_params_face.pth')
 
     if True:
@@ -167,7 +167,7 @@ def train(opt):
 
     # object model
     model_object = object_model(num_objects)
-    trained_object = './checkpoint/object/' + os.sep + "{}".format(
+    trained_object = './checkpoint/object' + os.sep + "{}".format(
         'anotherMissOh_only_params_object_47.pth')
     if True:
         ckpt_object = torch.load(trained_object)
@@ -177,7 +177,7 @@ def train(opt):
 
     # relation model
     model_relation = relation_model(num_objects, num_relations)
-    trained_relation = './checkpoint/relation/' + os.sep + "{}".format(
+    trained_relation = './checkpoint/relation' + os.sep + "{}".format(
         'anotherMissOh_only_params_obj47_person_relation.pth')
     if True:
         ckpt_relation = torch.load(trained_relation)
@@ -187,7 +187,7 @@ def train(opt):
 
     # place model
     model_place = place_model_yolo(num_persons, num_behaviors, device)
-    trained_place = './checkpoint/place/' + os.sep + "{}".format(
+    trained_place = './checkpoint/place' + os.sep + "{}".format(
         'anotherMissOh_only_params_place.pth')
     if False:
         ckpt_place = torch.load(trained_place)
