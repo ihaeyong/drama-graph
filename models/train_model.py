@@ -149,7 +149,7 @@ def train(opt):
     trained_face = './checkpoint/face/' + os.sep + "{}".format(
         'anotherMissOh_only_params_face.pth')
 
-    if False:
+    if True:
         ckpt_face = torch.load(trained_face)
         if optimistic_restore(model_face, ckpt_face):
             print("loaded pre-trained face sucessfully.")
