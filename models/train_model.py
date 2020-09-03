@@ -157,7 +157,7 @@ def train(opt):
 
     # emotion model
     model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
-    trained_emotion = './checkpoint/emotion/' + os.sep + "{}".format(
+    trained_emotion = './checkpoint/emotion' + os.sep + "{}".format(
         'anotherMissOh_only_params_emotion.pth')
     if True:
         ckpt_emotion = torch.load(trained_emotion)
