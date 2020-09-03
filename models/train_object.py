@@ -157,7 +157,7 @@ def train(opt):
                 loss, loss_coord, loss_conf, loss_cls = criterion(logits, object_label, device)
             else:
                 print("iter:{} object bboxs are empty".format(
-                    iter, label))
+                    iter, object_label))
                 empty_object+=1
                 loss = torch.tensor(0, dtype=torch.float).cuda(device)
                 loss_coord = torch.tensor(0, dtype=torch.float).cuda(device)
