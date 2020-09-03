@@ -17,7 +17,7 @@ import pickle
 import numpy as np
 import time
 from lib.logger import Logger
-from lib.place_model import place_model, resnet50, label_mapping, accuracy, AverageMeter, ProgressMeter
+from lib.place_model import place_model, resnet50, label_mapping, accuracy, AverageMeter, ProgressMeter, place_model_yolo
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
@@ -164,13 +164,8 @@ def train(opt):
 
 
     # place model
-    pl_ckpt = torch.load('./checkpoint/resnet/resnet50_places365.pth.tar')
-    state_dict = {str.replace(k,'module.',''): v for k,v in pl_ckpt['state_dict'].items()}
-    fe = resnet50()
-    fe.load_state_dict(state_dict, False)
-    model_place = torch.nn.Sequential(fe, place_model())
-    model_place = torch.nn.DataParallel(model_place).cuda(device)
-
+    model_place = place_model_yolo(num_persons, num_behaviors, device)
+    model_place.cuda(device)
 
 
     # ---------------define optimizers ------------------------------------
@@ -302,7 +297,7 @@ def train(opt):
 
     # place scheduler
     pl_scheduler = torch.optim.lr_scheduler.MultiStepLR(pl_optimizer, [int(opt.num_epoches/8), int(opt.num_epoches/4), int(opt.num_epoches/2)], gamma=0.1, last_epoch=-1)
-    pl_normalize = torchvision.transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+
 
     model.train()
     model_face.train()
@@ -323,7 +318,7 @@ def train(opt):
         o_loss_list = []
         r_loss_list = []
         e_loss_list = []
-
+        place_acc_list = []
 
         temp_images = []
         temp_info = []
@@ -494,7 +489,7 @@ def train(opt):
             info_place = []
 
             for idx in range(len(image)):
-                image_resize = F.interpolate(pl_normalize(image[idx]).unsqueeze(0), (224, 224)).squeeze(0)
+                image_resize = image[idx]
                 images_norm.append(image_resize)
                 info_place.append(info[0][idx]['place'])
             info_place = label_mapping(info_place)
@@ -524,7 +519,7 @@ def train(opt):
                     prec1 = torch.stack(prec1); prec5 = torch.stack(prec5)
                     prec1 = prec1.view(-1).float().mean(0)
                     prec5 = prec5.view(-1).float().mean(0)
-
+                    place_acc_list.append(prec1)
                     pl_optimizer.zero_grad()
                     pl_loss.backward()
                     pl_optimizer.step()
@@ -552,7 +547,8 @@ def train(opt):
                 print("+Face_loss:{:.2f}(coord_face:{:.2f},conf_face:{:.2f},cls_face:{:.2f})".format(
                     loss_face, loss_coord_face, loss_conf_face, loss_cls_face))
             if pl_updated:
-                print("+place(loss:{:.2f},acc@1:{:.2f},acc@5:{:.2f})".format(pl_loss,prec1,prec5))
+                print("+place(Epoch:{}-Iter{}/{} -- loss:{:.2f},acc@1:{:.2f}({:.2f}),acc@5:{:.2f})".format(
+                    epoch, iter, len(train_loader),pl_loss,prec1,sum(place_acc_list)/float(len(place_acc_list)),prec5))
             if loss_emo is not None:
                 print("+Emotion_loss:{:.2f}".format(loss_emo.item()))
             print()
