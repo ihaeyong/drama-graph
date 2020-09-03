@@ -382,17 +382,17 @@ class place_model_yolo(nn.Module):
         fmap = self.place_conv(fmap)
         x = self.avgpool(fmap)
         x = x.reshape(N, T, -1)
-        
+
         self.lstm_sc.flatten_parameters()
         N, T = x.size(0), x.size(1)
         x = self.lstm_sc(x)[0]
-        
+
         change = x.reshape(N*T, -1)
         #x = self.fc1(x)
         change = self.fc2(change)
         change = change.reshape(N, T)
         #x = x.reshape(N*T, -1)
-        
+
         M, _ = change.max(1)
         w = change - M.view(-1,1)
         w = w.exp()
@@ -408,9 +408,9 @@ class place_model_yolo(nn.Module):
         ww = (ww+1e-10).pow(-1)
         ww = ww/ww.sum(1,True)
         x = ww.transpose(1,2).bmm(x)
-       
+
         x = x.reshape(N*T, -1)
         x = self.fc3(x)
         x = x.reshape(N*T, -1)
-        
+
         return x

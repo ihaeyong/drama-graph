@@ -134,39 +134,66 @@ def train(opt):
     model = behavior_model(num_persons, num_behaviors, opt, device)
     # get the trained models from
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
-    trained_persons = opt.trained_model_path + os.sep + "{}".format(
+    trained_persons = './checkpoint/detector/' + os.sep + "{}".format(
         'anotherMissOh_only_params_person.pth')
 
     # load pre-trained model
-    ckpt = torch.load(trained_persons)
-    if optimistic_restore(model.detector, ckpt):
-        print(".....")
-        print("loaded pre-trained detector sucessfully.")
-        print(".....")
-
+    if True:
+        ckpt_person = torch.load(trained_persons)
+        if optimistic_restore(model.detector, ckpt_person):
+            print("loaded pre-trained detector sucessfully.")
     model.cuda(device)
 
     # face_model
     model_face = face_model(num_persons, num_faces, device)
+    trained_face = './checkpoint/face/' + os.sep + "{}".format(
+        'anotherMissOh_only_params_face.pth')
+
+    if False:
+        ckpt_face = torch.load(trained_face)
+        if optimistic_restore(model_face, ckpt_face):
+            print("loaded pre-trained face sucessfully.")
     model_face.cuda(device)
 
     # emotion model
     model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
+    trained_emotion = './checkpoint/emotion/' + os.sep + "{}".format(
+        'anotherMissOh_only_params_emotion.pth')
+    if False:
+        ckpt_emotion = torch.load(trained_emoiton)
+        if optimistic_restore(model_emo, ckpt_emotion):
+            print("loaded pre-trained emotion sucessfully.")
     model_emo.cuda(device)
 
     # object model
     model_object = object_model(num_objects)
+    trained_object = './checkpoint/object/' + os.sep + "{}".format(
+        'anotherMissOh_only_params_object.pth')
+    if False:
+        ckpt_object = torch.load(trained_object)
+        if optimistic_restore(model_object, ckpt_object):
+            print("loaded pre-trained object sucessfully.")
     model_object.cuda(device)
 
     # relation model
     model_relation = relation_model(num_objects, num_relations)
+    trained_relation = './checkpoint/relation/' + os.sep + "{}".format(
+        'anotherMissOh_only_params_relation.pth')
+    if False:
+        ckpt_relation = torch.load(trained_relation)
+        if optimistic_restore(model_relation, ckpt_relation):
+            print("loaded pre-trained relation sucessfully.")
     model_relation.cuda(device)
-
 
     # place model
     model_place = place_model_yolo(num_persons, num_behaviors, device)
+    trained_place = './checkpoint/place/' + os.sep + "{}".format(
+        'anotherMissOh_only_params_place.pth')
+    if False:
+        ckpt_place = torch.load(trained_place)
+        if optimistic_restore(model_place, ckpt_place):
+            print("loaded pre-trained place  sucessfully.")
     model_place.cuda(device)
-
 
     # ---------------define optimizers ------------------------------------
     # person optim
@@ -229,7 +256,12 @@ def train(opt):
                                   weight_decay=opt.decay)
 
     # place optim
-    pl_optimizer = torch.optim.SGD(model_place.parameters(), lr=0.1,
+    place_params = [p for n, p in model_place.named_parameters()
+                    if not n.startswith('detector') and p.requires_grad]
+
+    pl_params = [{'params': place_params, 'lr': opt.lr * 10.0}]
+
+    pl_optimizer = torch.optim.SGD(pl_params, lr=0.1,
                                    momentum=0.9, weight_decay=5e-4)
 
     # ------------ define criterions --------------------------------------
