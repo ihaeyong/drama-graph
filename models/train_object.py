@@ -58,10 +58,10 @@ def get_args():
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual/")
-    parser.add_argument("-model", dest='model', type=str, default="baseline")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+    parser.add_argument("-model", dest='model', type=str, default="object")
 
     args = parser.parse_args()
     return args
@@ -115,19 +115,10 @@ def train(opt):
     # load the model
 
     model = object_model(num_objects).cuda(device)
-    trained_object = opt.trained_model_path + os.sep + "{}".format(
-        'anotherMissOh_only_params_object.pth')
-    ckpt = torch.load(trained_persons)
-
-    if optimistic_restore(model.detector, ckpt):
-        print(".....")
-        print("loaded pre-trained detector sucessfully.")
-        print(".....")
-
 
     nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
 
-    criterion = YoloLoss(num_objects, model.anchors, opt.reduction)
+    criterion = YoloLoss(num_objects, model.detector.anchors, opt.reduction)
     optimizer = torch.optim.SGD(model.parameters(), lr=1e-5,
                                 momentum=opt.momentum, weight_decay=opt.decay)
 
@@ -162,7 +153,7 @@ def train(opt):
             # losses for person detection
             # because sometimes there are times when there are persons but not objects, we need to accout for each case
             # only test objects
-            if np.array(label).size != 0:
+            if np.array(object_label).size != 0:
                 loss, loss_coord, loss_conf, loss_cls = criterion(logits, object_label, device)
             else:
                 print("iter:{} object bboxs are empty".format(
