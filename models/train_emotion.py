@@ -120,10 +120,16 @@ def train(opt):
 
     train_loader = DataLoader(train_set, **training_params)
 
-    # define emotion model
+    # emotion model
     model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
+    trained_emotion = './checkpoint/emotion/' + os.sep + "{}".format(
+        'anotherMissOh_only_params_emotion.pth')
+    if True:
+        ckpt_emotion = torch.load(trained_emoiton)
+        if optimistic_restore(model_emo, ckpt_emotion):
+            print("loaded pre-trained emotion sucessfully.")
     model_emo.cuda(device)
-
+    
     # get optim
     e_criterion = nn.CrossEntropyLoss()
     e_optimizer = torch.optim.Adam(model_emo.parameters(), lr=opt.lr, weight_decay=opt.decay, amsgrad=True)

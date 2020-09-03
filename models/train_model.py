@@ -159,8 +159,8 @@ def train(opt):
     model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
     trained_emotion = './checkpoint/emotion/' + os.sep + "{}".format(
         'anotherMissOh_only_params_emotion.pth')
-    if False:
-        ckpt_emotion = torch.load(trained_emoiton)
+    if True:
+        ckpt_emotion = torch.load(trained_emotion)
         if optimistic_restore(model_emo, ckpt_emotion):
             print("loaded pre-trained emotion sucessfully.")
     model_emo.cuda(device)
@@ -229,9 +229,9 @@ def train(opt):
     emo_params = [p for n, p in model_emo.named_parameters()
                    if not n.startswith('detector') and p.requires_grad]
 
-    e_params = [{'params': emo_params, 'lr': opt.lr * 10.0}]
+    e_params = [{'params': emo_params, 'lr': opt.lr * 1.0}]
 
-    e_optimizer = torch.optim.Adam(e_params, lr=opt.lr * 10.0,
+    e_optimizer = torch.optim.Adam(e_params, lr=opt.lr * 1.0,
                                    weight_decay=opt.decay,
                                    amsgrad=True)
 
