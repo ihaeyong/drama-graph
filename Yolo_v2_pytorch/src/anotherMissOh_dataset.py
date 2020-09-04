@@ -166,10 +166,10 @@ def SortFullRect(image,label, is_train=True):
 
                 face_temp_label = np.concatenate((face_rect, [face_label]), 0)
                 face_list.append(face_temp_label)
-                
+
                 emo_label = label[0][frm]['persons']['emotion'][p]
                 emo_list.append(emo_label)
-                
+
         except:
             continue
 

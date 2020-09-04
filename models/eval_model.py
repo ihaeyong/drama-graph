@@ -37,7 +37,7 @@ def get_args():
                         help="the root folder of dataset")
 
     parser.add_argument("--saved_path", type=str,
-                        default="./checkpoint/behavior") # saved training path
+                        default="./checkpoint/refined_models")
 
     parser.add_argument("--img_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
@@ -84,6 +84,8 @@ def test(opt):
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
 
+    # ---------------(1) load refined models --------------------
+    # person and behavior
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
             model1 = torch.load(model_path)
@@ -92,11 +94,23 @@ def test(opt):
             model1 = Yolo(num_persons)
             model1.load_state_dict(torch.load(model_path))
             print("loaded with cpu {}".format(model_path))
+    model1.eval()
+
+    # face model
+
+    # emotion model
+
+    # object model
+
+    # relation model
+
+    # place model
+
 
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
 
-    model1.eval()
+
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
@@ -106,18 +120,33 @@ def test(opt):
         image, info = batch
 
         # sort label info on fullrect
-        image, label, behavior_label, frame_id = SortFullRect(
+        image, label, behavior_label, obj_label, face_label, emo_label, frame_id = SortFullRect(
             image, info, is_train=False)
 
-        if torch.cuda.is_available():
+        try :
             image = torch.cat(image,0).cuda()
+        except:
+            continue
 
-        #with torch.no_grad():
+        # -----------------(2) inference -------------------------
+        # person and behavior predictions
         # logits : [1, 125, 14, 14]
         # behavior_logits : [1, 135, 14, 14]
         predictions, b_logits = model1(image, label, behavior_label)
 
+        # face
+
+        # emotion
+
+        # object
+
+        # relation
+
+        # place
+
         for idx, frame in enumerate(frame_id):
+
+            # ---------------(3) mkdir for evaluations----------------------
             f_info = frame[0].split('/')
             save_dir = './results/person/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
@@ -133,9 +162,11 @@ def test(opt):
             # visualize predictions
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
+
             # ground-truth
             if not os.path.exists(save_mAP_gt_dir):
                 os.makedirs(save_mAP_gt_dir)
+
             # detection
             if not os.path.exists(save_mAP_det_dir):
                 os.makedirs(save_mAP_det_dir)
@@ -159,11 +190,11 @@ def test(opt):
             if opt.display:
                 print("mAP_file:{}".format(mAP_file))
 
-            # ground truth
-            #b_person_label = label[i]
+            # --------------(4) ground truth ---------------------------------
             # save person ground truth
             gt_person_cnt = 0
             if len(label) > idx :
+                # person
                 f = open(save_mAP_gt_dir + mAP_file, mode='w+')
                 for det in label[idx]:
                     cls = PersonCLS[int(det[4])]
@@ -178,7 +209,7 @@ def test(opt):
                     gt_person_cnt += 1
                 f.close()
 
-                #b_behavior_label = behavior_label[i]
+                # behavior
                 f = open(save_mAP_gt_beh_dir + mAP_file, mode='w+')
                 for j, det in enumerate(label[idx]):
                     cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
@@ -196,10 +227,27 @@ def test(opt):
                     f.write(cat_det)
                 f.close()
 
-                # open detection file
+                # face
 
+
+                # emotion
+
+
+                # object
+
+
+                # relation
+
+
+                # place
+
+
+
+                # open detection file
                 f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
                 f = open(save_mAP_det_dir + mAP_file, mode='w+')
+
+            # --------------(5) visualization of inferences ----------
             # out of try : pdb.set_trace = lambda : None
             try:
                 # for some empty video clips
@@ -217,8 +265,10 @@ def test(opt):
                     cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
                         '.txt', '.jpg'), output_image)
 
+                    # person and behavior
                     num_preds = len(prediction)
                     for jdx, pred in enumerate(prediction):
+                        # person
                         xmin = int(max(pred[0] / width_ratio, 0))
                         ymin = int(max(pred[1] / height_ratio, 0))
                         xmax = int(min((pred[2]) / width_ratio, width))
@@ -253,7 +303,7 @@ def test(opt):
                         cv2.imwrite(save_dir + "{}".format(f_file),
                                     output_image)
 
-                        # save detection results
+                        # behavior
                         pred_cls = pred[5]
                         pred_beh_cls = b_pred.replace(' ', '_')
                         pred_beh_cls = pred_beh_cls.replace('/', '_')
@@ -272,6 +322,16 @@ def test(opt):
 
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
+
+                        # face
+
+                        # emotion
+
+                        # object
+
+                        # relation
+
+                        # place
 
                         if opt.display:
                             print("detected {}".format(
