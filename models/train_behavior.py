@@ -102,8 +102,6 @@ def train(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    #p_learning_rate_schedule = {"0": opt.lr/10.0, "5": opt.lr/50.0}
-    #b_learning_rate_schedule = {"0": opt.lr, "5": opt.lr/10.0, "10": opt.lr/100.0}
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -136,11 +134,11 @@ def train(opt):
     non_fc_params = [p for n,p in model.named_parameters()
                      if not n.startswith('detector') and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr / 100.0}] # v1, v4
+    p_params = [{'params': fc_params, 'lr': opt.lr * 10.0}]
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
-    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 100.0,
+    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr * 10.0,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
     b_optimizer = torch.optim.SGD(b_params, lr = opt.lr * 10.0,
@@ -179,7 +177,8 @@ def train(opt):
             image, info = batch
 
             # sort label info on fullrect
-            image, label, behavior_label, _, _, _ = SortFullRect(image, info)
+            image, label, behavior_label, obj_label, face_label, emo_label = SortFullRect(
+                image, info, is_train=True)
 
             if np.array(label).size == 0 :
                 print("iter:{}_person bboxs are empty".format(

@@ -1,7 +1,7 @@
 # Train Object Detection Model (YOLO_V2)
-export PYTHONPATH=/root/workspaces/vtt/VTT_TRACKING/Face_recog
+export PYTHONPATH=/root/workspaces/vtt/drama-graph
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
 
-python models/eval_behavior.py -model global_diff_subset_batch1_local_wloss
+python models/eval_behavior.py -model person_behavior

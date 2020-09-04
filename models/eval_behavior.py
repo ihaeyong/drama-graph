@@ -106,11 +106,13 @@ def test(opt):
         image, info = batch
 
         # sort label info on fullrect
-        image, label, behavior_label, frame_id = SortFullRect(
+        image, label, behavior_label, obj_label, face_label, emo_label, frame_id = SortFullRect(
             image, info, is_train=False)
 
-        if torch.cuda.is_available():
+        try:
             image = torch.cat(image,0).cuda()
+        except:
+            continue
 
         #with torch.no_grad():
         # logits : [1, 125, 14, 14]
