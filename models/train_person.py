@@ -140,12 +140,11 @@ def train(opt):
                  if n.startswith('person') \
                  and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr}]
+    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}]
 
     criterion = YoloLoss(num_persons, anchors, opt.reduction)
-    p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
-                                  momentum=opt.momentum,
-                                  weight_decay=opt.decay)
+    p_optimizer = torch.optim.Adam(p_params, lr = opt.lr / 10.0,
+                                   weight_decay=opt.decay, amsgrad=True)
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
