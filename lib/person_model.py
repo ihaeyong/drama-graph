@@ -25,7 +25,7 @@ class person_model(nn.Module):
     def __init__(self, num_persons, device):
         super(person_model, self).__init__()
 
-        pre_model = Yolo(num_persons).cuda(device)
+        pre_model = Yolo(num_persons).to(device)
 
         if True:
             # we get the pre-trained model from
@@ -35,7 +35,7 @@ class person_model(nn.Module):
             if optimistic_restore(pre_model, ckpt):
                 print("loaded pre-trained poscal_voc detector sucessfully.")
 
-        self.detector = YoloD(pre_model).cuda(device)
+        self.detector = YoloD(pre_model).to(device)
 
         # define person
         self.person_conv = nn.Conv2d(

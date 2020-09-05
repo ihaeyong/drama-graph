@@ -119,7 +119,7 @@ def train(opt):
 
     # define behavior-model
     model = person_model(num_persons, device)
-    if False:
+    if True :
         # cause in person_model, loaded the voc pre-trained params
         trained_persons = opt.trained_model_path + os.sep + "{}".format(
             'anotherMissOh_only_params_person.pth')
@@ -128,11 +128,11 @@ def train(opt):
         if optimistic_restore(model.detector, ckpt):
             print("loaded pre-trained detector sucessfully.")
 
-    model.cuda(device)
-
     # multi-gpus
     if True:
-        model = torch.nn.DataParallel(model).cuda(device)
+        model = torch.nn.DataParallel(model).to(device)
+    else:
+        model.cuda(device)
 
     # get optim
     # yolo detector and person
@@ -143,7 +143,6 @@ def train(opt):
 
     p_params = [{'params': fc_params, 'lr': opt.lr}]
 
-    criterion = YoloLoss(num_persons, anchors, opt.reduction)
     p_optimizer = torch.optim.Adam(p_params, lr = opt.lr,
                                    weight_decay=opt.decay, amsgrad=True)
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
@@ -153,8 +152,9 @@ def train(opt):
     model.train()
     num_iter_per_epoch = len(train_loader)
 
-    loss_step = 0
+    criterion = YoloLoss(num_persons, anchors, opt.reduction)
 
+    loss_step = 0
     for epoch in range(opt.num_epoches):
         b_logit_list = []
         b_label_list = []
@@ -177,7 +177,7 @@ def train(opt):
 
             # image [b, 3, 448, 448]
             if torch.cuda.is_available():
-                image = torch.cat(image).cuda(device)
+                image = torch.cat(image).to(device)
             else:
                 image = torch.cat(image)
 
@@ -191,10 +191,6 @@ def train(opt):
                 logits, label, device)
 
             loss.backward()
-            clip_grad_norm(
-                [(n, p) for n, p in model.named_parameters()
-                 if p.grad is not None and n.startswith('detector')],
-                max_norm=opt.clip, verbose=verbose, clip=True)
             p_optimizer.step()
 
             print("Model:{}".format(opt.model))
