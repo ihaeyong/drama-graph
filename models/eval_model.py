@@ -7,14 +7,27 @@ import numpy as np
 from Yolo_v2_pytorch.src.utils import *
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS, FaceCLS, ObjectCLS, P2ORelCLS
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
+from lib.place_model import place_model, resnet50, label_mapping, accuracy, AverageMeter, ProgressMeter, place_model_yolo
+from lib.behavior_model import behavior_model
+from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
+from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
+from lib.face_model import face_model
+from lib.object_model import object_model
+from lib.relation_model import relation_model
+from lib.emotion_model import emotion_model, crop_face_emotion, EmoCLS
+
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
+num_faces = len(FaceCLS)
+num_objects = len(ObjectCLS)
+num_relations = len(P2ORelCLS)
+num_emos = len(EmoCLS)
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -75,6 +88,13 @@ model_path = "{}/anotherMissOh_{}.pth".format(
 def test(opt):
     global colors
 
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(123)
+        device = torch.cuda.current_device()
+    else:
+        torch.manual_seed(123)
+    print(torch.cuda.is_available())
+
     # set test loader params
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
@@ -85,27 +105,57 @@ def test(opt):
     test_loader = DataLoader(test_set, **test_params)
 
     # ---------------(1) load refined models --------------------
+    # get the trained models from
+    # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
     # person and behavior
-    if torch.cuda.is_available():
-        if opt.pre_trained_model_type == "model":
-            model1 = torch.load(model_path)
-            print("loaded with gpu {}".format(model_path))
-        else:
-            model1 = Yolo(num_persons)
-            model1.load_state_dict(torch.load(model_path))
-            print("loaded with cpu {}".format(model_path))
+    if True :
+        model1 = behavior_model(num_persons, num_behaviors, opt, device)
+        trained_persons = './checkpoint/refined_models' + os.sep + "{}".format(
+        'anotherMissOh_only_params_integration.pth')
+        model1.load_state_dict(torch.load(trained_persons))
+        print("loaded with {}".format(trained_persons))
+    model1.cuda(device)
     model1.eval()
 
     # face model
+    if False :
+        # add model
+        trained_face = './checkpoint/refined_models' + os.sep + "{}".format(
+        'anotherMissOh_only_params_face_integration.pth')
+        # model load
+        print("loaded with {}".format(trained_face))
 
     # emotion model
+    if False:
+        # add model
+        trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
+        'anotherMissOh_only_params_emotion_integration.pth')
+        # model load
+        print("loaded with {}".format(trained_emotion))
 
     # object model
+    if False:
+        # add model
+        trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
+        'anotherMissOh_only_params_object_integration.pth')
+        # model load
+        print("loaded with {}".format(trained_object))
 
     # relation model
+    if False:
+        # add model
+        trained_relation = './checkpoint/refined_models' + os.sep + "{}".format(
+        'anotherMissOh_only_params_relation_integration.pth')
+        # model load
+        print("loaded with {}".format(trained_relation))
 
     # place model
-
+    if False:
+        # add model
+        trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
+        'anotherMissOh_only_params_place_integration.pth')
+        # model load
+        print("loaded with {}".format(trained_place))
 
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
