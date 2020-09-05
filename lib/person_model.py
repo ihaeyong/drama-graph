@@ -17,6 +17,7 @@ from Yolo_v2_pytorch.src.rois_utils import anchorboxes
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import PersonCLS
 
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
+from lib.hyper_yolo import anchors
 
 import numpy as np
 
@@ -38,7 +39,7 @@ class person_model(nn.Module):
 
         # define person
         self.person_conv = nn.Conv2d(
-            1024, len(self.detector.anchors) * (5 + num_persons), 1, 1, 0, bias=False)
+            1024, len(anchors) * (5 + num_persons), 1, 1, 0, bias=False)
 
     def forward(self, image):
 

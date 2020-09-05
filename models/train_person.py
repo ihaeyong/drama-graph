@@ -18,6 +18,8 @@ from lib.logger import Logger
 from lib.person_model import person_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
+from lib.hyper_yolo import anchors
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -105,7 +107,8 @@ def train(opt):
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
                        "drop_last": True,
-                       "collate_fn": custom_collate_fn}
+                       "collate_fn": custom_collate_fn,
+                       "num_workers": 4}
 
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
@@ -127,6 +130,10 @@ def train(opt):
 
     model.cuda(device)
 
+    # multi-gpus
+    if True:
+        model = torch.nn.DataParallel(model).cuda(device)
+
     # get optim
     # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
@@ -135,7 +142,7 @@ def train(opt):
 
     p_params = [{'params': fc_params, 'lr': opt.lr}]
 
-    criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
+    criterion = YoloLoss(num_persons, anchors, opt.reduction)
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
@@ -194,7 +201,6 @@ def train(opt):
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.9f}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
                 num_iter_per_epoch, p_optimizer.param_groups[0]['lr']))
-            #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
             print()
