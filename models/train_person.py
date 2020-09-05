@@ -15,7 +15,7 @@ import pickle
 import numpy as np
 from lib.logger import Logger
 
-from lib.behavior_model import behavior_model
+from lib.person_model import person_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 
@@ -85,7 +85,6 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 num_persons = len(PersonCLS)
-num_behaviors = len(PBeHavCLS)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
@@ -116,51 +115,39 @@ def train(opt):
     train_loader = DataLoader(train_set, **training_params)
 
     # define behavior-model
-    model = behavior_model(num_persons, num_behaviors, opt, device)
-    trained_persons = opt.trained_model_path + os.sep + "{}".format(
-        'anotherMissOh_only_params_person.pth')
+    model = person_model(num_persons, device)
+    if False:
+        # cause in person_model, loaded the voc pre-trained params
+        trained_persons = opt.trained_model_path + os.sep + "{}".format(
+            'anotherMissOh_only_params_person.pth')
 
-    ckpt = torch.load(trained_persons)
-    if optimistic_restore(model.detector, ckpt):
-        print("loaded pre-trained detector sucessfully.")
+        ckpt = torch.load(trained_persons)
+        if optimistic_restore(model.detector, ckpt):
+            print("loaded pre-trained detector sucessfully.")
+
     model.cuda(device)
 
     # get optim
+    # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
-                 if n.startswith('detector') and p.requires_grad]
-    non_fc_params = [p for n,p in model.named_parameters()
-                     if not n.startswith('detector') and p.requires_grad]
+                 if n.startswith('detector') \
+                 or n.startswith('person') \
+                 and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr}]
-    b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 
     criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
-    b_optimizer = torch.optim.SGD(b_params, lr = opt.lr * 10.0,
-                                  momentum=opt.momentum,
-                                  weight_decay=opt.decay)
-
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
-    b_scheduler = ReduceLROnPlateau(b_optimizer, 'min', patience=3,
-                                    factor=0.1, verbose=True,
-                                    threshold=0.0001, threshold_mode='abs',
-                                    cooldown=1)
-
     model.train()
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
-
-    # define focal loss
-    if opt.b_loss == 'ce_focal':
-        focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
-    elif opt.b_loss == 'ce':
-        ce_without_onehot = CELossWithOutOneHot()
 
     for epoch in range(opt.num_epoches):
         b_logit_list = []
@@ -191,7 +178,7 @@ def train(opt):
             p_optimizer.zero_grad()
 
             # logits [b, 125, 14, 14]
-            logits, b_logits, b_labels = model(image, label, behavior_label)
+            logits,_ = model(image)
 
             # losses for person detection
             loss, loss_coord, loss_conf, loss_cls = criterion(
@@ -204,54 +191,6 @@ def train(opt):
                 max_norm=opt.clip, verbose=verbose, clip=True)
             p_optimizer.step()
 
-            # ------- behavior learning -------
-            if behavior_lr:
-                b_optimizer.zero_grad()
-
-            # loss for behavior
-            b_logits = torch.stack(b_logits)
-            #b_logits = torch.cat(b_logits,0)
-
-            b_labels = np.array(flatten(b_labels))
-            #b_labels = np.stack(b_labels)
-
-            # skip none behavior
-            keep_idx = np.where(b_labels!=26)
-            if len(keep_idx[0]) > 0:
-                b_logits = b_logits[keep_idx]
-                b_labels = b_labels[keep_idx]
-            else:
-                continue
-
-            b_labels = Variable(
-                torch.LongTensor(b_labels).cuda(device),
-                requires_grad=False)
-            print('behavior_label:{}'.format(b_labels))
-
-            b_label_list.append(b_labels)
-            b_logit_list.append(b_logits)
-
-            if behavior_lr:
-                b_logits = torch.cat(b_logit_list, 0)
-                b_labels = torch.cat(b_label_list, 0)
-
-                if opt.b_loss == 'ce_focal':
-                    loss_behavior = focal_without_onehot(b_logits, b_labels)
-                elif opt.b_loss == 'ce':
-                    loss_behavior = ce_without_onehot(b_logits, b_labels)
-
-                loss_behavior.backward()
-
-                b_logit_list = []
-                b_label_list = []
-
-                if opt.clip_grad:
-                    clip_grad_norm(
-                        [(n, p) for n, p in model.named_parameters()
-                         if p.grad is not None and not n.startswith('detector')],
-                        max_norm=opt.clip, verbose=verbose, clip=True)
-                b_optimizer.step()
-
             print("Model:{}".format(opt.model))
             print("Epoch: {}/{}, Iteration: {}/{}, lr:{:.9f}".format(
                 epoch + 1, opt.num_epoches,iter + 1,
@@ -259,10 +198,6 @@ def train(opt):
             #print("---- Person Detection ---- ")
             print("+loss:{:.2f}(coord:{:.2f},conf:{:.2f},cls:{:.2f})".format(
                 loss, loss_coord, loss_conf, loss_cls))
-            if behavior_lr:
-                print("+lr:{:.9f}, cls_behavior:{:.2f}".format(
-                    b_optimizer.param_groups[0]['lr'],
-                    loss_behavior))
             print()
 
             loss_dict = {
@@ -272,11 +207,6 @@ def train(opt):
                 'cls' : loss_cls.item(),
             }
 
-            if behavior_lr:
-                loss_dict['cls_behavior'] = loss_behavior.item()
-                b_loss_list.append(loss_behavior.item())
-                p_loss_list.append(loss_cls.item())
-
             # Log scalar values
             for tag, value in loss_dict.items():
                 logger.scalar_summary(tag, value, loss_step)
@@ -285,22 +215,18 @@ def train(opt):
 
         print("SAVE MODEL")
         if not os.path.exists(opt.saved_path):
-            os.makedirs(opt.saved_path + os.sep + "{}".format(opt_model))
+            os.makedirs(opt.saved_path + os.sep + "{}".format('person'))
             print('mkdir_{}'.format(opt.saved_path))
 
         # learning rate schedular
-        b_loss_avg = np.stack(b_loss_list).mean()
         p_loss_avg = np.stack(p_loss_list).mean()
 
         p_scheduler.step(p_loss_avg)
-        b_scheduler.step(b_loss_avg)
 
         torch.save(model.state_dict(),
-                   opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(
-                       opt.model))
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_person.pth")
         torch.save(model,
-                   opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(
-                       opt.model))
+                   opt.saved_path + os.sep + "anotherMissOh_person.pth")
 
 if __name__ == "__main__":
     train(opt)
