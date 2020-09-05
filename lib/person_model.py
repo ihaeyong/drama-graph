@@ -27,6 +27,8 @@ class person_model(nn.Module):
         pre_model = Yolo(num_persons).cuda(device)
 
         if True:
+            # we get the pre-trained model from
+            # https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM
             pascal_voc = './checkpoint/detector/only_params_trained_yolo_voc'
             ckpt = torch.load(pascal_voc)
             if optimistic_restore(pre_model, ckpt):
