@@ -198,7 +198,9 @@ def train(opt):
     # ---------------define optimizers ------------------------------------
     # person optim
     fc_params = [p for n,p in model.named_parameters()
-                 if n.startswith('detector') and p.requires_grad]
+                 if n.startswith('detector') \
+                 or n.startswith('person') \
+                 and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}]
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr / 10.0,
@@ -207,7 +209,9 @@ def train(opt):
 
     # behavior optim
     non_fc_params = [p for n,p in model.named_parameters()
-                     if not n.startswith('detector') and p.requires_grad]
+                     if not n.startswith('detector') \
+                     or not n.startswith('person') \
+                     and p.requires_grad]
 
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 

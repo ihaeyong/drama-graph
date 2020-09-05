@@ -126,16 +126,10 @@ def train(opt):
     model.cuda(device)
 
     # get optim
-    # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
-                 if n.startswith('detector') \
-                 or n.startswith('person') \
-                 and p.requires_grad]
-    # behavior model
+                 if n.startswith('detector') and p.requires_grad]
     non_fc_params = [p for n,p in model.named_parameters()
-                     if not n.startswith('detector') \
-                     or not n.startswith('person')\
-                     and p.requires_grad]
+                     if not n.startswith('detector') and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr}]
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
