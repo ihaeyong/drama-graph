@@ -16,6 +16,8 @@ from Yolo_v2_pytorch.src.yolo_tunning import YoloD
 from Yolo_v2_pytorch.src.rois_utils import anchorboxes
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import PersonCLS
 
+from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
+
 import numpy as np
 
 class person_model(nn.Module):
@@ -23,6 +25,13 @@ class person_model(nn.Module):
         super(person_model, self).__init__()
 
         pre_model = Yolo(num_persons).cuda(device)
+
+        if True:
+            pascal_voc = './checkpoint/detector/only_params_trained_yolo_voc'
+            ckpt = torch.load(pascal_voc)
+            if optimistic_restore(pre_model, ckpt):
+                print("loaded pre-trained poscal_voc detector sucessfully.")
+
         self.detector = YoloD(pre_model).cuda(device)
 
         # define person

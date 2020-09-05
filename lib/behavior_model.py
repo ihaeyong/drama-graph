@@ -226,5 +226,4 @@ class behavior_model(nn.Module):
                     i_logit = self.behavior_fc(p_feat[:,idx])
                     b_logits.append(i_logit)
 
-
-            return logits, b_logits, b_labels
+        return logits, b_logits, b_labels

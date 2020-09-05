@@ -122,10 +122,7 @@ def train(opt):
 
     ckpt = torch.load(trained_persons)
     if optimistic_restore(model.detector, ckpt):
-        print(".....")
         print("loaded pre-trained detector sucessfully.")
-        print(".....")
-
     model.cuda(device)
 
     # get optim

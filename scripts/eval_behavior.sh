@@ -4,4 +4,4 @@ export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
 
-python models/eval_behavior.py -model person_behavior -display
+python models/eval_behavior.py -model voc_person_behavior -display
