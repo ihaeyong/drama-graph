@@ -138,12 +138,13 @@ def train(opt):
     # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
                  if n.startswith('person') \
+                 or n.startswith('detector') \
                  and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr / 10.0}]
+    p_params = [{'params': fc_params, 'lr': opt.lr}]
 
     criterion = YoloLoss(num_persons, anchors, opt.reduction)
-    p_optimizer = torch.optim.Adam(p_params, lr = opt.lr / 10.0,
+    p_optimizer = torch.optim.Adam(p_params, lr = opt.lr,
                                    weight_decay=opt.decay, amsgrad=True)
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
@@ -210,6 +211,9 @@ def train(opt):
                 'conf' : loss_conf.item(),
                 'cls' : loss_cls.item(),
             }
+
+            if iter % 100 == 0:
+                p_loss_list.append(loss_cls.item())
 
             # Log scalar values
             for tag, value in loss_dict.items():
