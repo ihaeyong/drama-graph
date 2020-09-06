@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 class YoloLoss(nn.modules.loss._Loss):
     # The loss I borrow from LightNet repo.
-    def __init__(self, num_classes, anchors, reduction=32,
+    def __init__(self, num_classes, anchors, device, reduction=32,
                  coord_scale=1.0, noobject_scale=1.0,
                  object_scale=5.0, class_scale=1.0, thresh=0.6):
 
@@ -31,8 +31,8 @@ class YoloLoss(nn.modules.loss._Loss):
         self.thresh = thresh
 
         # define loss functions
-        self.mse = nn.MSELoss(size_average=False)
-        self.ce = nn.CrossEntropyLoss(size_average=False)
+        self.mse = nn.MSELoss(size_average=False).to(device)
+        self.ce = nn.CrossEntropyLoss(size_average=False).to(device)
 
         # display labels
         self.debug = True
@@ -130,6 +130,7 @@ class YoloLoss(nn.modules.loss._Loss):
 
         # total losses
         self.loss_tot = self.loss_coord + self.loss_conf + self.loss_cls
+        self.loss_tot.to(device)
 
         return self.loss_tot, self.loss_coord, self.loss_conf, self.loss_cls
 

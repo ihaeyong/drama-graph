@@ -98,11 +98,8 @@ else:
 logger = Logger(logger_path)
 
 def train(opt):
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(123)
-        device = torch.cuda.current_device()
-    else:
-        torch.manual_seed(123)
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+    torch.cuda.manual_seed(123)
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
@@ -119,7 +116,7 @@ def train(opt):
 
     # define behavior-model
     model = person_model(num_persons, device)
-    if True :
+    if False :
         # cause in person_model, loaded the voc pre-trained params
         trained_persons = opt.trained_model_path + os.sep + "{}".format(
             'anotherMissOh_only_params_person.pth')
@@ -128,17 +125,13 @@ def train(opt):
         if optimistic_restore(model.detector, ckpt):
             print("loaded pre-trained detector sucessfully.")
 
-    # multi-gpus
-    if True:
-        model = torch.nn.DataParallel(model).to(device)
-    else:
-        model.cuda(device)
+    model.to(device)
 
     # get optim
     # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
                  if n.startswith('person') \
-                 or n.startswith('detector') \
+                 #or n.startswith('detector') \
                  and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr}]
@@ -149,16 +142,19 @@ def train(opt):
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
-    model.train()
-    num_iter_per_epoch = len(train_loader)
 
-    criterion = YoloLoss(num_persons, anchors, opt.reduction)
+    # multi-gpus
+    if torch.cuda.device_count() > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device)
+    model.train()
+
+    criterion = YoloLoss(num_persons, anchors, device, opt.reduction)
+
+    num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
     for epoch in range(opt.num_epoches):
-        b_logit_list = []
-        b_label_list = []
-        b_loss_list = []
         p_loss_list = []
         for iter, batch in enumerate(train_loader):
 
