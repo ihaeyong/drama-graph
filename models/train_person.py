@@ -54,7 +54,7 @@ def get_args():
                         default="./checkpoint/detector") # Pre-training path
 
     parser.add_argument("--saved_path", type=str,
-                        default="./checkpoint/behavior") # saved training path
+                        default="./checkpoint/person") # saved training path
     parser.add_argument("--conf_threshold", type=float, default=0.35)
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
@@ -224,9 +224,9 @@ def train(opt):
         p_scheduler.step(p_loss_avg)
 
         torch.save(model.state_dict(),
-                   opt.saved_path + os.sep + "anotherMissOh_only_params_person.pth")
+                   opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(opt.model))
         torch.save(model,
-                   opt.saved_path + os.sep + "anotherMissOh_person.pth")
+                   opt.saved_path + os.sep + "anotherMissOh_{}.pth".format(opt.model))
 
 if __name__ == "__main__":
     train(opt)
