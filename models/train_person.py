@@ -131,7 +131,7 @@ def train(opt):
     # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
                  if n.startswith('person') \
-                 #or n.startswith('detector') \
+                 or n.startswith('detector') \
                  and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr}]
