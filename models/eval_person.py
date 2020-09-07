@@ -97,7 +97,7 @@ def test(opt):
     model1 = person_model(num_persons, device)
 
     ckpt = torch.load(model_path)
-    if optimistic_restore(model1.person_conv, ckpt):
+    if optimistic_restore(model1, ckpt):
         print("loaded trained model sucessfully.")
 
     model1.to(device)
@@ -143,6 +143,10 @@ def test(opt):
             # detection
             if not os.path.exists(save_mAP_det_dir):
                 os.makedirs(save_mAP_det_dir)
+
+            # image
+            if not os.path.exists(save_mAP_img_dir):
+                os.makedirs(save_mAP_img_dir)
 
             f_file = f_info[7]
             mAP_file = "{}_{}_{}_{}".format(f_info[4],
