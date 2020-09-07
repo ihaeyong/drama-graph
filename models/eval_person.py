@@ -76,7 +76,10 @@ model_path = "{}/anotherMissOh_only_params_{}.pth".format(
     opt.saved_path,opt.model)
 
 def test(opt):
+
+    # load the color map for detection results
     global colors
+    colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
 
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     torch.cuda.manual_seed(123)
@@ -90,6 +93,7 @@ def test(opt):
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
 
+    # define person model
     model1 = person_model(num_persons, device)
 
     ckpt = torch.load(model_path)
@@ -97,11 +101,8 @@ def test(opt):
         print("loaded trained model sucessfully.")
 
     model1.to(device)
-
-    # load the color map for detection results
-    colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
-
     model1.eval()
+
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
