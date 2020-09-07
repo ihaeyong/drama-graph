@@ -97,9 +97,17 @@ def test(opt):
     model1 = person_model(num_persons, device)
 
     ckpt = torch.load(model_path)
-    if optimistic_restore(model1, ckpt):
+    # in case of multi-gpu training
+    if True:
+        from collections import OrderedDict
+        ckpt_state_dict = OrderedDict()
+        for k,v in ckpt.items():
+            name = k[7:] # remove 'module'
+            ckpt_state_dict[name] = v
+    else:
+        ckpt_state_dict = ckpt
+    if optimistic_restore(model1, ckpt_state_dict):
         print("loaded trained model sucessfully.")
-
     model1.to(device)
     model1.eval()
 
