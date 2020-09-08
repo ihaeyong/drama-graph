@@ -110,12 +110,6 @@ def test(opt):
     if optimistic_restore(model1, ckpt_state_dict):
         print("loaded trained model sucessfully.")
 
-    #if opt.pre_trained_model_type == "model":
-    #model_path_ = "{}/anotherMissOh_{}.pth".format(
-    #    opt.saved_path,opt.model)
-    #model1 = torch.load(model_path_)
-    #print("loaded with gpu {}".format(model_path_))
-
     model1.to(device)
     model1.eval()
 
