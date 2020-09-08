@@ -5,6 +5,7 @@ import pickle
 import cv2
 import numpy as np
 from Yolo_v2_pytorch.src.utils import *
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
 from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS, FaceCLS, ObjectCLS, P2ORelCLS
@@ -58,6 +59,7 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
+    parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
     args = parser.parse_args()
     return args
 
