@@ -215,7 +215,7 @@ def test(opt):
                         ymin = int(max(pred[1] / height_ratio, 0))
                         xmax = int(min((pred[2]) / width_ratio, width))
                         ymax = int(min((pred[3]) / height_ratio, height))
-                        color = colors[Object.index(pred[5])]
+                        color = colors[ObjectCLS.index(pred[5])]
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
@@ -267,4 +267,3 @@ def test(opt):
 
 if __name__ == "__main__":
     test(opt)
-

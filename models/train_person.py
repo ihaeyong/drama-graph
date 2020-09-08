@@ -105,7 +105,7 @@ def train(opt):
                        "shuffle": True,
                        "drop_last": True,
                        "collate_fn": custom_collate_fn,
-                       "num_workers": 4}
+                       "num_workers": 8}
 
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
