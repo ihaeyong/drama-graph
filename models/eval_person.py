@@ -136,17 +136,6 @@ def test(opt):
         except:
             continue
 
-        #with torch.no_grad():
-        # logits : [1, 125, 14, 14]
-        logits, _ = model1(image)
-
-        predictions = post_processing(logits,
-                                      opt.image_size,
-                                      PersonCLS,
-                                      anchors,
-                                      opt.conf_threshold,
-                                      opt.nms_threshold)
-
         for idx, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
             save_dir = './results/person/{}/{}/{}/'.format(
@@ -206,8 +195,17 @@ def test(opt):
                 # ToTensor function normalizes image pixel values into [0,1]
                 np_img = img.cpu().numpy().transpose((1,2,0)) * 255
 
-                if len(predictions[idx]) != 0:
-                    prediction = predictions[idx]
+                # logits : [1, 125, 14, 14]
+                logits, _ = model1(img[None])
+                predictions = post_processing(logits,
+                                              opt.image_size,
+                                              PersonCLS,
+                                              anchors,
+                                              opt.conf_threshold,
+                                              opt.nms_threshold)
+
+                if len(predictions) != 0:
+                    prediction = predictions[0]
                     output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
 
@@ -225,7 +223,6 @@ def test(opt):
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
-                        value, index = b_logit[jdx].max(0)
 
                         text_size = cv2.getTextSize(
                             pred[5] + ' : %.2f' % pred[4],
