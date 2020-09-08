@@ -49,8 +49,8 @@ def get_args():
     parser.add_argument("--pre_trained_model_type",
                         type=str, choices=["model", "params"],
                         default="model")
-    parser.add_argument("--pre_trained_model_path", type=str,
-                        default="Yolo_v2_pytorch/trained_models/only_params_trained_yolo_voc") # Pre-training path
+    # parser.add_argument("--trained_model_path", type=str,
+    #                     default="./checkpoint/detector") # Pre-training path
 
     parser.add_argument("--saved_path", type=str,
                         default="./checkpoint") # saved training path
