@@ -6,13 +6,12 @@ import glob
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import json
-import pdb
 
 # define person classes
 PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
 
 # define behavior
 PBeHavCLS_ORG = ["stand up","sit down","walk","hold","hug",
@@ -76,7 +75,7 @@ P2ORelCLS = ['none', 'wearing', 'on', 'with', 'in front of', 'has', 'in', 'near'
 FaceCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
 
 def Splits(num_episodes):
     '''

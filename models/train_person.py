@@ -125,6 +125,8 @@ def train(opt):
         if optimistic_restore(model.detector, ckpt):
             print("loaded pre-trained detector sucessfully.")
 
+    # initialization
+    nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
     model.to(device)
 
     # get optim

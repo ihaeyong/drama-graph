@@ -73,7 +73,7 @@ test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 # model path
 model_path = "{}/anotherMissOh_only_params_{}.pth".format(
-    opt.saved_path,opt.model)
+    opt.saved_path, opt.model)
 
 def test(opt):
 
@@ -95,7 +95,6 @@ def test(opt):
 
     # define person model
     model1 = person_model(num_persons, device)
-
     ckpt = torch.load(model_path)
     # in case of multi-gpu training
     if True:
@@ -106,8 +105,17 @@ def test(opt):
             ckpt_state_dict[name] = v
     else:
         ckpt_state_dict = ckpt
+
+    print("--- loading {} model---".format(model_path))
     if optimistic_restore(model1, ckpt_state_dict):
         print("loaded trained model sucessfully.")
+
+    #if opt.pre_trained_model_type == "model":
+    #model_path_ = "{}/anotherMissOh_{}.pth".format(
+    #    opt.saved_path,opt.model)
+    #model1 = torch.load(model_path_)
+    #print("loaded with gpu {}".format(model_path_))
+
     model1.to(device)
     model1.eval()
 
@@ -124,14 +132,20 @@ def test(opt):
             image, info, is_train=False)
 
         try:
-            image = torch.cat(image,0).cuda()
+            image = torch.cat(image,0).to(device)
         except:
             continue
 
         #with torch.no_grad():
         # logits : [1, 125, 14, 14]
-        # behavior_logits : [1, 135, 14, 14]
-        predictions, _ = model1(image)
+        logits, _ = model1(image)
+
+        predictions = post_processing(logits,
+                                      opt.image_size,
+                                      PersonCLS,
+                                      anchors,
+                                      opt.conf_threshold,
+                                      opt.nms_threshold)
 
         for idx, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
