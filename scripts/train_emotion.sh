@@ -1,5 +1,4 @@
-#!/usr/bin/env bash
-
+export PYTHONPATH=/root/workspaces/vtt/drama-graph
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 

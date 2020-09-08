@@ -126,12 +126,14 @@ def test(opt):
         print("loaded with {}".format(trained_face))
 
     # emotion model
-    if False:
-        # add model
+    if True:
+        model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
         trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_emotion_integration.pth')
-        # model load
+        model_emo.load_state_dict(torch.load(trained_emotion))
         print("loaded with {}".format(trained_emotion))
+    model_emo.cuda(device)
+    model_emo.eval()
 
     # object model
     if False:
@@ -187,7 +189,14 @@ def test(opt):
         # face
 
         # emotion
-
+        if np.array(face_label).size > 0 :
+            image_c = image.permute(0,2,3,1).cpu()
+            face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
+            face_crops, emo_gt = face_crops.cuda(device).contiguous(), emo_gt.cuda(device)
+            emo_logits = model_emo(face_crops)
+            num_img, num_face = np.array(face_label).shape[0:2]
+            emo_logits = emo_logits.view(num_img, num_face, 7)
+            
         # object
 
         # relation
@@ -278,8 +287,8 @@ def test(opt):
                 f.close()
 
                 # face
-
-
+                
+                
                 # emotion
 
 
@@ -376,7 +385,15 @@ def test(opt):
                         # face
 
                         # emotion
-
+                        fl = face_label[idx][jdx]
+                        face_x0, face_y0 = int(fl[0]/width_ratio), int(fl[1]/height_ratio)
+                        face_x1, face_y1 = int(fl[2]/width_ratio), int(fl[3]/height_ratio)
+                        emo_ij = F.softmax(emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
+                        emo_txt = EmoCLS[emo_ij]
+                        cv2.rectangle(output_image, (face_x0,face_y0), (face_x1,face_y1), (255,255,0), 1)
+                        cv2.putText(output_image, emo_txt, (face_x0, face_y0-5), 
+                                    cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1, cv2.LINE_AA)
+                        
                         # object
 
                         # relation
