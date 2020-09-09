@@ -110,12 +110,21 @@ def test(opt):
     # get the trained models from
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
     # person and behavior
-    if True :
+    if False :
         model1 = behavior_model(num_persons, num_behaviors, opt, device)
         trained_persons = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_integration.pth')
         model1.load_state_dict(torch.load(trained_persons))
         print("loaded with {}".format(trained_persons))
+
+    else:
+        # pre-trained behavior model
+        # step 1: person trained on voc 50 epoch
+        # step 2: person feature based behavior sequence learning 100 epoch
+        b_model_path = "{}/anotherMissOh_{}.pth".format(
+            opt.saved_path, 'anotherMissOh_global_diff_subset_batch1_local_wloss')
+        model1 = torch.load(model_path)
+        print("loaded with person and behavior model {}".format(model_path))
     model1.cuda(device)
     model1.eval()
 
@@ -179,7 +188,7 @@ def test(opt):
             image, info, is_train=False)
 
         try :
-            image = torch.cat(image,0).cuda()
+            image = torch.cat(image,0).cuda(device)
         except:
             continue
 
@@ -207,7 +216,7 @@ def test(opt):
             emo_logits = model_emo(face_crops)
             num_img, num_face = np.array(face_label).shape[0:2]
             emo_logits = emo_logits.view(num_img, num_face, 7)
-            
+
         # object
 
         # relation
@@ -428,9 +437,9 @@ def test(opt):
                         emo_ij = F.softmax(emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
                         emo_txt = EmoCLS[emo_ij]
                         cv2.rectangle(output_image, (face_x0,face_y0), (face_x1,face_y1), (255,255,0), 1)
-                        cv2.putText(output_image, emo_txt, (face_x0, face_y0-5), 
+                        cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
                                     cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1, cv2.LINE_AA)
-                        
+
                         # object
 
                         # relation
