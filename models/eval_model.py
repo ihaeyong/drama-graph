@@ -111,20 +111,23 @@ def test(opt):
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
     # person and behavior
     if False :
+        print("-----------person---behavior-------model---------------")
         model1 = behavior_model(num_persons, num_behaviors, opt, device)
         trained_persons = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_integration.pth')
-        model1.load_state_dict(torch.load(trained_persons))
-        print("loaded with {}".format(trained_persons))
+        if optimistic_restore(model1, torch.load(trained_persons)):
+            #model1.load_state_dict(torch.load(trained_persons))
+            print("loaded with {}".format(trained_persons))
 
     else:
         # pre-trained behavior model
         # step 1: person trained on voc 50 epoch
         # step 2: person feature based behavior sequence learning 100 epoch
-        b_model_path = "{}/anotherMissOh_{}.pth".format(
-            opt.saved_path, 'anotherMissOh_global_diff_subset_batch1_local_wloss')
-        model1 = torch.load(model_path)
-        print("loaded with person and behavior model {}".format(model_path))
+        model1 = behavior_model(num_persons, num_behaviors, opt, device)
+        trained_persons = './checkpoint/refined_models' + os.sep + "{}".format(
+            'anotherMissOh_only_params_integration.pth')
+        model1.load_state_dict(torch.load(trained_persons))
+        print("loaded with person and behavior model {}".format(trained_persons))
     model1.cuda(device)
     model1.eval()
 
@@ -132,7 +135,7 @@ def test(opt):
     if True:
         model_face = face_model(num_persons, num_faces, device)
         trained_face = './checkpoint/refined_models' + os.sep + "{}".format(
-        'anotherMissOh_only_params_face_integration.pth')
+        'anotherMissOh_only_params_face.pth')
         model_face.load_state_dict(torch.load(trained_face))
         print("loaded with {}".format(trained_face))
     model_face.cuda(device)
@@ -224,9 +227,6 @@ def test(opt):
         # place
 
         for idx, frame in enumerate(frame_id):
-            # break for limited  memory
-            if idx > 12:
-                break
 
             # ---------------(3) mkdir for evaluations----------------------
             f_info = frame[0].split('/')
@@ -365,11 +365,12 @@ def test(opt):
                 # ToTensor function normalizes image pixel values into [0,1]
                 np_img = img.cpu().numpy().transpose((1,2,0)) * 255
 
-                if len(predictions[idx]) != 0:
+                output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
+                output_image = cv2.resize(output_image, (width, height))
+
+                if len(predictions) != 0 :
                     prediction = predictions[idx]
                     b_logit = b_logits[idx]
-                    output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
-                    output_image = cv2.resize(output_image, (width, height))
 
                     # save images
                     cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
@@ -410,9 +411,6 @@ def test(opt):
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
 
-                        cv2.imwrite(save_dir + "{}".format(f_file),
-                                    output_image)
-
                         # behavior
                         pred_cls = pred[5]
                         pred_beh_cls = b_pred.replace(' ', '_')
@@ -439,9 +437,11 @@ def test(opt):
                         face_x1, face_y1 = int(fl[2]/width_ratio), int(fl[3]/height_ratio)
                         emo_ij = F.softmax(emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
                         emo_txt = EmoCLS[emo_ij]
-                        cv2.rectangle(output_image, (face_x0,face_y0), (face_x1,face_y1), (255,255,0), 1)
+                        cv2.rectangle(output_image, (face_x0,face_y0),
+                                      (face_x1,face_y1), (255,255,0), 1)
                         cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
-                                    cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1, cv2.LINE_AA)
+                                    cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
+                                    cv2.LINE_AA)
 
                         # object
 
@@ -463,12 +463,6 @@ def test(opt):
                 if len(predictions_face) != 0:
 
                     prediction_face = predictions_face[0]
-                    output_image = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
-                    output_image = cv2.resize(output_image, (width, height))
-
-                    # save images
-                    cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
-                        '.txt', '.jpg'), output_image)
 
                     for pred in prediction_face:
                         xmin = int(max(pred[0] / width_ratio, 0))
@@ -493,9 +487,6 @@ def test(opt):
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
 
-                        cv2.imwrite(save_dir + "{}".format(f_file),
-                                    output_image)
-
                         # save detection results
                         pred_cls = pred[5]
 
@@ -514,6 +505,9 @@ def test(opt):
                         print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
                         f_face.close()
+
+                # save output image
+                cv2.imwrite(save_dir + "{}".format(f_file), output_image)
             except:
                 f.close()
                 f_beh.close()
