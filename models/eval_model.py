@@ -224,6 +224,9 @@ def test(opt):
         # place
 
         for idx, frame in enumerate(frame_id):
+            # break for limited  memory
+            if idx > 12:
+                break
 
             # ---------------(3) mkdir for evaluations----------------------
             f_info = frame[0].split('/')
@@ -280,7 +283,7 @@ def test(opt):
                                             f_info[6],
                                             f_info[7].replace("jpg", "txt"))
             if opt.display:
-                print("mAP_file:{}".format(mAP_file))
+                print("frame.__len__{}, mAP_file:{}".format(len(frame_id), mAP_file))
 
             # --------------(4) ground truth ---------------------------------
             # save person ground truth
