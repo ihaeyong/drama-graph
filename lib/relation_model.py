@@ -171,10 +171,7 @@ class relation_model(nn.Module):
                     for jdx, obj_box in enumerate(object_label[idx]):
                         obj_num_box = 1
 
-                        try:
-                            obj_g_fmap = self.ex_global_feat_object(obj_fmap[jdx])
-                        except:
-                            pdb.set_trace()
+                        obj_g_fmap = self.ex_global_feat_object(obj_fmap[idx])
                         if len(obj_box) == 0 :
                             continue
 
@@ -196,11 +193,9 @@ class relation_model(nn.Module):
                         obj_i_fmap = self.object_conv(obj_i_fmap)
 
                         rr_labels.append(int(obj_box[0][5]))
-                        if i_fmap.size(0)>1:
-                            pdb.set_trace()
 
-                        p_feat = self.relation_conv1d_person(i_fmap.view(1,-1).unsqueeze(2))[0]
-                        o_feat = self.relation_conv1d_object(obj_i_fmap.view(1,-1).unsqueeze(2))[0]
+                        p_feat = self.relation_conv1d_person(i_fmap.view(-1,2304).unsqueeze(2))[0]
+                        o_feat = self.relation_conv1d_object(obj_i_fmap.view(-1,2304).unsqueeze(2))[0]
 
                         r_feat = torch.cat((p_feat, o_feat),0).transpose(1,0)
                         r_logit = self.relation_fc(r_feat)

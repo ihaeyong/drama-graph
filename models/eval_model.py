@@ -152,12 +152,18 @@ def test(opt):
     model_emo.eval()
 
     # object model
-    if False:
+    if True:
         # add model
-        trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
+        model_object = object_model(num_objects)
+        trained_object = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_object_integration.pth')
         # model load
         print("loaded with {}".format(trained_object))
+        model_object.load_state_dict(torch.load(trained_object))
+
+    model_object.cuda(device)
+    model_object.eval()
+
 
     # relation model
     if False:
@@ -222,6 +228,18 @@ def test(opt):
 
         # object
 
+        if np.array(obj_label).size > 0 :
+            object_logits, _ = model_object(image)
+
+            predictions_object = post_processing(object_logits,
+                                                 opt.image_size,
+                                                 ObjectCLS,
+                                                 model_object.detector.anchors,
+                                                 opt.conf_threshold,
+                                                 opt.nms_threshold)
+
+
+
         # relation
 
         # place
@@ -244,6 +262,9 @@ def test(opt):
             save_mAP_det_face_dir = './results/input_person/detection-face/'
 
             save_mAP_img_dir = './results/input_person/image/'
+
+            save_mAP_gt_obj_dir = './results/input_person/ground-truth-object/'
+            save_mAP_det_obj_dir = './results/input_person/detection-object/'
 
             # visualize predictions
             if not os.path.exists(save_dir):
@@ -272,6 +293,13 @@ def test(opt):
             # face
             if not os.path.exists(save_mAP_det_face_dir):
                 os.makedirs(save_mAP_det_face_dir)
+
+            # object
+            if not os.path.exists(save_mAP_gt_obj_dir):
+                os.makedirs(save_mAP_gt_obj_dir)
+
+            if not os.path.exists(save_mAP_det_obj_dir):
+                os.makedirs(save_mAP_det_obj_dir)
 
             # image
             if not os.path.exists(save_mAP_img_dir):
@@ -326,6 +354,21 @@ def test(opt):
 
 
                 # object
+            gt_object_cnt = 0
+            if len(obj_label) > idx :
+                f_obj = open(save_mAP_gt_obj_dir + mAP_file, mode='w+')
+                for det in obj_label[idx]:
+                    cls = ObjectCLS[int(det[4])]
+                    xmin = str(max(det[0] / width_ratio, 0))
+                    ymin = str(max(det[1] / height_ratio, 0))
+                    xmax = str(min((det[2]) / width_ratio, width))
+                    ymax = str(min((det[3]) / height_ratio, height))
+                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                    if opt.display:
+                        print("object_gt:{}".format(cat_det))
+                    f_obj.write(cat_det)
+                    gt_object_cnt += 1
+                f_obj.close()
 
 
                 # relation
@@ -338,6 +381,7 @@ def test(opt):
                 # open detection file
                 f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
                 f = open(save_mAP_det_dir + mAP_file, mode='w+')
+                f_obj = open(save_mAP_det_obj_dir + mAP_file, mode='w+')
 
             # face
             gt_face_cnt = 0
@@ -443,11 +487,6 @@ def test(opt):
                                     cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
                                     cv2.LINE_AA)
 
-                        # object
-
-                        # relation
-
-                        # place
 
                         if opt.display:
                             print("detected {}".format(
@@ -458,6 +497,60 @@ def test(opt):
                             save_dir + "{}".format(f_file)))
                         f.close()
                         f_beh.close()
+
+
+                        # object
+                if len(predictions_object) != 0:
+                    prediction_object = predictions_object[0]
+
+                    num_preds = len(prediction)
+                    for jdx, pred in enumerate(prediction_object):
+                        xmin = int(max(pred[0] / width_ratio, 0))
+                        ymin = int(max(pred[1] / height_ratio, 0))
+                        xmax = int(min((pred[2]) / width_ratio, width))
+                        ymax = int(min((pred[3]) / height_ratio, height))
+                        color = colors[ObjectCLS.index(pred[5])]
+
+                        cv2.rectangle(output_image, (xmin, ymin),
+                                      (xmax, ymax), color, 2)
+
+                        text_size = cv2.getTextSize(
+                            pred[5] + ' : %.2f' % pred[4],
+                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                        cv2.rectangle(
+                            output_image,
+                            (xmin, ymin),
+                            (xmin + text_size[0] + 100,
+                             ymin + text_size[1] + 20), color, -1)
+                        cv2.putText(
+                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            (xmin, ymin + text_size[1] + 4),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 255, 255), 1)
+
+                        # save detection results
+                        pred_cls = pred[5]
+                        cat_pred = '%s %s %s %s %s %s\n' % (
+                            pred_cls,
+                            str(pred[4]),
+                            str(xmin), str(ymin), str(xmax), str(ymax))
+
+                        print("object_pred:{}".format(cat_pred))
+
+                        f_obj.write(cat_pred)
+
+                        if opt.display:
+                            print("detected {}".format(
+                                save_dir + "{}".format(f_file)))
+                    else:
+                        if opt.display:
+                            print("non-detected {}".format(
+                            save_dir + "{}".format(f_file)))
+                        f_obj.close()
+
+                        # relation
+
+                        # place
 
                 # face
                 if len(predictions_face) != 0:
@@ -512,6 +605,7 @@ def test(opt):
                 f.close()
                 f_beh.close()
                 f_face.close()
+                f_obj.close()
 
                 continue
             if gt_person_cnt == 0:
@@ -530,6 +624,14 @@ def test(opt):
                     os.remove(save_mAP_gt_face_dir + mAP_file)
                 if os.path.exists(save_mAP_det_face_dir + mAP_file):
                     os.remove(save_mAP_det_face_dir + mAP_file)
+
+            # object
+            if gt_object_cnt == 0:
+                if os.path.exists(save_mAP_gt_obj_dir + mAP_file):
+                    os.remove(save_mAP_gt_obj_dir + mAP_file)
+                if os.path.exists(save_mAP_det_obj_dir + mAP_file):
+                    os.remove(save_mAP_det_obj_dir + mAP_file)
+
 
 if __name__ == "__main__":
     test(opt)
