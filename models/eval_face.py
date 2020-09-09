@@ -14,6 +14,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import time
 import shutil
+from lib.face_model import face_model
 
 num_persons = len(PersonCLS)
 num_faces = len(FaceCLS)
@@ -79,6 +80,13 @@ model_path = "{}/anotherMissOh_{}.pth".format(
 def test(opt):
     global colors
 
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(123)
+        device = torch.cuda.current_device()
+    else:
+        torch.manual_seed(123)
+    print(torch.cuda.is_available())
+
     # set test loader params
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
@@ -88,19 +96,20 @@ def test(opt):
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
 
-    if torch.cuda.is_available():
-        if opt.pre_trained_model_type == "model":
-            model1 = torch.load(model_path)
-            print("loaded with gpu {}".format(model_path))
-        else:
-            model1 = Yolo(num_persons)
-            model1.load_state_dict(torch.load(model_path))
-            print("loaded with cpu {}".format(model_path))
+    if True:
+        model_face = face_model(num_persons, num_faces, device)
+        trained_face = './checkpoint/face/' + os.sep + "{}".format(
+            'anotherMissOh_only_params_face.pth')
+        # model load
+        model_face.load_state_dict(torch.load(trained_face))
+        print("loaded with {}".format(trained_face))
+
+    model_face.cuda(device)
+    model_face.eval()
 
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
 
-    model1.eval()
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
@@ -180,12 +189,12 @@ def test(opt):
 
                 # with torch.no_grad():
                 # logits : [1, 125, 14, 14]
-                face_logits = model1(img)
+                face_logits = model_face(img)
 
                 predictions_face = post_processing(face_logits,
                                                    opt.image_size,
                                                    FaceCLS,
-                                                   model1.detector.anchors,
+                                                   model_face.detector.anchors,
                                                    opt.conf_threshold,
                                                    opt.nms_threshold)
 
