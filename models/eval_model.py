@@ -120,12 +120,14 @@ def test(opt):
     model1.eval()
 
     # face model
-    if False :
-        # add model
+    if True:
+        model_face = face_model(num_persons, num_faces, device)
         trained_face = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_face_integration.pth')
-        # model load
+        model_face.load_state_dict(torch.load(trained_face))
         print("loaded with {}".format(trained_face))
+    model_face.cuda(device)
+    model_face.eval()
 
     # emotion model
     if True:
@@ -164,7 +166,6 @@ def test(opt):
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
 
-
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
@@ -189,6 +190,14 @@ def test(opt):
         predictions, b_logits = model1(image, label, behavior_label)
 
         # face
+        face_logits = model_face(image)
+
+        predictions_face = post_processing(face_logits,
+                                           opt.image_size,
+                                           FaceCLS,
+                                           model_face.detector.anchors,
+                                           opt.conf_threshold,
+                                           opt.nms_threshold)
 
         # emotion
         if np.array(face_label).size > 0 :
@@ -218,6 +227,10 @@ def test(opt):
             save_mAP_gt_beh_dir = './results/input_person/ground-truth-behave/'
             save_mAP_det_beh_dir = './results/input_person/detection-behave/'
 
+            # face dir
+            save_mAP_gt_face_dir = './results/input_person/ground-truth-face/'
+            save_mAP_det_face_dir = './results/input_person/detection-face/'
+
             save_mAP_img_dir = './results/input_person/image/'
 
             # visualize predictions
@@ -239,6 +252,15 @@ def test(opt):
             # behavior
             if not os.path.exists(save_mAP_det_beh_dir):
                 os.makedirs(save_mAP_det_beh_dir)
+
+            # ground-truth face
+            if not os.path.exists(save_mAP_gt_face_dir):
+                os.makedirs(save_mAP_gt_face_dir)
+
+            # face
+            if not os.path.exists(save_mAP_det_face_dir):
+                os.makedirs(save_mAP_det_face_dir)
+
             # image
             if not os.path.exists(save_mAP_img_dir):
                 os.makedirs(save_mAP_img_dir)
@@ -288,9 +310,6 @@ def test(opt):
                     f.write(cat_det)
                 f.close()
 
-                # face
-                
-                
                 # emotion
 
 
@@ -307,6 +326,24 @@ def test(opt):
                 # open detection file
                 f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
                 f = open(save_mAP_det_dir + mAP_file, mode='w+')
+
+            # face
+            gt_face_cnt = 0
+            if len(face_label) > idx:
+                f_face = open(save_mAP_gt_face_dir + mAP_file, mode='w+')
+                for det in face_label[idx]:
+                    cls = PersonCLS[int(det[4])]
+                    xmin = str(max(det[0] / width_ratio, 0))
+                    ymin = str(max(det[1] / height_ratio, 0))
+                    xmax = str(min((det[2]) / width_ratio, width))
+                    ymax = str(min((det[3]) / height_ratio, height))
+                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                    print("face_gt:{}".format(cat_det))
+                    f_face.write(cat_det)
+                    gt_face_cnt += 1
+                f_face.close()
+
+                f_face = open(save_mAP_det_face_dir + mAP_file, mode='w+')
 
             # --------------(5) visualization of inferences ----------
             # out of try : pdb.set_trace = lambda : None
@@ -384,8 +421,6 @@ def test(opt):
                         f.write(cat_pred)
                         f_beh.write(cat_pred_beh)
 
-                        # face
-
                         # emotion
                         fl = face_label[idx][jdx]
                         face_x0, face_y0 = int(fl[0]/width_ratio), int(fl[1]/height_ratio)
@@ -411,9 +446,67 @@ def test(opt):
                             save_dir + "{}".format(f_file)))
                         f.close()
                         f_beh.close()
+
+                # face
+                if len(predictions_face) != 0:
+
+                    prediction_face = predictions_face[0]
+                    output_image = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
+                    output_image = cv2.resize(output_image, (width, height))
+
+                    # save images
+                    cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
+                        '.txt', '.jpg'), output_image)
+
+                    for pred in prediction_face:
+                        xmin = int(max(pred[0] / width_ratio, 0))
+                        ymin = int(max(pred[1] / height_ratio, 0))
+                        xmax = int(min((pred[2]) / width_ratio, width))
+                        ymax = int(min((pred[3]) / height_ratio, height))
+                        color = colors[FaceCLS.index(pred[5])]
+
+                        cv2.rectangle(output_image, (xmin, ymin),
+                                      (xmax, ymax), color, 2)
+                        text_size = cv2.getTextSize(
+                            pred[5] + ' : %.2f' % pred[4],
+                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                        cv2.rectangle(
+                            output_image,
+                            (xmin, ymin),
+                            (xmin + text_size[0] + 100,
+                             ymin + text_size[1] + 20), color, -1)
+                        cv2.putText(
+                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            (xmin, ymin + text_size[1] + 4),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 255, 255), 1)
+
+                        cv2.imwrite(save_dir + "{}".format(f_file),
+                                    output_image)
+
+                        # save detection results
+                        pred_cls = pred[5]
+
+                        cat_pred = '%s %s %s %s %s %s\n' % (
+                            pred_cls,
+                            str(pred[4]),
+                            str(xmin), str(ymin), str(xmax), str(ymax))
+
+                        print("face_pred:{}".format(cat_pred))
+
+                        f_face.write(cat_pred)
+
+                        print("detected {}".format(
+                            save_dir + "{}".format(f_file)))
+                    else:
+                        print("non-detected {}".format(
+                            save_dir + "{}".format(f_file)))
+                        f_face.close()
             except:
                 f.close()
                 f_beh.close()
+                f_face.close()
+
                 continue
             if gt_person_cnt == 0:
                 if os.path.exists(save_mAP_gt_dir + mAP_file):
@@ -424,6 +517,13 @@ def test(opt):
                     os.remove(save_mAP_gt_beh_dir + mAP_file)
                 if os.path.exists(save_mAP_det_beh_dir + mAP_file):
                     os.remove(save_mAP_det_beh_dir + mAP_file)
+
+            # face
+            if gt_face_cnt == 0:
+                if os.path.exists(save_mAP_gt_face_dir + mAP_file):
+                    os.remove(save_mAP_gt_face_dir + mAP_file)
+                if os.path.exists(save_mAP_det_face_dir + mAP_file):
+                    os.remove(save_mAP_det_face_dir + mAP_file)
 
 if __name__ == "__main__":
     test(opt)
