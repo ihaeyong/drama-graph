@@ -67,7 +67,7 @@ class FocalLossWithOutOneHot(nn.Module):
         return loss.mean()
 
 class CELossWithOutOneHot(nn.Module):
-    def __init__(self, gamma=0, eps=1e-7):
+    def __init__(self, device, gamma=0, eps=1e-7):
         super(CELossWithOutOneHot, self).__init__()
         weight = np.load('./lib/behavior.npy')
         self.reweight = True
@@ -78,7 +78,9 @@ class CELossWithOutOneHot(nn.Module):
         self.weight = np.stack(self.weight)
 
         self.weight=torch.from_numpy(
-            self.weight/self.weight.sum()).cuda().float()
+            self.weight/self.weight.sum()).to(device).float()
+
+        self.device = device
 
     def forward(self, input, target):
         if self.reweight:
@@ -86,4 +88,4 @@ class CELossWithOutOneHot(nn.Module):
         else:
             loss = F.cross_entropy(input, target)
 
-        return loss
+        return loss.to(self.device)

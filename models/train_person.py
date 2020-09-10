@@ -20,6 +20,17 @@ from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, fl
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 from lib.hyper_yolo import anchors
 
+'''
+----------------------------------------------
+--------sgd learning on 4 gpus----------------
+----------------------------------------------
+01 epoch : 2.85 %
+03 epoch : 4.73 %
+09 epoch : 6.45 %
+12 epoch : 5.49 %
+20 epoch : 7.76 %
+----------------------------------------------
+'''
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -126,7 +137,6 @@ def train(opt):
             print("loaded pre-trained detector sucessfully.")
 
     # initialization
-    #nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
     model.to(device)
 
     # get optim
@@ -138,7 +148,7 @@ def train(opt):
                  and p.requires_grad]
 
     p_params = [{'params': fc_params, 'lr': opt.lr * num_gpus}]
-    
+
     if False:
         p_optimizer = torch.optim.Adam(p_params, lr = opt.lr * num_gpus,
                                        weight_decay=opt.decay, amsgrad=True)

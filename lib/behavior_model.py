@@ -86,10 +86,10 @@ class behavior_model(nn.Module):
 
     def ex_global_feat(self, fmap):
         box_g = torch.from_numpy(
-            np.array([0,0,self.fmap_size,self.fmap_size])).cuda(
+            np.array([0,0,self.fmap_size,self.fmap_size])).to(
                 self.device).detach()
         g_box = Variable(
-            torch.zeros(1, 5).cuda(self.device)).detach()
+            torch.zeros(1, 5).to(self.device)).detach()
         g_box[:,1:] = box_g
 
         g_fmap = roi_align(fmap[None],
@@ -116,7 +116,7 @@ class behavior_model(nn.Module):
         # define behavior_tensor
         behavior_tensor = Variable(
             torch.zeros(batch, self.num_persons,
-                        256 * 3 * 3).cuda(self.device))
+                        256 * 3 * 3).to(self.device))
 
         # persons boxes
         b_logits = []
@@ -156,10 +156,10 @@ class behavior_model(nn.Module):
                         box_ = np.clip(
                             np.stack(box)[:,:4].astype('float32'),
                             0.0, self.img_size)
-                        box_ = Variable(torch.from_numpy(box_)).cuda(
+                        box_ = Variable(torch.from_numpy(box_)).to(
                             self.device).detach() / self.img_size * self.fmap_size
                         b_box = Variable(
-                            torch.zeros(num_box, 5).cuda(self.device)).detach()
+                            torch.zeros(num_box, 5).to(self.device)).detach()
                         b_box[:,1:] = box_
                         i_fmap = roi_align(fmap[idx][None],
                                            b_box.float(),
@@ -199,10 +199,10 @@ class behavior_model(nn.Module):
                     box_ = np.clip(
                         np.stack(box)[:,:4].astype('float32')/self.img_size,
                         0.0, self.fmap_size) * self.fmap_size
-                    box_ = torch.from_numpy(box_).cuda(self.device).detach()
+                    box_ = torch.from_numpy(box_).to(self.device).detach()
                     b_box = Variable(
-                        torch.zeros(num_box, 5).cuda(self.device)).detach()
-                    b_box[:,1:] = torch.clamp(box_ + torch.randn(box_.shape).cuda(
+                        torch.zeros(num_box, 5).to(self.device)).detach()
+                    b_box[:,1:] = torch.clamp(box_ + torch.randn(box_.shape).to(
                         self.device), 0, self.fmap_size)
                     i_fmap = roi_align(fmap[idx][None],
                                        b_box.float(),

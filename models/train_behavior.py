@@ -18,6 +18,18 @@ from lib.logger import Logger
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
+from lib.hyper_yolo import anchors
+
+'''
+----------------------------------------------
+--------sgd learning on 4 gpus----------------
+----------------------------------------------
+01 epoch : 2.85 %
+03 epoch : 4.73 %
+09 epoch : 6.45 %
+12 epoch : 5.49 %
+----------------------------------------------
+'''
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -49,7 +61,7 @@ def get_args():
                         type=str, choices=["model", "params"],
                         default="model")
     parser.add_argument("--trained_model_path", type=str,
-                        default="./checkpoint/detector") # Pre-training path
+                        default="./checkpoint/person") # Pre-training path
 
     parser.add_argument("--saved_path", type=str,
                         default="./checkpoint/behavior") # saved training path
@@ -96,17 +108,18 @@ else:
     print('mkdir_{}'.format(logger_path))
 logger = Logger(logger_path)
 
+# number of gpus
+num_gpus = torch.cuda.device_count()
+
 def train(opt):
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(123)
-        device = torch.cuda.current_device()
-    else:
-        torch.manual_seed(123)
+    device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
+    torch.cuda.manual_seed(123)
 
     training_params = {"batch_size": opt.batch_size,
                        "shuffle": True,
                        "drop_last": True,
-                       "collate_fn": custom_collate_fn}
+                       "collate_fn": custom_collate_fn,
+                       "num_workers": 2*num_gpus}
 
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
@@ -118,12 +131,23 @@ def train(opt):
     # define behavior-model
     model = behavior_model(num_persons, num_behaviors, opt, device)
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
-        'anotherMissOh_only_params_person.pth')
+        'anotherMissOh_only_params_voc_person_sgd.pth')
 
     ckpt = torch.load(trained_persons)
-    if optimistic_restore(model.detector, ckpt):
+
+    # in case of multi-gpu training
+    if True:
+        from collections import OrderedDict
+        ckpt_state_dict = OrderedDict()
+        for k,v in ckpt.items():
+            name = k[7:] # remove 'module'
+            ckpt_state_dict[name] = v
+    else:
+        ckpt_state_dict = ckpt
+
+    if optimistic_restore(model, ckpt_state_dict):
         print("loaded pre-trained detector sucessfully.")
-    model.cuda(device)
+    model.to(device)
 
     # get optim
     # yolo detector and person
@@ -140,7 +164,6 @@ def train(opt):
     p_params = [{'params': fc_params, 'lr': opt.lr}]
     b_params = [{'params': non_fc_params, 'lr': opt.lr * 10.0}]
 
-    criterion = YoloLoss(num_persons, model.detector.anchors, opt.reduction)
     p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
                                   momentum=opt.momentum,
                                   weight_decay=opt.decay)
@@ -157,7 +180,14 @@ def train(opt):
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
 
+    # multi-gpus
+    if num_gpus > 1:
+        model = torch.nn.DataParallel(model)
+    model.to(device)
     model.train()
+
+    criterion = YoloLoss(num_persons, anchors, device, opt.reduction)
+
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
@@ -166,7 +196,7 @@ def train(opt):
     if opt.b_loss == 'ce_focal':
         focal_without_onehot = FocalLossWithOutOneHot(gamma=opt.f_gamma)
     elif opt.b_loss == 'ce':
-        ce_without_onehot = CELossWithOutOneHot()
+        ce_without_onehot = CELossWithOutOneHot(device)
 
     for epoch in range(opt.num_epoches):
         b_logit_list = []
@@ -190,7 +220,7 @@ def train(opt):
 
             # image [b, 3, 448, 448]
             if torch.cuda.is_available():
-                image = torch.cat(image).cuda(device)
+                image = torch.cat(image).to(device)
             else:
                 image = torch.cat(image)
 
@@ -216,10 +246,7 @@ def train(opt):
 
             # loss for behavior
             b_logits = torch.stack(b_logits)
-            #b_logits = torch.cat(b_logits,0)
-
             b_labels = np.array(flatten(b_labels))
-            #b_labels = np.stack(b_labels)
 
             # skip none behavior
             keep_idx = np.where(b_labels!=26)
