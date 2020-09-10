@@ -249,11 +249,11 @@ def test(opt):
                         if opt.display:
                             print("detected {}".format(
                                 save_dir + "{}".format(f_file)))
-                    else:
-                        if opt.display:
-                            print("non-detected {}".format(
+                else:
+                    if opt.display:
+                        print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
-                        f.close()
+                    f.close()
             except:
                 f.close()
                 continue

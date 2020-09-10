@@ -130,23 +130,29 @@ def train(opt):
     model.to(device)
 
     # get optim
+    num_gpus = torch.cuda.device_count()
     # yolo detector and person
     fc_params = [p for n,p in model.named_parameters()
                  if n.startswith('person') \
                  or n.startswith('detector') \
                  and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr}]
+    p_params = [{'params': fc_params, 'lr': opt.lr * num_gpus}]
+    
+    if False:
+        p_optimizer = torch.optim.Adam(p_params, lr = opt.lr * num_gpus,
+                                       weight_decay=opt.decay, amsgrad=True)
+    else:
+        p_optimizer = torch.optim.SGD(p_params, lr = opt.lr * num_gpus,
+                                      momentum=opt.momentum, weight_decay=opt.decay)
 
-    p_optimizer = torch.optim.Adam(p_params, lr = opt.lr,
-                                   weight_decay=opt.decay, amsgrad=True)
     p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
 
     # multi-gpus
-    if torch.cuda.device_count() > 1:
+    if num_gpus > 1:
         model = torch.nn.DataParallel(model)
     model.to(device)
     model.train()
