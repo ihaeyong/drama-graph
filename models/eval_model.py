@@ -555,7 +555,7 @@ def test(opt):
                 # face
                 if len(predictions_face) != 0:
 
-                    prediction_face = predictions_face[0]
+                    prediction_face = predictions_face[idx]
 
                     for pred in prediction_face:
                         xmin = int(max(pred[0] / width_ratio, 0))

@@ -122,8 +122,19 @@ def test(opt):
         image, label, behavior_label, object_label, face_label, frame_id = SortFullRect(
             image, info, is_train=False)
 
-        # if torch.cuda.is_available():
-        #     image = torch.cat(image,0).cuda()
+        try:
+            image = torch.cat(image, 0).cuda()
+        except:
+            continue
+
+        face_logits = model_face(image)
+
+        predictions_face = post_processing(face_logits,
+                                           opt.image_size,
+                                           FaceCLS,
+                                           model_face.detector.anchors,
+                                           opt.conf_threshold,
+                                           opt.nms_threshold)
 
         for idx, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
@@ -184,22 +195,8 @@ def test(opt):
                 # ToTensor function normalizes image pixel values into [0,1]
                 np_img = img.squeeze(0).cpu().numpy().transpose((1,2,0)) * 255
 
-                if torch.cuda.is_available():
-                    img = img.cuda()
-
-                # with torch.no_grad():
-                # logits : [1, 125, 14, 14]
-                face_logits = model_face(img)
-
-                predictions_face = post_processing(face_logits,
-                                                   opt.image_size,
-                                                   FaceCLS,
-                                                   model_face.detector.anchors,
-                                                   opt.conf_threshold,
-                                                   opt.nms_threshold)
-
                 if len(predictions_face) != 0:
-                    predictions_face = predictions_face[0]
+                    prediction_face = predictions_face[idx]
                     output_image = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
 
@@ -207,7 +204,7 @@ def test(opt):
                     cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
                         '.txt', '.jpg'), output_image)
 
-                    for pred in predictions_face:
+                    for pred in prediction_face:
                         xmin = int(max(pred[0] / width_ratio, 0))
                         ymin = int(max(pred[1] / height_ratio, 0))
                         xmax = int(min((pred[2]) / width_ratio, width))
