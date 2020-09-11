@@ -17,7 +17,7 @@ import pickle
 import numpy as np
 import time
 from lib.logger import Logger
-from lib.place_model import place_model, resnet50, label_mapping, accuracy, AverageMeter, ProgressMeter, place_model_yolo
+from lib.place_model import place_model, label_mapping, accuracy, AverageMeter, ProgressMeter
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
@@ -186,7 +186,7 @@ def train(opt):
     model_relation.cuda(device)
 
     # place model
-    model_place = place_model_yolo(num_persons, num_behaviors, device)
+    model_place = place_model(num_persons, num_behaviors, device)
     trained_place = './checkpoint/place' + os.sep + "{}".format(
         'anotherMissOh_only_params_place.pth')
     if False:
