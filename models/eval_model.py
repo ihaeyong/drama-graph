@@ -14,7 +14,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
-from lib.place_model import place_model, resnet50, label_mapping, accuracy, AverageMeter, ProgressMeter, place_model_yolo
+from lib.place_model import place_model, label_mapping, accuracy
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
@@ -174,12 +174,16 @@ def test(opt):
         print("loaded with {}".format(trained_relation))
 
     # place model
-    if False:
+    if True:
+        model_place = place_model(num_persons, num_behaviors, device)
         # add model
-        trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
-        'anotherMissOh_only_params_place_integration.pth')
+        trained_place = './checkpoint/refined_models' + os.sep + "{}".format(
+            'anotherMissOh_only_params_place_integration.pth')
         # model load
         print("loaded with {}".format(trained_place))
+        model_place.load_state_dict(torch.load(trained_place)['model'])
+    model_place.cuda(device)
+    model_place.eval()
 
     # load the color map for detection results
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
@@ -187,7 +191,11 @@ def test(opt):
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
-
+    
+    # Sequence buffers
+    preds_place = []; preds_frameid = [];
+    target_place = []; image_place = []
+    temp_images = []; temp_frameid = []; temp_info = []
     # load test clips
     for iter, batch in enumerate(test_loader):
         image, info = batch
@@ -243,7 +251,89 @@ def test(opt):
         # relation
 
         # place
+        images_norm = []; info_place = [];
 
+        for idx in range(len(image)):
+            image_resize = image[idx]
+            images_norm.append(image_resize)
+            info_place.append(info[0][idx]['place'])
+            frame_place = frame_id.copy()
+        info_place = label_mapping(info_place)
+
+        pl_updated=False
+        while True:
+            temp_len = len(temp_images)
+            temp_images += images_norm[:(10-temp_len)]; images_norm = images_norm[(10-temp_len):]
+            temp_frameid += frame_place[:(10-temp_len)]; frame_place = frame_place[(10-temp_len):]
+            temp_info += info_place[:(10-temp_len)]; info_place = info_place[(10-temp_len):]
+            temp_len = len(temp_images)
+            if temp_len == 10:
+                batch_images = (torch.stack(temp_images).cuda(device))
+                batch_images = batch_images.unsqueeze(0)
+                target = torch.Tensor(temp_info).to(torch.int64).cuda(device)
+                output = model_place(batch_images)
+                output = torch.cat((output[:, :9], output[:, 10:]), 1) # None excluded
+                preds = torch.argmax(output, -1) # (T, n_class) ->(T, ) 
+                preds = preds.tolist()
+                for idx in range(len(preds)):
+                    if preds[idx] >= 9: preds[idx] += 1
+                preds_place += preds; preds_frameid += temp_frameid;
+                target_place += temp_info; image_place += temp_images
+                temp_images = []; temp_info = []; temp_frameid = []
+                pl_updated = True
+            elif temp_len < 10:
+                break
+        # Save place classification files
+        preds_place_txt = label_remapping(preds_place)
+        target_place_txt = label_remapping(target_place)
+        if len(preds_place) > 0:
+            for idx, frame in enumerate(preds_frameid):
+                f_info = frame[0].split('/')
+                save_dir = './results/person/{}/{}/{}/'.format(
+                    f_info[4], f_info[5], f_info[6])
+
+                save_gt_place_dir = './results/place/ground-truth-place/'
+                save_pred_place_dir = './results/place/prediction-place/'
+                save_img_place_dir = './results/place/image/'
+                if not os.path.exists(save_gt_place_dir):
+                    os.makedirs(save_gt_place_dir)
+                if not os.path.exists(save_pred_place_dir):
+                    os.makedirs(save_pred_place_dir)
+                if not os.path.exists(save_img_place_dir):
+                    os.makedirs(save_img_place_dir)
+                f_file = f_info[7]
+                mAP_file = "{}_{}_{}_{}".format(f_info[4],
+                                                f_info[5],
+                                                f_info[6],
+                                                f_info[7].replace("jpg", "txt"))
+                f = open(save_gt_place_dir + mAP_file, mode='w+')
+                f.write(target_place_txt[idx])
+                print('place_gt :', target_place_txt[idx])
+                f.close()
+
+                f = open(save_pred_place_dir + mAP_file, mode='w+')
+                f.write(preds_place_txt[idx])
+                print('place_pred :', preds_place_txt[idx])
+                
+                # Save place classification visualization images
+                try:
+                    image_pl = image_place[idx]
+                    np_img = image_pl.cpu().numpy().transpose((1,2,0)) * 255
+
+                    output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
+                    output_image = cv2.resize(output_image, (width, height))
+
+                    cv2.putText(output_image, "place : " + preds_place_txt[idx],
+                        (30, 30),
+                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+                    cv2.imwrite(save_img_place_dir + mAP_file.replace(
+                        '.txt', '.jpg'), output_image)
+                    f.close()
+                except:
+                    f.close()
+        preds_place = []; target_place = []; preds_frameid = []; image_place = []
+        
+        
         for idx, frame in enumerate(frame_id):
 
             # ---------------(3) mkdir for evaluations----------------------
