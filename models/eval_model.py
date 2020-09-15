@@ -14,6 +14,10 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
+#from lib.place_model import place_model, resnet50, label_mapping, label_remapping, accuracy, AverageMeter, ProgressMeter
+
+from lib.place_model import place_model, label_mapping, label_remapping, accuracy, AverageMeter, ProgressMeter
+
 from lib.place_model import place_model, label_mapping, accuracy
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
@@ -22,6 +26,8 @@ from lib.face_model import face_model
 from lib.object_model import object_model
 from lib.relation_model import relation_model
 from lib.emotion_model import emotion_model, crop_face_emotion, EmoCLS
+
+import pdb
 
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
@@ -105,6 +111,8 @@ def test(opt):
 
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
+ 
+
 
     # ---------------(1) load refined models --------------------
     # get the trained models from
