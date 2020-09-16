@@ -14,11 +14,8 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
-#from lib.place_model import place_model, resnet50, label_mapping, label_remapping, accuracy, AverageMeter, ProgressMeter
 
-from lib.place_model import place_model, label_mapping, label_remapping, accuracy, AverageMeter, ProgressMeter
-
-from lib.place_model import place_model, label_mapping, accuracy
+from lib.place_model import place_model, label_mapping, accuracy, label_remapping, place_buffer
 from lib.behavior_model import behavior_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
@@ -201,9 +198,7 @@ def test(opt):
     height_ratio = float(opt.image_size) / height
     
     # Sequence buffers
-    preds_place = []; preds_frameid = [];
-    target_place = []; image_place = []
-    temp_images = []; temp_frameid = []; temp_info = []
+    buffer_images = []
     # load test clips
     for iter, batch in enumerate(test_loader):
         image, info = batch
@@ -259,7 +254,7 @@ def test(opt):
         # relation
 
         # place
-        images_norm = []; info_place = [];
+        images_norm = []; info_place = []; preds_place = []
 
         for idx in range(len(image)):
             image_resize = image[idx]
@@ -267,79 +262,24 @@ def test(opt):
             info_place.append(info[0][idx]['place'])
             frame_place = frame_id.copy()
         info_place = label_mapping(info_place)
-
+        buffer_images = place_buffer(images_norm, buffer_images)
         pl_updated=False
-        while True:
-            temp_len = len(temp_images)
-            temp_images += images_norm[:(10-temp_len)]; images_norm = images_norm[(10-temp_len):]
-            temp_frameid += frame_place[:(10-temp_len)]; frame_place = frame_place[(10-temp_len):]
-            temp_info += info_place[:(10-temp_len)]; info_place = info_place[(10-temp_len):]
-            temp_len = len(temp_images)
-            if temp_len == 10:
-                batch_images = (torch.stack(temp_images).cuda(device))
-                batch_images = batch_images.unsqueeze(0)
-                target = torch.Tensor(temp_info).to(torch.int64).cuda(device)
-                output = model_place(batch_images)
-                output = torch.cat((output[:, :9], output[:, 10:]), 1) # None excluded
-                preds = torch.argmax(output, -1) # (T, n_class) ->(T, ) 
-                preds = preds.tolist()
-                for idx in range(len(preds)):
-                    if preds[idx] >= 9: preds[idx] += 1
-                preds_place += preds; preds_frameid += temp_frameid;
-                target_place += temp_info; image_place += temp_images
-                temp_images = []; temp_info = []; temp_frameid = []
-                pl_updated = True
-            elif temp_len < 10:
-                break
-        # Save place classification files
+        buffer_idx = 10 - (len(images_norm) %10)
+        images_norm = buffer_images[-buffer_idx:] + images_norm
+        for plidx in range(len(images_norm)//10):
+            batch_images = torch.stack(images_norm[plidx*10:(plidx+1)*10]).cuda(device).unsqueeze(0)
+            output = model_place(batch_images)
+            output = torch.cat((output[:, :9], output[:, 10:]), 1) # None excluded. For None prediction, comment this line out.
+            preds = torch.argmax(output, -1).tolist() # (T, n_class) ->(T, ) 
+            for idx in range(len(preds)):
+                if preds[idx] >= 9: preds[idx] += 1
+            preds_place += preds;
+            pl_updated = True
+        buffer_images = images_norm[-10:]
+        preds_place = preds_place[buffer_idx:]
+        assert len(preds_place) == len(info_place)
         preds_place_txt = label_remapping(preds_place)
-        target_place_txt = label_remapping(target_place)
-        if len(preds_place) > 0:
-            for idx, frame in enumerate(preds_frameid):
-                f_info = frame[0].split('/')
-                save_dir = './results/person/{}/{}/{}/'.format(
-                    f_info[4], f_info[5], f_info[6])
-
-                save_gt_place_dir = './results/place/ground-truth-place/'
-                save_pred_place_dir = './results/place/prediction-place/'
-                save_img_place_dir = './results/place/image/'
-                if not os.path.exists(save_gt_place_dir):
-                    os.makedirs(save_gt_place_dir)
-                if not os.path.exists(save_pred_place_dir):
-                    os.makedirs(save_pred_place_dir)
-                if not os.path.exists(save_img_place_dir):
-                    os.makedirs(save_img_place_dir)
-                f_file = f_info[7]
-                mAP_file = "{}_{}_{}_{}".format(f_info[4],
-                                                f_info[5],
-                                                f_info[6],
-                                                f_info[7].replace("jpg", "txt"))
-                f = open(save_gt_place_dir + mAP_file, mode='w+')
-                f.write(target_place_txt[idx])
-                print('place_gt :', target_place_txt[idx])
-                f.close()
-
-                f = open(save_pred_place_dir + mAP_file, mode='w+')
-                f.write(preds_place_txt[idx])
-                print('place_pred :', preds_place_txt[idx])
-                
-                # Save place classification visualization images
-                try:
-                    image_pl = image_place[idx]
-                    np_img = image_pl.cpu().numpy().transpose((1,2,0)) * 255
-
-                    output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
-                    output_image = cv2.resize(output_image, (width, height))
-
-                    cv2.putText(output_image, "place : " + preds_place_txt[idx],
-                        (30, 30),
-                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
-                    cv2.imwrite(save_img_place_dir + mAP_file.replace(
-                        '.txt', '.jpg'), output_image)
-                    f.close()
-                except:
-                    f.close()
-        preds_place = []; target_place = []; preds_frameid = []; image_place = []
+        target_place_txt = label_remapping(info_place)
         
         
         for idx, frame in enumerate(frame_id):
@@ -363,6 +303,10 @@ def test(opt):
 
             save_mAP_gt_obj_dir = './results/input_person/ground-truth-object/'
             save_mAP_det_obj_dir = './results/input_person/detection-object/'
+
+            # place dir
+            save_gt_place_dir = './results/place/ground-truth-place/'
+            save_pred_place_dir = './results/place/prediction-place/'
 
             # visualize predictions
             if not os.path.exists(save_dir):
@@ -398,6 +342,12 @@ def test(opt):
 
             if not os.path.exists(save_mAP_det_obj_dir):
                 os.makedirs(save_mAP_det_obj_dir)
+
+            # place
+            if not os.path.exists(save_gt_place_dir):
+                os.makedirs(save_gt_place_dir)
+            if not os.path.exists(save_pred_place_dir):
+                os.makedirs(save_pred_place_dir)
 
             # image
             if not os.path.exists(save_mAP_img_dir):
@@ -472,14 +422,19 @@ def test(opt):
                 # relation
 
 
-                # place
-
-
 
                 # open detection file
                 f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
                 f = open(save_mAP_det_dir + mAP_file, mode='w+')
                 f_obj = open(save_mAP_det_obj_dir + mAP_file, mode='w+')
+
+            # place
+            if len(preds_place_txt) > idx:                 
+                f_place = open(save_gt_place_dir + mAP_file, mode = 'w+')
+                f_place.write(target_place_txt[idx])
+                if opt.display:
+                    print("place_gt:{}".format(target_place_txt[idx]))
+                f_place.close()
 
             # face
             gt_face_cnt = 0
@@ -649,7 +604,16 @@ def test(opt):
                         # relation
 
                         # place
-
+                # place
+                if len(preds_place_txt) != 0:
+                    cv2.putText(output_image, "place : " + preds_place_txt[idx],
+                        (30, 30),
+                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+                    f_place_pred = open(save_pred_place_dir + mAP_file, mode='w+')
+                    if opt.display:
+                        print('place_pred :', preds_place_txt[idx])
+                    f_place_pred.write(preds_place_txt[idx])
+                    f_place_pred.close()
                 # face
                 if len(predictions_face) != 0:
 
@@ -733,4 +697,3 @@ def test(opt):
 
 if __name__ == "__main__":
     test(opt)
-
