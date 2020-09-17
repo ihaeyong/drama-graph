@@ -20,6 +20,8 @@ from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, fl
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 from lib.hyper_yolo import anchors
 
+import pdb
+
 '''
 ----------------------------------------------
 --------sgd learning on 4 gpus----------------
@@ -45,7 +47,7 @@ def get_args():
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--decay", type=float, default=0.0005)
     parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--num_epoches", type=int, default=100)
+    parser.add_argument("--num_epoches", type=int, default=300)
     parser.add_argument("--test_interval", type=int, default=1,
                         help="Number of epoches between testing phases")
     parser.add_argument("--object_scale", type=float, default=1.0)
@@ -156,7 +158,7 @@ def train(opt):
         p_optimizer = torch.optim.SGD(p_params, lr = opt.lr * num_gpus,
                                       momentum=opt.momentum, weight_decay=opt.decay)
 
-    p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=3,
+    p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=2,
                                     factor=0.1, verbose=True,
                                     threshold=0.0001, threshold_mode='abs',
                                     cooldown=1)
