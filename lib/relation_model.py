@@ -205,4 +205,110 @@ class relation_model(nn.Module):
                     r_logits.append(rr_logits)
                     r_labels.append(rr_labels)
 
-        return r_logits, r_labels
+            return r_logits, r_labels
+
+
+        if not self.training:
+            boxes = post_processing(logits, self.img_size, PersonCLS,
+                                    self.person_detector.anchors,
+                                    self.conf_threshold,
+                                    self.nms_threshold)
+
+            object_boxes = post_processing(object_logits, self.img_size, ObjectCLS,
+                                           self.object_detector.anchors,
+                                           self.conf_threshold,
+                                           self.nms_threshold)
+
+            boxes_gt = []
+
+            for idx, box in enumerate(label):
+                b_boxes = []
+                for jdx, p_box in enumate(box):
+                    p_box = p_box[0:4].tolist()
+                    p_conf = [1.0]
+                    p_cls_ = [PersonCLS[int(p_box[4])]]
+                    p_box = np.concatenate([p_box_, p_conf_, p_cls_])
+                    b_boxes.append(p_box)
+
+                boxes_gt.append(b_boxes)
+            if 1:
+                boxes = boxes_gt
+
+            object_boxes_gt = []
+            if idx, box in enumate(object_label):
+                object_b_boxes = []
+                for jdx, p_box in enumate(box):
+                    p_box = p_box[0:4].tolist()
+                    p_conf = [1.0]
+                    p_cls_ = [ObjectCLS[int(p_box[4])]]
+                    p_box = np.concatenate([p_box_, p_conf_, p_cls_])
+                    object_b_boxes.append(p_box)
+
+                object_boxes_gt.append(b_boxes)
+            if 1:
+                object_boxes = object_boxes_gt
+
+
+            if len(boxes) > 0:
+                for idx, box in enumerate(boxes):
+                    num_box = len(box)
+                    g_fmap = self.ex_global_feat_person(fmap[idx])
+
+                    if num_box == 0 :
+                        continue
+
+                    box_ = np.clip(
+                        np.stack(box)[:,:4].astype('float32'),
+                        0.0, self.img_size)
+                    box_ = Variable(torch.from_numpy(box_)).to(
+                        self.device).detach() / self.img_size * self.fmap_size
+                    b_box = Variable(
+                        torch.zeros(num_box, 5).to(self.device)).detach()
+                    b_box[:,1:]  = box_
+                    i_fmap = roi_align(fmap[idx][None],
+                                       b_box.float(),
+                                       (self.fmap_size//4,
+                                        self.fmap_size//4))
+
+                    i_fmap = self.person_conv(i_fmap)
+
+                    i_fmap += g_fmap
+                    rr_logits = []
+
+                    for jdx, obj_box in enumerate(object_label[idx]):
+                        obj_num_box = 1
+
+                        obj_g_fmap = self.ex_global_feat_object(obj_fmap[idx])
+                        if len(obj_box) == 0 :
+                            continue
+
+                        obj_box = [obj_box]
+                        obj_box_ = np.clip(
+                            np.stack(obj_box)[:,:4].astype('float32')/self.img_size,
+                            0.0, self.obj_fmap_size) * self.obj_fmap_size
+                        obj_box_ = torch.from_numpy(obj_box_).cuda(self.device).detach()
+                        obj_b_box = Variable(
+                            torch.zeros(obj_num_box, 5).cuda(self.device)).detach()
+                        obj_b_box[:,1:] = torch.clamp(obj_box_ + torch.randn(obj_box_.shape).cuda(
+                            self.device), 0, self.obj_fmap_size)
+                        obj_i_fmap = roi_align(obj_fmap[idx][None],
+                                               obj_b_box.float(),
+                                               (self.obj_fmap_size//4,
+                                                self.obj_fmap_size//4))
+
+                        obj_i_fmap = self.object_conv(obj_i_fmap)
+
+                        p_feat = self.relation_conv1d_person(i_fmap.view(-1, 2304).unsqueeze(2))[0]
+                        o_feat = self.relation_conv1d_object(obj_i_fmap.view(-1, 2304).unsqueeze(2))[0]
+
+                        r_feat = torch.cat((p_feat, o_feat), 0).transpose(1,0)
+                        r_logit = self.relation_fc(r_feat)
+                        rr_logits.append(r_logit)
+
+                    r_logits.append(rr_logits)
+
+            return boxes, object_boxes, r_logits
+
+
+
+
