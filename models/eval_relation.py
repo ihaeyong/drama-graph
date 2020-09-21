@@ -261,21 +261,16 @@ def test(opt):
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 255, 255), 1)
 
+                            pred_cls = rel_ind
+                            cat_pred = '%s %s %s %s %s\n' % (
+                                pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
+                            f.write(cat_pred)
+                            print("relation_pred:{}".format(cat_pred))
+
 
                         cv2.imwrite(save_dir + "{}".format(f_file),
                                     output_image)
-
-                        # save detection results
-                        pred_cls = pred[5]
-                        cat_pred = '%s %s %s %s %s %s\n' % (
-                            pred_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
-
-
-                        print("behavior_pred:{}".format(cat_pred_beh))
-
-                        f.write(cat_pred)
+                        
 
                         if opt.display:
                             print("detected {}".format(
