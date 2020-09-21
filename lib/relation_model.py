@@ -223,9 +223,9 @@ class relation_model(nn.Module):
 
             for idx, box in enumerate(label):
                 b_boxes = []
-                for jdx, p_box in enumate(box):
-                    p_box = p_box[0:4].tolist()
-                    p_conf = [1.0]
+                for jdx, p_box in enumerate(box):
+                    p_box_ = p_box[0:4].tolist()
+                    p_conf_ = [1.0]
                     p_cls_ = [PersonCLS[int(p_box[4])]]
                     p_box = np.concatenate([p_box_, p_conf_, p_cls_])
                     b_boxes.append(p_box)
@@ -235,16 +235,16 @@ class relation_model(nn.Module):
                 boxes = boxes_gt
 
             object_boxes_gt = []
-            if idx, box in enumate(object_label):
+            for idx, box in enumerate(object_label):
                 object_b_boxes = []
-                for jdx, p_box in enumate(box):
-                    p_box = p_box[0:4].tolist()
-                    p_conf = [1.0]
+                for jdx, p_box in enumerate(box):
+                    p_box_ = p_box[0:4].tolist()
+                    p_conf_ = [1.0]
                     p_cls_ = [ObjectCLS[int(p_box[4])]]
                     p_box = np.concatenate([p_box_, p_conf_, p_cls_])
                     object_b_boxes.append(p_box)
 
-                object_boxes_gt.append(b_boxes)
+                object_boxes_gt.append(object_b_boxes)
             if 1:
                 object_boxes = object_boxes_gt
 

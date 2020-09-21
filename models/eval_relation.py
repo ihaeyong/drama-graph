@@ -12,7 +12,11 @@ from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
 import time
+
 from lib.relation_model import relation_model
+from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
+from lib.hyper_yolo import anchors
+import pdb
 
 
 num_persons = len(PersonCLS)
@@ -72,7 +76,7 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 # model path
-model_path = "{}/anotherMissOh_{}.pth".format(
+model_path = "{}/anotherMissOh_only_params_{}.pth".format(
     opt.saved_path,opt.model)
 
 def test(opt):
@@ -122,7 +126,12 @@ def test(opt):
         except:
             continue
 
-        predictions, object_predictions, relations = model1(image, label, obj_label)
+        predictions, object_predictions, relation_predictions = model1(image, label, obj_label)
+
+        if len(predictions) == 0:
+            continue
+        if len(object_predictions) == 0:
+            continue
 
         for idx, frame in enumerate(frame_id):
             f_info = frame[0].split('/')
@@ -185,7 +194,8 @@ def test(opt):
 
                 if len(predictions[idx]) != 0:
                     prediction = predictions[idx]
-                    b_logit = b_logits[idx]
+                    object_prediction = object_predictions[idx]
+                    relation_prediction = relation_predictions[idx]
                     output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
 
@@ -203,10 +213,7 @@ def test(opt):
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
-                        value, index = b_logit[jdx].max(0)
 
-                        b_idx = index.cpu().numpy()
-                        b_pred = PBeHavCLS[b_idx]
                         text_size = cv2.getTextSize(
                             pred[5] + ' : %.2f' % pred[4],
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
@@ -220,34 +227,55 @@ def test(opt):
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
-                        cv2.putText(
-                            output_image, '+ behavior : ' + b_pred,
-                            (xmin, ymin + text_size[1] + 4 + 12),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
+
+                        for kdx, obj_pred in enumerate(object_prediction):
+                            xmin = int(max(obj_pred[0] / width_ratio, 0))
+                            ymin = int(max(obj_pred[1] / height_ratio, 0))
+                            xmax = int(min((obj_pred[2]) / width_ratio, width))
+                            ymax = int(min((obj_pred[3]) / height_ratio, height))
+
+                            colors = colors[ObjectCLS.index(obj_pred[5])]
+
+                            cv2.rectangle(output_image, (xmin, ymin),
+                                          (xmax, ymax), color, 2)
+
+                            text_size = cv2.getTextSize(
+                                obj_pred[5] + ' : %.2f' % obj_pred[4])
+                            cv2.rectangle(
+                                output_image,
+                                (x_min, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, obj_pred[5] + ' : %.2f' % obj_pred[5],
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            value, ind = relation_prediction[kdx].max(1)
+                            ind = int(ind.cpu().numpy())
+                            rel_ind = P2ORelCLS[ind]
+                            cv2.putText(
+                                output_image, '+ relation : ' + rel_ind,
+                                (xmin, ymin + text_size[1] + 4 + 12),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
 
                         cv2.imwrite(save_dir + "{}".format(f_file),
                                     output_image)
 
                         # save detection results
                         pred_cls = pred[5]
-                        pred_beh_cls = b_pred.replace(' ', '_')
-                        pred_beh_cls = pred_beh_cls.replace('/', '_')
                         cat_pred = '%s %s %s %s %s %s\n' % (
                             pred_cls,
                             str(pred[4]),
                             str(xmin), str(ymin), str(xmax), str(ymax))
 
-                        cat_pred_beh = '%s %s %s %s %s %s\n' % (
-                            pred_beh_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
 
                         print("behavior_pred:{}".format(cat_pred_beh))
-                        print("person_pred:{}".format(cat_pred))
 
                         f.write(cat_pred)
-                        f_beh.write(cat_pred_beh)
 
                         if opt.display:
                             print("detected {}".format(
@@ -257,12 +285,10 @@ def test(opt):
                             print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
                         f.close()
-                        f_beh.close()
             except:
                 f.close()
-                f_beh.close()
                 continue
-            if gt_person_cnt == 0:
+            if gt_relation_cnt == 0:
                 if os.path.exists(save_mAP_gt_dir + mAP_file):
                     os.remove(save_mAP_gt_dir + mAP_file)
                 if os.path.exists(save_mAP_det_dir + mAP_file):
