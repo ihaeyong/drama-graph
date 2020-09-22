@@ -129,9 +129,7 @@ def test(opt):
         predictions, object_predictions, relation_predictions = model1(image, label, obj_label)
 
         for idx, frame in enumerate(frame_id):
-            if len(predictions)>idx:
-                continue
-            if len(object_predictions)>idx:
+            if idx == len(predictions):
                 continue
             if len(predictions[idx]) == 0:
                 continue
