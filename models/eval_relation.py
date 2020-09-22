@@ -131,9 +131,13 @@ def test(opt):
         for idx, frame in enumerate(frame_id):
             if idx == len(predictions):
                 continue
-            if len(predictions[idx]) == 0:
-                continue
-            if len(object_predictions[idx]) == 0:
+            try:
+                if len(predictions[idx]) == 0:
+                    continue
+                if len(object_predictions[idx]) == 0:
+                    continue
+
+            except:
                 continue
 
             f_info = frame[0].split('/')
