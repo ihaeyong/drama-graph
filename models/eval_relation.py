@@ -128,12 +128,16 @@ def test(opt):
 
         predictions, object_predictions, relation_predictions = model1(image, label, obj_label)
 
-        if len(predictions) == 0:
-            continue
-        if len(object_predictions) == 0:
-            continue
-
         for idx, frame in enumerate(frame_id):
+            if len(predictions)>idx:
+                continue
+            if len(object_predictions)>idx:
+                continue
+            if len(predictions[idx]) == 0:
+                continue
+            if len(object_predictions[idx]) == 0:
+                continue
+
             f_info = frame[0].split('/')
             save_dir = './results/relations/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
@@ -205,17 +209,17 @@ def test(opt):
 
                     num_preds = len(prediction)
                     for jdx, pred in enumerate(prediction):
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min((float(pred[2])) / width_ratio, width))
+                        ymax = int(min((float(pred[3])) / height_ratio, height))
                         color = colors[PersonCLS.index(pred[5])]
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
 
                         text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
+                            pred[5] + ' : %.2f' % float(pred[4]),
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
                         cv2.rectangle(
                             output_image,
@@ -223,31 +227,32 @@ def test(opt):
                             (xmin + text_size[0] + 100,
                              ymin + text_size[1] + 20), color, -1)
                         cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
 
                         for kdx, obj_pred in enumerate(object_prediction):
-                            xmin = int(max(obj_pred[0] / width_ratio, 0))
-                            ymin = int(max(obj_pred[1] / height_ratio, 0))
-                            xmax = int(min((obj_pred[2]) / width_ratio, width))
-                            ymax = int(min((obj_pred[3]) / height_ratio, height))
+                            xmin = int(max(float(obj_pred[0]) / width_ratio, 0))
+                            ymin = int(max(float(obj_pred[1]) / height_ratio, 0))
+                            xmax = int(min((float(obj_pred[2])) / width_ratio, width))
+                            ymax = int(min((float(obj_pred[3])) / height_ratio, height))
 
-                            colors = colors[ObjectCLS.index(obj_pred[5])]
+                            color = colors[ObjectCLS.index(obj_pred[5])]
 
                             cv2.rectangle(output_image, (xmin, ymin),
                                           (xmax, ymax), color, 2)
 
                             text_size = cv2.getTextSize(
-                                obj_pred[5] + ' : %.2f' % obj_pred[4])
+                                obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
                             cv2.rectangle(
                                 output_image,
-                                (x_min, ymin),
+                                (xmin, ymin),
                                 (xmin + text_size[0] + 100,
                                  ymin + text_size[1] + 20), color, -1)
                             cv2.putText(
-                                output_image, obj_pred[5] + ' : %.2f' % obj_pred[5],
+                                output_image, obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
                                 (xmin, ymin + text_size[1] + 4),
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 255, 255), 1)
@@ -267,10 +272,8 @@ def test(opt):
                             f.write(cat_pred)
                             print("relation_pred:{}".format(cat_pred))
 
-
                         cv2.imwrite(save_dir + "{}".format(f_file),
                                     output_image)
-                        
 
                         if opt.display:
                             print("detected {}".format(
