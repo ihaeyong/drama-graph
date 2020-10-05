@@ -108,7 +108,7 @@ def test(opt):
 
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
- 
+
 
 
     # ---------------(1) load refined models --------------------
@@ -200,7 +200,7 @@ def test(opt):
     width, height = (1024, 768)
     width_ratio = float(opt.image_size) / width
     height_ratio = float(opt.image_size) / height
-    
+
     # Sequence buffers
     buffer_images = []
     # load test clips
@@ -277,7 +277,7 @@ def test(opt):
             batch_images = torch.stack(images_norm[plidx*10:(plidx+1)*10]).cuda(device).unsqueeze(0)
             output = model_place(batch_images)
             output = torch.cat((output[:, :9], output[:, 10:]), 1) # None excluded. For None prediction, comment this line out.
-            preds = torch.argmax(output, -1).tolist() # (T, n_class) ->(T, ) 
+            preds = torch.argmax(output, -1).tolist() # (T, n_class) ->(T, )
             for idx in range(len(preds)):
                 if preds[idx] >= 9: preds[idx] += 1
             preds_place += preds;
@@ -287,8 +287,8 @@ def test(opt):
         assert len(preds_place) == len(info_place)
         preds_place_txt = label_remapping(preds_place)
         target_place_txt = label_remapping(info_place)
-        
-        
+
+
         for idx, frame in enumerate(frame_id):
 
             # ---------------(3) mkdir for evaluations----------------------
@@ -361,9 +361,9 @@ def test(opt):
 
             # relation
             if not os.path.exists(save_mAP_gt_rel_dir):
-            	os.makedirs(save_mAP_gt_rel_dir)
-        	if not os.path.exists(save_mAP_det_rel_dir):
-        		os.make_dir(save_mAP_det_rel_dir)
+                os.makedirs(save_mAP_gt_rel_dir)
+                if not os.path.exists(save_mAP_det_rel_dir):
+        	        os.make_dir(save_mAP_det_rel_dir)
 
             # image
             if not os.path.exists(save_mAP_img_dir):
@@ -440,17 +440,17 @@ def test(opt):
             if len(obj_label) > idx:
             	f_rel = open(save_mAP_gt_dir + mAP_file, mode='w+')
             	for det in obj_label[idx]:
-            		cls = P2ORelCLS[int(det[5])]
-            		xmin = str(max(det[0] / width_ratio, 0))
-            		ymin = str(max(det[1] / height_ratio, 0))
-            		xmax = str(min((det[2]) / width_ratio, width))
-            		ymax = str(min((det[3]) / heigth_ratio, height))
-            		cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-            		if opt.display:
-            			print("relation_gt:{}".format(cat_det))
-        			f_rel.write(cat_det)
-        			gt_relation_cnt += 1
-    			f_rel.close()
+                        cls = P2ORelCLS[int(det[5])]
+                        xmin = str(max(det[0] / width_ratio, 0))
+                        ymin = str(max(det[1] / height_ratio, 0))
+                        xmax = str(min((det[2]) / width_ratio, width))
+                        ymax = str(min((det[3]) / heigth_ratio, height))
+                        cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                        if opt.display:
+                            print("relation_gt:{}".format(cat_det))
+                            f_rel.write(cat_det)
+                            gt_relation_cnt += 1
+                        f_rel.close()
 
             # open detection file
             f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
@@ -459,7 +459,7 @@ def test(opt):
             f_rel = open(save_mAP_det_rel_dir + mAP_file, mode='w+')
 
             # place
-            if len(preds_place_txt) > idx:                 
+            if len(preds_place_txt) > idx:
                 f_place = open(save_gt_place_dir + mAP_file, mode = 'w+')
                 f_place.write(target_place_txt[idx])
                 if opt.display:
@@ -634,11 +634,10 @@ def test(opt):
                 # relation
 
                 if len(r_preds[idxx]) != 0:
-                	r_pred = r_preds[idx]
-                	r_obj_pred = r_obj_preds[idx]
-                	relation_prediction = relation_predictions[idx]
-
-                	num_preds = len(r_pred)
+                    r_pred = r_preds[idx]
+                    r_obj_pred = r_obj_preds[idx]
+                    relation_prediction = relation_predictions[idx]
+                    num_preds = len(r_pred)
                     for jdx, pred in enumerate(r_pred):
                         xmin = int(max(float(pred[0]) / width_ratio, 0))
                         ymin = int(max(float(pred[1]) / height_ratio, 0))
@@ -781,9 +780,9 @@ def test(opt):
                     os.remove(save_mAP_det_beh_dir + mAP_file)
                 # remove the relation if not there
                 if os.path.exists(save_mAP_gt_rel_dir + mAP_file):
-                	os.remove(save_mAP_gt_rel_dir + mAP_file):
-            	if os.path.exists(save_mAP_det_rel_dir + mAP_file):
-            		os.remove(save_mAP_det_rel_dir + mAP_file)
+                    os.remove(save_mAP_gt_rel_dir + mAP_file)
+                if os.path.exists(save_mAP_det_rel_dir + mAP_file):
+                    os.remove(save_mAP_det_rel_dir + mAP_file)
 
             # face
             if gt_face_cnt == 0:
