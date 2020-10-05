@@ -171,12 +171,16 @@ def test(opt):
 
 
     # relation model
-    if False:
+    if True:
         # add model
+        model_relation = relation_model(num_persons, num_objects, num_relations, opt, device)
         trained_relation = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_relation_integration.pth')
         # model load
         print("loaded with {}".format(trained_relation))
+        model_relation.load_state_dict(torch.load(trained_relation))
+    model_relation.cuda(device)
+    model_relation.eval()
 
     # place model
     if True:
@@ -252,6 +256,9 @@ def test(opt):
 
 
         # relation
+        if np.array(obj_label).size > 0 and np.array(label).size > 0:
+        	r_preds, r_obj_preds, relation_predictions = model_relation(image, label, obj_label)
+
 
         # place
         images_norm = []; info_place = []; preds_place = []
@@ -301,8 +308,11 @@ def test(opt):
 
             save_mAP_img_dir = './results/input_person/image/'
 
-            save_mAP_gt_obj_dir = './results/input_person/ground-truth-object/'
-            save_mAP_det_obj_dir = './results/input_person/detection-object/'
+            save_mAP_gt_obj_dir = './results/object/ground-truth-object/'
+            save_mAP_det_obj_dir = './results/object/detection-object/'
+
+            save_mAP_gt_rel_dir = './results/relation/ground-truth-relation/'
+            save_mAP_det_rel_dir = './results/relation/detection-relation/'
 
             # place dir
             save_gt_place_dir = './results/place/ground-truth-place/'
@@ -348,6 +358,12 @@ def test(opt):
                 os.makedirs(save_gt_place_dir)
             if not os.path.exists(save_pred_place_dir):
                 os.makedirs(save_pred_place_dir)
+
+            # relation
+            if not os.path.exists(save_mAP_gt_rel_dir):
+            	os.makedirs(save_mAP_gt_rel_dir)
+        	if not os.path.exists(save_mAP_det_rel_dir):
+        		os.make_dir(save_mAP_det_rel_dir)
 
             # image
             if not os.path.exists(save_mAP_img_dir):
@@ -398,10 +414,10 @@ def test(opt):
                     f.write(cat_det)
                 f.close()
 
-                # emotion
+            # emotion
 
 
-                # object
+            # object
             gt_object_cnt = 0
             if len(obj_label) > idx :
                 f_obj = open(save_mAP_gt_obj_dir + mAP_file, mode='w+')
@@ -419,14 +435,28 @@ def test(opt):
                 f_obj.close()
 
 
-                # relation
+            # relation
+            gt_relation_cnt = 0
+            if len(obj_label) > idx:
+            	f_rel = open(save_mAP_gt_dir + mAP_file, mode='w+')
+            	for det in obj_label[idx]:
+            		cls = P2ORelCLS[int(det[5])]
+            		xmin = str(max(det[0] / width_ratio, 0))
+            		ymin = str(max(det[1] / height_ratio, 0))
+            		xmax = str(min((det[2]) / width_ratio, width))
+            		ymax = str(min((det[3]) / heigth_ratio, height))
+            		cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+            		if opt.display:
+            			print("relation_gt:{}".format(cat_det))
+        			f_rel.write(cat_det)
+        			gt_relation_cnt += 1
+    			f_rel.close()
 
-
-
-                # open detection file
-                f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
-                f = open(save_mAP_det_dir + mAP_file, mode='w+')
-                f_obj = open(save_mAP_det_obj_dir + mAP_file, mode='w+')
+            # open detection file
+            f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
+            f = open(save_mAP_det_dir + mAP_file, mode='w+')
+            f_obj = open(save_mAP_det_obj_dir + mAP_file, mode='w+')
+            f_rel = open(save_mAP_det_rel_dir + mAP_file, mode='w+')
 
             # place
             if len(preds_place_txt) > idx:                 
@@ -601,7 +631,77 @@ def test(opt):
                             save_dir + "{}".format(f_file)))
                         f_obj.close()
 
-                        # relation
+                # relation
+
+                if len(r_preds[idxx]) != 0:
+                	r_pred = r_preds[idx]
+                	r_obj_pred = r_obj_preds[idx]
+                	relation_prediction = relation_predictions[idx]
+
+                	num_preds = len(r_pred)
+                    for jdx, pred in enumerate(r_pred):
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min((float(pred[2])) / width_ratio, width))
+                        ymax = int(min((float(pred[3])) / height_ratio, height))
+                        color = colors[PersonCLS.index(pred[5])]
+
+                        cv2.rectangle(output_image, (xmin, ymin),
+                                      (xmax, ymax), color, 2)
+
+                        text_size = cv2.getTextSize(
+                            pred[5] + ' : %.2f' % float(pred[4]),
+                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                        cv2.rectangle(
+                            output_image,
+                            (xmin, ymin),
+                            (xmin + text_size[0] + 100,
+                             ymin + text_size[1] + 20), color, -1)
+                        cv2.putText(
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
+                            (xmin, ymin + text_size[1] + 4),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 255, 255), 1)
+
+                        for kdx, obj_pred in enumerate(r_obj_pred):
+                            xmin = int(max(float(obj_pred[0]) / width_ratio, 0))
+                            ymin = int(max(float(obj_pred[1]) / height_ratio, 0))
+                            xmax = int(min((float(obj_pred[2])) / width_ratio, width))
+                            ymax = int(min((float(obj_pred[3])) / height_ratio, height))
+
+                            color = colors[ObjectCLS.index(obj_pred[5])]
+
+                            cv2.rectangle(output_image, (xmin, ymin),
+                                          (xmax, ymax), color, 2)
+
+                            text_size = cv2.getTextSize(
+                                obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                            cv2.rectangle(
+                                output_image,
+                                (xmin, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            value, ind = relation_prediction[kdx].max(1)
+                            ind = int(ind.cpu().numpy())
+                            rel_ind = P2ORelCLS[ind]
+                            cv2.putText(
+                                output_image, '+ relation : ' + rel_ind,
+                                (xmin, ymin + text_size[1] + 4 + 12),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            pred_cls = rel_ind
+                            cat_pred = '%s %s %s %s %s\n' % (
+                                pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
+                            f_rel.write(cat_pred)
+                            print("relation_pred:{}".format(cat_pred))
 
                         # place
                 # place
@@ -679,6 +779,11 @@ def test(opt):
                     os.remove(save_mAP_gt_beh_dir + mAP_file)
                 if os.path.exists(save_mAP_det_beh_dir + mAP_file):
                     os.remove(save_mAP_det_beh_dir + mAP_file)
+                # remove the relation if not there
+                if os.path.exists(save_mAP_gt_rel_dir + mAP_file):
+                	os.remove(save_mAP_gt_rel_dir + mAP_file):
+            	if os.path.exists(save_mAP_det_rel_dir + mAP_file):
+            		os.remove(save_mAP_det_rel_dir + mAP_file)
 
             # face
             if gt_face_cnt == 0:
