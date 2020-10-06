@@ -359,11 +359,12 @@ def test(opt):
             if not os.path.exists(save_pred_place_dir):
                 os.makedirs(save_pred_place_dir)
 
+
             # relation
             if not os.path.exists(save_mAP_gt_rel_dir):
                 os.makedirs(save_mAP_gt_rel_dir)
-                if not os.path.exists(save_mAP_det_rel_dir):
-        	        os.make_dir(save_mAP_det_rel_dir)
+            if not os.path.exists(save_mAP_det_rel_dir):
+                os.makedirs(save_mAP_det_rel_dir)
 
             # image
             if not os.path.exists(save_mAP_img_dir):
@@ -438,19 +439,20 @@ def test(opt):
             # relation
             gt_relation_cnt = 0
             if len(obj_label) > idx:
-            	f_rel = open(save_mAP_gt_dir + mAP_file, mode='w+')
-            	for det in obj_label[idx]:
-                        cls = P2ORelCLS[int(det[5])]
-                        xmin = str(max(det[0] / width_ratio, 0))
-                        ymin = str(max(det[1] / height_ratio, 0))
-                        xmax = str(min((det[2]) / width_ratio, width))
-                        ymax = str(min((det[3]) / heigth_ratio, height))
-                        cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                        if opt.display:
-                            print("relation_gt:{}".format(cat_det))
-                            f_rel.write(cat_det)
-                            gt_relation_cnt += 1
-                        f_rel.close()
+                f_rel = open(save_mAP_gt_dir + mAP_file, mode='w+')
+                for det in obj_label[idx]:
+                    cls = P2ORelCLS[int(det[5])]
+                    xmin = str(max(det[0] / width_ratio, 0))
+                    ymin = str(max(det[1] / height_ratio, 0))
+                    xmax = str(min((det[2]) / width_ratio, width))
+                    ymax = str(min((det[3]) / height_ratio, height))
+                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
+                    if opt.display:
+                        print("relation_gt:{}".format(cat_det))
+                    f_rel.write(cat_det)
+                    gt_relation_cnt += 1
+                f_rel.close()
+
 
             # open detection file
             f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
