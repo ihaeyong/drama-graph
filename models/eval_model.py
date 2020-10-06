@@ -177,9 +177,8 @@ def test(opt):
         trained_relation = './checkpoint/refined_models' + os.sep + "{}".format(
         'anotherMissOh_only_params_relation_integration.pth')
         # model load
-        ckpt = torch.load(trained_relations)
-        if optimistic_restore(model_relation, ckpt):
-            print("loaded with {}".format(trained_relation))
+        print("loaded with {}".format(trained_relation))
+        model_relation.load_state_dict(torch.load(trained_relation))
     model_relation.cuda(device)
     model_relation.eval()
 
