@@ -11,7 +11,7 @@ import json
 PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-             'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
 
 # define behavior
 PBeHavCLS_ORG = ["stand up","sit down","walk","hold","hug",
@@ -36,8 +36,6 @@ PBeHavCLS = ["walk","hug",
              "put arms around each other's shoulder",
              "open", "shake hands", "wave hands",
              "kiss", "high-five"]
-
-
 
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
@@ -75,7 +73,7 @@ P2ORelCLS = ['none', 'wearing', 'on', 'with', 'in front of', 'has', 'in', 'near'
 FaceCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
             'Taejin', 'Hun', 'Jiya', 'Kyungsu', 'Deogi',
             'Heeran', 'Jeongsuk', 'Anna', 'Hoijang', 'Soontack',
-            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
+            'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee']
 
 def Splits(num_episodes):
     '''
@@ -116,6 +114,9 @@ def SortFullRect(image,label, is_train=True):
 
     image_list = []
     frame_id_list = []
+
+
+    # ----------- for person and behavior-----------------------
     for frm in range(s_frm, e_frm):
         try:
             label_list = []
@@ -138,19 +139,47 @@ def SortFullRect(image,label, is_train=True):
                 behavior = label[0][frm]['persons']['behavior'][p]
                 behavior_label = PBeHavCLS.index(behavior)
 
-                # face label
-                face_label = FaceCLS.index(p_id)
-                if face_label > 20:
-                    print("sort face rect index error{}".format(face_label))
-
-                face_rect = label[0][frm]['persons']['face_rect'][p]
-
                 #scale:
                 xmin = max(full_rect[0] * width_ratio, 0)
                 ymin = max(full_rect[1] * height_ratio, 0)
                 xmax = min((full_rect[2]) * width_ratio, 448)
                 ymax = min((full_rect[3]) * height_ratio, 448)
                 full_rect = [xmin,ymin,xmax,ymax]
+
+                temp_label = np.concatenate((full_rect, [p_label]), 0)
+                label_list.append(temp_label)
+                behavior_list.append(behavior_label)
+
+        except:
+            continue
+
+        if len(label_list) > 0 and is_train:
+            fullrect_list.append(label_list)
+            fullbehav_list.append(behavior_list)
+            image_list.append(image[frm])
+        else: # for test
+            fullrect_list.append(label_list)
+            fullbehav_list.append(behavior_list)
+            image_list.append(image[frm])
+
+    # ------------- for face and emotion ----------------------
+    for frm in range(s_frm, e_frm):
+        try:
+            label_list = []
+            behavior_list = []
+            face_list = []
+            emo_list = []
+
+            frame_id = label[0][frm]['frame_id']
+            frame_id_list.append(frame_id)
+            for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
+
+                # face label
+                face_label = FaceCLS.index(p_id)
+                if face_label > 20:
+                    print("sort face rect index error{}".format(face_label))
+
+                face_rect = label[0][frm]['persons']['face_rect'][p]
 
                 # face rcet scale
                 xmin = max(face_rect[0] * width_ratio, 0)
@@ -159,19 +188,22 @@ def SortFullRect(image,label, is_train=True):
                 ymax = min((face_rect[3]) * height_ratio, 448)
                 face_rect = [xmin, ymin, xmax, ymax]
 
-                temp_label = np.concatenate((full_rect, [p_label]), 0)
-                label_list.append(temp_label)
-                behavior_list.append(behavior_label)
-
                 face_temp_label = np.concatenate((face_rect, [face_label]), 0)
                 face_list.append(face_temp_label)
 
                 emo_label = label[0][frm]['persons']['emotion'][p]
                 emo_list.append(emo_label)
-
         except:
             continue
 
+        if len(label_list) > 0 and is_train:
+            facerect_list.append(face_list)
+            fullemo_list.append(emo_list)
+        else: # for test
+            facerect_list.append(face_list)
+            fullemo_list.append(emo_list)
+
+    # ------------- for object ----------------------
     for frm in range(s_frm, e_frm):
         try:
             object_list = []
@@ -200,20 +232,9 @@ def SortFullRect(image,label, is_train=True):
             continue
 
         if len(label_list) > 0 and is_train:
-            fullrect_list.append(label_list)
-            fullbehav_list.append(behavior_list)
-            image_list.append(image[frm])
             fullobj_list.append(object_list)
-            facerect_list.append(face_list)
-            fullemo_list.append(emo_list)
-
         else: # for test
-            fullrect_list.append(label_list)
-            fullbehav_list.append(behavior_list)
-            image_list.append(image[frm])
             fullobj_list.append(object_list)
-            facerect_list.append(face_list)
-            fullemo_list.append(emo_list)
 
     if is_train:
         return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, fullemo_list
@@ -365,8 +386,7 @@ class AnotherMissOh(Dataset):
                             print("-------{}th person-----------".format(k))
 
                         image_info['persons']['person_id'].append(person['person_id'])
-                        
-                        #import pdb; pdb.set_trace()
+
                         for j, robj in enumerate(person['related_objects']):
                             image_info['persons']['related_object_id'].append(robj['related_object_id'])
                             image_info['objects']['object_id'].append(robj['related_object_id'])
