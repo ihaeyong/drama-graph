@@ -20,11 +20,14 @@ from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, fl
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 from lib.hyper_yolo import anchors
 
-import pdb
-
 '''
 ----------------------------------------------
 --------sgd learning on 4 gpus----------------
+----------------------------------------------
+01 epoch : 2.85 %
+03 epoch : 4.73 %
+09 epoch : 6.45 %
+12 epoch : 5.49 %
 20 epoch : 7.76 %
 ----------------------------------------------
 '''
@@ -42,7 +45,7 @@ def get_args():
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--decay", type=float, default=0.0005)
     parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--num_epoches", type=int, default=300)
+    parser.add_argument("--num_epoches", type=int, default=200)
     parser.add_argument("--test_interval", type=int, default=1,
                         help="Number of epoches between testing phases")
     parser.add_argument("--object_scale", type=float, default=1.0)
@@ -144,19 +147,24 @@ def train(opt):
                  or n.startswith('detector') \
                  and p.requires_grad]
 
-    p_params = [{'params': fc_params, 'lr': opt.lr * num_gpus}]
+    #p_params = [{'params': fc_params, 'lr': opt.lr * num_gpus}]
+    p_params = model.parameters()
 
     if False:
-        p_optimizer = torch.optim.Adam(p_params, lr = opt.lr * num_gpus,
+        p_optimizer = torch.optim.Adam(p_params, lr = opt.lr,
                                        weight_decay=opt.decay, amsgrad=True)
     else:
-        p_optimizer = torch.optim.SGD(p_params, lr = opt.lr * num_gpus,
+        p_optimizer = torch.optim.SGD(p_params, lr = opt.lr,
                                       momentum=opt.momentum, weight_decay=opt.decay)
 
-    p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=2,
-                                    factor=0.1, verbose=True,
-                                    threshold=0.0001, threshold_mode='abs',
-                                    cooldown=1)
+    if False:
+        p_scheduler = ReduceLROnPlateau(p_optimizer, 'min', patience=2,
+                                        factor=0.1, verbose=True,
+                                        threshold=0.0001, threshold_mode='abs',
+                                        cooldown=1)
+
+    learning_rate_schedule = {"0": 1e-5, "5": 1e-4,
+                              "80": 1e-5, "110": 1e-6}
 
     # multi-gpus
     if num_gpus > 1:
@@ -164,12 +172,20 @@ def train(opt):
     model.to(device)
     model.train()
 
+    # initialize model
+    nn.init.normal_(list(model.modules())[-1].weight, 0, 0.01)
+
     criterion = YoloLoss(num_persons, anchors, device, opt.reduction)
 
     num_iter_per_epoch = len(train_loader)
 
     loss_step = 0
     for epoch in range(opt.num_epoches):
+
+        if str(epoch) in learning_rate_schedule.keys() and True :
+            for param_group in p_optimizer.param_groups:
+                param_group['lr'] = learning_rate_schedule[str(epoch)]
+
         p_loss_list = []
         for iter, batch in enumerate(train_loader):
 
@@ -234,9 +250,9 @@ def train(opt):
             print('mkdir_{}'.format(opt.saved_path))
 
         # learning rate schedular
-        p_loss_avg = np.stack(p_loss_list).mean()
-
-        p_scheduler.step(p_loss_avg)
+        if False:
+            p_loss_avg = np.stack(p_loss_list).mean()
+            p_scheduler.step(p_loss_avg)
 
         torch.save(model.state_dict(),
                    opt.saved_path + os.sep + "anotherMissOh_only_params_{}.pth".format(opt.model))

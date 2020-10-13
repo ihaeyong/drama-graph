@@ -93,13 +93,13 @@ model_path = "{}/anotherMissOh_{}.pth".format(
 def test(opt):
     global colors
 
+    print(torch.cuda.is_available())
     if torch.cuda.is_available():
         torch.cuda.manual_seed(123)
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-    print(torch.cuda.is_available())
-
+        
     # set test loader params
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,

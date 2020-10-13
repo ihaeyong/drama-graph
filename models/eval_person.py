@@ -72,8 +72,12 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 # model path
-model_path = "{}/anotherMissOh_only_params_{}.pth".format(
-    opt.saved_path, opt.model)
+if False:
+    model_path = "{}/anotherMissOh_only_params_{}.pth".format(
+        opt.saved_path, opt.model)
+else:
+    model_path = "{}/anotherMissOh_{}.pth".format(
+        opt.saved_path, opt.model)
 
 def test(opt):
 
@@ -97,18 +101,18 @@ def test(opt):
     model1 = person_model(num_persons, device)
     ckpt = torch.load(model_path)
     # in case of multi-gpu training
-    if True:
+    if False:
         from collections import OrderedDict
         ckpt_state_dict = OrderedDict()
         for k,v in ckpt.items():
             name = k[7:] # remove 'module'
             ckpt_state_dict[name] = v
-    else:
-        ckpt_state_dict = ckpt
 
-    print("--- loading {} model---".format(model_path))
-    if optimistic_restore(model1, ckpt_state_dict):
-        print("loaded trained model sucessfully.")
+        print("--- loading {} model---".format(model_path))
+        if optimistic_restore(model1, ckpt_state_dict):
+            print("loaded trained model sucessfully.")
+    else:
+        model1 = ckpt
 
     model1.to(device)
     model1.eval()
@@ -251,8 +255,8 @@ def test(opt):
                                 save_dir + "{}".format(f_file)))
                 else:
                     if opt.display:
-                        print("non-detected {}".format(
-                            save_dir + "{}".format(f_file)))
+                        print("non-detected {}, gt_num_persons {}".format(
+                            save_dir + "{}".format(f_file, gt_person_cnt)))
                     f.close()
             except:
                 f.close()
