@@ -77,7 +77,11 @@ def crop_face_emotion(image, face_label, emo_label, opt):
     face_crops = list()
     emo_gt = list()
 
+    num_img = image.size(0)
+    num_face = 0
     for i,img in enumerate(image):
+        num_face = len(face_label[i]) if len(face_label[i]) > num_face else num_face
+        img_crop
         for j in range(len(face_label[i])):
             # face corrdinates
             fl = face_label[i][j]
@@ -90,6 +94,7 @@ def crop_face_emotion(image, face_label, emo_label, opt):
             emo_text = emo_label[i][j]
             el = emo_char_idx(emo_text.lower())
             emo_gt.append(el)
+            num_img = i + 1
 
     face_crops = torch.stack(face_crops).permute(0,3,1,2) # [f,h,w,3]->[f,3,h,w]
     emo_gt = torch.Tensor(emo_gt).long()
