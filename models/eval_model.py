@@ -259,7 +259,6 @@ def test(opt):
 
         # place
         images_norm = []; info_place = []; preds_place = []
-        import ipdb; ipdb.set_trace()
         for idx in range(len(image)):
             image_resize = image[idx]
             images_norm.append(image_resize)
