@@ -165,8 +165,6 @@ def test(opt):
             if opt.display:
                 print("mAP_file:{}".format(mAP_file))
 
-            # ground truth
-            #b_person_label = label[i]
             # save person ground truth
             gt_person_cnt = 0
             if len(label) > idx :
@@ -179,13 +177,14 @@ def test(opt):
                     ymax = str(min((det[3]) / height_ratio, height))
                     cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
                     if opt.display:
-                        print("person_gt:{}".format(cat_det))
+                        print("---person_gt:{}".format(cat_det))
                     f.write(cat_det)
                     gt_person_cnt += 1
                 f.close()
 
                 # open detection file
                 f = open(save_mAP_det_dir + mAP_file, mode='w+')
+
             # out of try : pdb.set_trace = lambda : None
             try:
                 # for some empty video clips
@@ -246,22 +245,19 @@ def test(opt):
                             str(pred[4]),
                             str(xmin), str(ymin), str(xmax), str(ymax))
 
-                        print("person_pred:{}".format(cat_pred))
-
                         f.write(cat_pred)
 
                         if opt.display:
-                            print("detected {}".format(
-                                save_dir + "{}".format(f_file)))
+                            print("---detected:{}".format(cat_pred))
                 else:
                     if opt.display:
-                        print("non-detected {}, gt_num_persons {}".format(
-                            save_dir + "{}".format(f_file, gt_person_cnt)))
+                        print("---non-detected: gt_num_persons {}".format(gt_person_cnt))
                     f.close()
             except:
                 f.close()
                 continue
             if gt_person_cnt == 0:
+                print("---non-person-gt")
                 if os.path.exists(save_mAP_gt_dir + mAP_file):
                     os.remove(save_mAP_gt_dir + mAP_file)
                 if os.path.exists(save_mAP_det_dir + mAP_file):

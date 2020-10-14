@@ -24,8 +24,6 @@ from lib.object_model import object_model
 from lib.relation_model import relation_model
 from lib.emotion_model import emotion_model, crop_face_emotion, EmoCLS
 
-import pdb
-
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
 num_faces = len(FaceCLS)
@@ -99,7 +97,7 @@ def test(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-        
+
     # set test loader params
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
@@ -108,8 +106,6 @@ def test(opt):
 
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
-
-
 
     # ---------------(1) load refined models --------------------
     # get the trained models from
@@ -223,14 +219,14 @@ def test(opt):
         predictions, b_logits = model1(image, label, behavior_label)
 
         # face
-        face_logits = model_face(image)
-
-        predictions_face = post_processing(face_logits,
-                                           opt.image_size,
-                                           FaceCLS,
-                                           model_face.detector.anchors,
-                                           opt.conf_threshold,
-                                           opt.nms_threshold)
+        if np.array(face_label).size > 0 :
+            face_logits = model_face(image)
+            predictions_face = post_processing(face_logits,
+                                               opt.image_size,
+                                               FaceCLS,
+                                               model_face.detector.anchors,
+                                               opt.conf_threshold,
+                                               opt.nms_threshold)
 
         # emotion
         if np.array(face_label).size > 0 :
@@ -242,7 +238,6 @@ def test(opt):
             emo_logits = emo_logits.view(num_img, num_face, 7)
 
         # object
-
         if np.array(obj_label).size > 0 :
             object_logits, _ = model_object(image)
 

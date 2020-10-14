@@ -4,7 +4,7 @@ export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 
 python models/eval_person.py \
-       -model voc_person_group_2gpu_init_none \
+       -model voc_person_group_4gpu_init_none \
        -display \
        --conf_threshold 0.35 \
        --nms_threshold 0.5
