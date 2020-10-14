@@ -86,7 +86,7 @@ def Splits(num_episodes):
 
     return train, val, test
 
-def SortFullRect(image,label, is_train=True):
+def SortFullRect(image, label, is_train=True):
 
     width, height = (1024, 768)
     width_ratio = 448 / width
@@ -105,29 +105,21 @@ def SortFullRect(image,label, is_train=True):
     e_frm = num_batch
 
     max_batch = 10
-    if num_batch > max_batch and is_train:
+    if num_batch > max_batch :
         s_frm = np.random.choice(num_batch-max_batch, 1)[0]
         e_frm = s_frm + max_batch
-    elif is_train is False:
-        s_frm = 0
-        e_frm = max_batch
 
     image_list = []
     frame_id_list = []
-
-
     # ----------- for person and behavior-----------------------
     for frm in range(s_frm, e_frm):
         try:
             label_list = []
             behavior_list = []
-            face_list = []
-            emo_list = []
 
             frame_id = label[0][frm]['frame_id']
             frame_id_list.append(frame_id)
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
-
 
                 p_label = PersonCLS.index(p_id)
                 if p_label > 20:
@@ -165,14 +157,14 @@ def SortFullRect(image,label, is_train=True):
     # ------------- for face and emotion ----------------------
     for frm in range(s_frm, e_frm):
         try:
-            label_list = []
-            behavior_list = []
             face_list = []
             emo_list = []
 
             frame_id = label[0][frm]['frame_id']
-            frame_id_list.append(frame_id)
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
+
+                if len(label[0][frm]['persons']['person_id']) > 1 and True:
+                    import ipdb; ipdb.set_trace()
 
                 # face label
                 face_label = FaceCLS.index(p_id)
@@ -196,7 +188,7 @@ def SortFullRect(image,label, is_train=True):
         except:
             continue
 
-        if len(label_list) > 0 and is_train:
+        if len(face_list) > 0 and is_train:
             facerect_list.append(face_list)
             fullemo_list.append(emo_list)
         else: # for test
@@ -207,7 +199,6 @@ def SortFullRect(image,label, is_train=True):
     for frm in range(s_frm, e_frm):
         try:
             object_list = []
-            # relation_list = []
             for p, p_id in enumerate(label[0][frm]['objects']['object_id']):
                 # we need to account for 'person' and remove person from the list
                 if p_id == 'person':
@@ -231,7 +222,7 @@ def SortFullRect(image,label, is_train=True):
         except:
             continue
 
-        if len(label_list) > 0 and is_train:
+        if len(object_list) > 0 and is_train:
             fullobj_list.append(object_list)
         else: # for test
             fullobj_list.append(object_list)
