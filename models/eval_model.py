@@ -230,6 +230,8 @@ def test(opt):
 
         # emotion
         if np.array(face_label).size > 0 :
+            face_label = [fl for fl in face_label if len(fl) > 0]
+            emo_label = [el for el in emo_label if len(el) > 0]
             image_c = image.permute(0,2,3,1).cpu()
             face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
             face_crops, emo_gt = face_crops.cuda(device).contiguous(), emo_gt.cuda(device)
@@ -257,7 +259,7 @@ def test(opt):
 
         # place
         images_norm = []; info_place = []; preds_place = []
-
+        import ipdb; ipdb.set_trace()
         for idx in range(len(image)):
             image_resize = image[idx]
             images_norm.append(image_resize)
