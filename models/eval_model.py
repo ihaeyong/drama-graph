@@ -24,8 +24,6 @@ from lib.object_model import object_model
 from lib.relation_model import relation_model
 from lib.emotion_model import emotion_model, crop_face_emotion, EmoCLS
 
-import pdb
-
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
 num_faces = len(FaceCLS)
@@ -99,7 +97,7 @@ def test(opt):
         device = torch.cuda.current_device()
     else:
         torch.manual_seed(123)
-        
+
     # set test loader params
     test_params = {"batch_size": opt.batch_size,
                    "shuffle": False,
@@ -108,8 +106,6 @@ def test(opt):
 
     # set test loader
     test_loader = DataLoader(test_set, **test_params)
-
-
 
     # ---------------(1) load refined models --------------------
     # get the trained models from
@@ -223,17 +219,19 @@ def test(opt):
         predictions, b_logits = model1(image, label, behavior_label)
 
         # face
-        face_logits = model_face(image)
-
-        predictions_face = post_processing(face_logits,
-                                           opt.image_size,
-                                           FaceCLS,
-                                           model_face.detector.anchors,
-                                           opt.conf_threshold,
-                                           opt.nms_threshold)
+        if np.array(face_label).size > 0 :
+            face_logits = model_face(image)
+            predictions_face = post_processing(face_logits,
+                                               opt.image_size,
+                                               FaceCLS,
+                                               model_face.detector.anchors,
+                                               opt.conf_threshold,
+                                               opt.nms_threshold)
 
         # emotion
         if np.array(face_label).size > 0 :
+            face_label = [fl for fl in face_label if len(fl) > 0]
+            emo_label = [el for el in emo_label if len(el) > 0]
             image_c = image.permute(0,2,3,1).cpu()
             face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
             face_crops, emo_gt = face_crops.cuda(device).contiguous(), emo_gt.cuda(device)
@@ -242,7 +240,6 @@ def test(opt):
             emo_logits = emo_logits.view(num_img, num_face, 7)
 
         # object
-
         if np.array(obj_label).size > 0 :
             object_logits, _ = model_object(image)
 
@@ -262,7 +259,6 @@ def test(opt):
 
         # place
         images_norm = []; info_place = []; preds_place = []
-
         for idx in range(len(image)):
             image_resize = image[idx]
             images_norm.append(image_resize)
