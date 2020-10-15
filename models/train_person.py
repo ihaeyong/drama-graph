@@ -179,7 +179,6 @@ def train(opt):
 
     num_iter_per_epoch = len(train_loader)
 
-    loss_step = 0
     for epoch in range(opt.num_epoches):
 
         if str(epoch) in learning_rate_schedule.keys() and True :
@@ -240,9 +239,7 @@ def train(opt):
 
             # Log scalar values
             for tag, value in loss_dict.items():
-                logger.scalar_summary(tag, value, loss_step)
-
-            loss_step = loss_step + 1
+                logger.scalar_summary(tag, value, num_iter_per_epoch * epoch + iter)
 
         print("SAVE MODEL")
         if not os.path.exists(opt.saved_path):
