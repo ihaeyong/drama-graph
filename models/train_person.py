@@ -239,7 +239,7 @@ def train(opt):
 
             # Log scalar values
             for tag, value in loss_dict.items():
-                logger.scalar_summary(tag, value, iter)
+                logger.scalar_summary(tag, value, num_iter_per_epoch * epoch + iter)
 
         print("SAVE MODEL")
         if not os.path.exists(opt.saved_path):
