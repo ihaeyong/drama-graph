@@ -20,6 +20,7 @@ from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, fl
 from lib.hyper_yolo import anchors
 
 import numpy as np
+import os
 
 class person_model(nn.Module):
     def __init__(self, num_persons, device):
@@ -27,7 +28,7 @@ class person_model(nn.Module):
 
         pre_model = Yolo(num_persons).to(device)
 
-        if True:
+        if False:
             # we get the pre-trained model from
             # https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM
             pascal_voc = './checkpoint/detector/only_params_trained_yolo_voc'

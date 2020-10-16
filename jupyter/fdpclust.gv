@@ -1,0 +1,18 @@
+digraph G {
+	graph [dpi=300 rankdir=TB rotate=0 size="5,5"]
+	node [fontsize=7 height=0.1]
+	edge [fontsize=7]
+	episode_1_clip_10_frame_0 [color=lightgrey style=filled]
+	kitchen [color=lightblue style=filled]
+	sound [color=lightblue style=filled]
+	Jeongsuk
+	cook [color=green style=filled]
+	Happiness [color=blue style=filled]
+	Jeongsuk -> cook
+	Jeongsuk -> Happiness
+	Deogi
+	cook [color=green style=filled]
+	Happiness [color=blue style=filled]
+	Deogi -> cook
+	Deogi -> Happiness
+}

@@ -14,9 +14,14 @@ from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
+import networkx as nx
+from networkx.drawing.nx_pydot import read_dot
+#from networkx.drawing.nx_agraph import read_dot
+from networkx.readwrite import json_graph
 
 from lib.place_model import place_model, label_mapping, accuracy, label_remapping, place_buffer
 from lib.behavior_model import behavior_model
+from lib.person_model import person_model
 from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, flatten
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 from lib.face_model import face_model
@@ -80,13 +85,138 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-train_set = AnotherMissOh(train, opt.img_path, opt.json_path, False)
-val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
-test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
+episode = 7
+infer = [episode]
+infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
 # model path
 model_path = "{}/anotherMissOh_{}.pth".format(
     opt.saved_path,opt.model)
+
+def is_not_blank(s):
+    return bool(s and s.strip())
+
+def graph(episode, scene, frm, info):
+
+    save_file = 'temp_graph'
+    import string
+    strseq = string.ascii_uppercase
+
+    # define  graph
+    dot = Digraph('G',filename='{}.gv'.format(save_file),engine='fdp')
+    dot.attr('graph', rotate = '0', dpi='600',rankdir='TB', size='10,8')
+    dot.attr('node', height='0.1', fontsize='6')
+    dot.attr('edge', fontsize='6')
+
+    place = "{}".format(info['place'])
+    sound = "{}".format('sound')
+
+    if not is_not_blank(place):
+        place = 'none'
+    if not is_not_blank(sound):
+        sound = 'none'
+
+    num_of_persons = len(info['persons']['person_id'])
+    num_of_objects = len(info['objects']['object_id'])
+
+    frm_graph = 'episode_{}_scene_{}_frame_{}'.format(
+        episode, scene, frm)
+
+    #dot.node(frm_graph, style='filled', color='lightgrey')
+    episode_node = "episode_{:02d}".format(episode)
+    scene_node = "scene_{:03d}".format(scene)
+    frame_node = "frame_{:04d}".format(frm)
+    dot.node(episode_node, style='filled', color='lightgrey')
+    dot.node(scene_node, style='filled', color='lightgrey')
+    dot.node(frame_node, style='filled', color='lightgrey')
+
+    dot.node(place, style='filled', color='lightblue')
+    dot.node(sound, style='filled', color='lightblue')
+
+    if is_not_blank(episode_node) and is_not_blank(scene_node):
+        dot.edge(episode_node, scene_node)
+
+    if is_not_blank(scene_node) and is_not_blank(frame_node):
+        dot.edge(scene_node, frame_node)
+
+    if is_not_blank(frame_node) and is_not_blank(place):
+        dot.edge(frame_node, place)
+
+    if is_not_blank(frame_node) and is_not_blank(sound):
+        dot.edge(frame_node, sound)
+
+    for p in range(num_of_objects):
+        try:
+            object_id = info['objects']['object_id'][p]
+        except:
+            object_id = 'none'
+
+        try:
+            predicate = info['objects']['relation'][p]
+        except:
+            predicate = 'none'
+
+        if is_not_blank(object_id) and object_id is not 'person':
+            dot.node(object_id, style='filled', color='gold')
+        if is_not_blank(predicate) and predicate is not 'person':
+            dot.node(predicate, style='filled', color='gold')
+        if is_not_blank(frame_node) and is_not_blank(object_id):
+            dot.edge(frame_node, object_id)
+
+    for p in range(num_of_persons):
+
+        try:
+            person_id = "{}".format(info['persons']['person_id'][p])
+        except:
+            person_id = 'none'
+        try:
+            behavior = "{}".format(info['persons']['behavior'][p])
+        except:
+            person_id = 'none'
+        try:
+            predicate = "{}".format(info['persons']['predicate'][p])
+        except:
+            person_id = 'none'
+        try:
+            emotion = "{}".format(info['persons']['emotion'][p])
+        except:
+            person_id = 'none'
+        try:
+            robj_id = "{}".format(info['persons']['related_object_id'][p])
+        except:
+            robj_id = ''
+
+        if is_not_blank(person_id):
+            dot.node(person_id)
+        if is_not_blank(behavior):
+            dot.node(behavior, style='filled', color='green')
+        #if is_not_blank(predicate):
+        #    dot.node(predicate, style='filled', color='yellow')
+        if is_not_blank(emotion):
+            dot.node(emotion, style='filled', color='blue')
+
+        if is_not_blank(frame_node) and is_not_blank(person_id):
+            dot.edge(frame_node, person_id)
+        if is_not_blank(person_id) and is_not_blank(behavior):
+            dot.edge(person_id, behavior)
+        if is_not_blank(person_id) and is_not_blank(predicate) and is_not_blank(robj_id):
+            dot.edge(person_id, robj_id, label=predicate, color='red')
+            #dot.edge(predicate, robj_id)
+        if is_not_blank(person_id) and is_not_blank(emotion):
+            dot.edge(person_id, emotion)
+
+    # show in image
+    dot.format = 'png'
+    dot.render('{}.gv'.format(save_file), view=True)
+
+    graph = cv2.imread('{}.gv.png'.format(save_file))
+    graph = cv2.resize(graph, dsize=(0, 0), fx=600.0/graph.shape[0], fy=600.0/graph.shape[0])
+
+    if False:
+        plt.figure(figsize=(8,8))
+        plt.imshow(graph)
+        plt.show()
+        plt.close()
 
 def test(opt):
     global colors
@@ -105,11 +235,42 @@ def test(opt):
                    "collate_fn": custom_collate_fn}
 
     # set test loader
-    test_loader = DataLoader(test_set, **test_params)
+    test_loader = DataLoader(infer_set, **test_params)
 
     # ---------------(1) load refined models --------------------
     # get the trained models from
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
+    # define person model
+    if True:
+        # model path
+        if False:
+            model_path = "./checkpoint/person/anotherMissOh_only_params_{}".format(
+                'voc_person_group_1gpu_init_none.pth')
+        else:
+            model_path = "./checkpoint/person/anotherMissOh_{}".format(
+                'voc_person_group_1gpu_init_none.pth')
+
+        model_p = person_model(num_persons, device)
+        ckpt = torch.load(model_path)
+
+        # in case of multi-gpu training
+        if False:
+            from collections import OrderedDict
+            ckpt_state_dict = OrderedDict()
+            for k,v in ckpt.items():
+                name = k[7:] # remove 'module'
+                ckpt_state_dict[name] = v
+
+            print("--- loading {} model---".format(model_path))
+            if optimistic_restore(model_p, ckpt_state_dict):
+                print("loaded with {}".format(model_path))
+        else:
+            model_p = ckpt
+            print("loaded with {}".format(model_path))
+
+        model_p.to(device)
+        model_p.eval()
+
     # person and behavior
     if False :
         print("-----------person---behavior-------model---------------")
@@ -199,6 +360,7 @@ def test(opt):
 
     # Sequence buffers
     buffer_images = []
+    graph_info = {}
     # load test clips
     for iter, batch in enumerate(test_loader):
         image, info = batch
@@ -213,10 +375,20 @@ def test(opt):
             continue
 
         # -----------------(2) inference -------------------------
-        # person and behavior predictions
+        # person
+        # logits : [1, 125, 14, 14]
+        p_logits, _ = model_p(image)
+        predictions_p = post_processing(p_logits,
+                                        opt.image_size,
+                                        PersonCLS,
+                                        model_p.detector.anchors,
+                                        opt.conf_threshold,
+                                        opt.nms_threshold)
+
         # logits : [1, 125, 14, 14]
         # behavior_logits : [1, 135, 14, 14]
-        predictions, b_logits = model1(image, label, behavior_label)
+        if False:
+            predictions, b_logits = model1(image, label, behavior_label)
 
         # face
         if np.array(face_label).size > 0 :
@@ -254,7 +426,7 @@ def test(opt):
 
         # relation
         if np.array(obj_label).size > 0 and np.array(label).size > 0:
-        	r_preds, r_obj_preds, relation_predictions = model_relation(image, label, obj_label)
+            r_preds, r_obj_preds, relation_predictions = model_relation(image, label, obj_label)
 
 
         # place
@@ -284,87 +456,11 @@ def test(opt):
         preds_place_txt = label_remapping(preds_place)
         target_place_txt = label_remapping(info_place)
 
-
         for idx, frame in enumerate(frame_id):
-
             # ---------------(3) mkdir for evaluations----------------------
             f_info = frame[0].split('/')
-            save_dir = './results/person/{}/{}/{}/'.format(
+            save_dir = './results/drama-graph/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
-
-            save_mAP_gt_dir = './results/input_person/ground-truth/'
-            save_mAP_det_dir = './results/input_person/detection/'
-
-            save_mAP_gt_beh_dir = './results/input_person/ground-truth-behave/'
-            save_mAP_det_beh_dir = './results/input_person/detection-behave/'
-
-            # face dir
-            save_mAP_gt_face_dir = './results/input_person/ground-truth-face/'
-            save_mAP_det_face_dir = './results/input_person/detection-face/'
-
-            save_mAP_img_dir = './results/input_person/image/'
-
-            save_mAP_gt_obj_dir = './results/object/ground-truth-object/'
-            save_mAP_det_obj_dir = './results/object/detection-object/'
-
-            save_mAP_gt_rel_dir = './results/relation/ground-truth-relation/'
-            save_mAP_det_rel_dir = './results/relation/detection-relation/'
-
-            # place dir
-            save_gt_place_dir = './results/place/ground-truth-place/'
-            save_pred_place_dir = './results/place/prediction-place/'
-
-            # visualize predictions
-            if not os.path.exists(save_dir):
-                os.makedirs(save_dir)
-
-            # ground-truth
-            if not os.path.exists(save_mAP_gt_dir):
-                os.makedirs(save_mAP_gt_dir)
-
-            # detection
-            if not os.path.exists(save_mAP_det_dir):
-                os.makedirs(save_mAP_det_dir)
-
-            # ground-truth behavior
-            if not os.path.exists(save_mAP_gt_beh_dir):
-                os.makedirs(save_mAP_gt_beh_dir)
-
-            # behavior
-            if not os.path.exists(save_mAP_det_beh_dir):
-                os.makedirs(save_mAP_det_beh_dir)
-
-            # ground-truth face
-            if not os.path.exists(save_mAP_gt_face_dir):
-                os.makedirs(save_mAP_gt_face_dir)
-
-            # face
-            if not os.path.exists(save_mAP_det_face_dir):
-                os.makedirs(save_mAP_det_face_dir)
-
-            # object
-            if not os.path.exists(save_mAP_gt_obj_dir):
-                os.makedirs(save_mAP_gt_obj_dir)
-
-            if not os.path.exists(save_mAP_det_obj_dir):
-                os.makedirs(save_mAP_det_obj_dir)
-
-            # place
-            if not os.path.exists(save_gt_place_dir):
-                os.makedirs(save_gt_place_dir)
-            if not os.path.exists(save_pred_place_dir):
-                os.makedirs(save_pred_place_dir)
-
-
-            # relation
-            if not os.path.exists(save_mAP_gt_rel_dir):
-                os.makedirs(save_mAP_gt_rel_dir)
-            if not os.path.exists(save_mAP_det_rel_dir):
-                os.makedirs(save_mAP_det_rel_dir)
-
-            # image
-            if not os.path.exists(save_mAP_img_dir):
-                os.makedirs(save_mAP_img_dir)
 
             f_file = f_info[7]
             mAP_file = "{}_{}_{}_{}".format(f_info[4],
@@ -374,135 +470,37 @@ def test(opt):
             if opt.display:
                 print("frame.__len__{}, mAP_file:{}".format(len(frame_id), mAP_file))
 
-            # --------------(4) ground truth ---------------------------------
-            # save person ground truth
-            gt_person_cnt = 0
-            if len(label) > idx :
-                # person
-                f = open(save_mAP_gt_dir + mAP_file, mode='w+')
-                for det in label[idx]:
-                    cls = PersonCLS[int(det[4])]
-                    xmin = str(max(det[0] / width_ratio, 0))
-                    ymin = str(max(det[1] / height_ratio, 0))
-                    xmax = str(min((det[2]) / width_ratio, width))
-                    ymax = str(min((det[3]) / height_ratio, height))
-                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    if opt.display:
-                        print("person_gt:{}".format(cat_det))
-                    f.write(cat_det)
-                    gt_person_cnt += 1
-                f.close()
-
-                # behavior
-                f = open(save_mAP_gt_beh_dir + mAP_file, mode='w+')
-                for j, det in enumerate(label[idx]):
-                    cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
-                    if cls == 'none':
-                        continue
-
-                    cls = cls.replace('/', '_')
-                    xmin = str(max(det[0] / width_ratio, 0))
-                    ymin = str(max(det[1] / height_ratio, 0))
-                    xmax = str(min((det[2]) / width_ratio, width))
-                    ymax = str(min((det[3]) / height_ratio, height))
-                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    if opt.display:
-                        print("behavior_gt:{}".format(cat_det))
-                    f.write(cat_det)
-                f.close()
-
-            # emotion
-
-
-            # object
-            gt_object_cnt = 0
-            if len(obj_label) > idx :
-                f_obj = open(save_mAP_gt_obj_dir + mAP_file, mode='w+')
-                for det in obj_label[idx]:
-                    cls = ObjectCLS[int(det[4])]
-                    xmin = str(max(det[0] / width_ratio, 0))
-                    ymin = str(max(det[1] / height_ratio, 0))
-                    xmax = str(min((det[2]) / width_ratio, width))
-                    ymax = str(min((det[3]) / height_ratio, height))
-                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    if opt.display:
-                        print("object_gt:{}".format(cat_det))
-                    f_obj.write(cat_det)
-                    gt_object_cnt += 1
-                f_obj.close()
-
-
-            # relation
-            gt_relation_cnt = 0
-            if len(obj_label) > idx:
-                f_rel = open(save_mAP_gt_dir + mAP_file, mode='w+')
-                for det in obj_label[idx]:
-                    cls = P2ORelCLS[int(det[5])]
-                    xmin = str(max(det[0] / width_ratio, 0))
-                    ymin = str(max(det[1] / height_ratio, 0))
-                    xmax = str(min((det[2]) / width_ratio, width))
-                    ymax = str(min((det[3]) / height_ratio, height))
-                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    if opt.display:
-                        print("relation_gt:{}".format(cat_det))
-                    f_rel.write(cat_det)
-                    gt_relation_cnt += 1
-                f_rel.close()
-
-
-            # open detection file
-            f_beh = open(save_mAP_det_beh_dir + mAP_file, mode='w+')
-            f = open(save_mAP_det_dir + mAP_file, mode='w+')
-            f_obj = open(save_mAP_det_obj_dir + mAP_file, mode='w+')
-            f_rel = open(save_mAP_det_rel_dir + mAP_file, mode='w+')
-
-            # place
-            if len(preds_place_txt) > idx:
-                f_place = open(save_gt_place_dir + mAP_file, mode = 'w+')
-                f_place.write(target_place_txt[idx])
-                if opt.display:
-                    print("place_gt:{}".format(target_place_txt[idx]))
-                f_place.close()
-
-            # face
-            gt_face_cnt = 0
-            if len(face_label) > idx:
-                f_face = open(save_mAP_gt_face_dir + mAP_file, mode='w+')
-                for det in face_label[idx]:
-                    cls = PersonCLS[int(det[4])]
-                    xmin = str(max(det[0] / width_ratio, 0))
-                    ymin = str(max(det[1] / height_ratio, 0))
-                    xmax = str(min((det[2]) / width_ratio, width))
-                    ymax = str(min((det[3]) / height_ratio, height))
-                    cat_det = '%s %s %s %s %s\n' % (cls, xmin, ymin, xmax, ymax)
-                    print("face_gt:{}".format(cat_det))
-                    f_face.write(cat_det)
-                    gt_face_cnt += 1
-                f_face.close()
-
-                f_face = open(save_mAP_det_face_dir + mAP_file, mode='w+')
-
             # --------------(5) visualization of inferences ----------
             # out of try : pdb.set_trace = lambda : None
             try:
                 # for some empty video clips
                 img = image[idx]
                 # ToTensor function normalizes image pixel values into [0,1]
-                np_img = img.cpu().numpy().transpose((1,2,0)) * 255
-
+                np_img = img.cpu().numpy()
+                np_img = np.transpose(np_img,(1,2,0)) * 255
                 output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                 output_image = cv2.resize(output_image, (width, height))
 
-                if len(predictions) != 0 :
-                    prediction = predictions[idx]
-                    b_logit = b_logits[idx]
+                #**************************************
+                graph_info['persons'] = {}
+                graph_info['persons']['person_id'] = []
+                graph_info['persons']['behavior'] = []
+                graph_info['persons']['emotion'] = []
+                #**************************************
+                graph_info['objects'] = {}
+                graph_info['objects']['object_id'] = []
+                graph_info['objects']['relation'] = []
+                #**************************************
 
-                    # save images
-                    cv2.imwrite(save_mAP_img_dir + mAP_file.replace(
-                        '.txt', '.jpg'), output_image)
+                if len(predictions_p) != 0 :
+                    prediction = predictions_p[idx]
+
+                    if False:
+                        b_logit = b_logits[idx]
 
                     # person and behavior
                     num_preds = len(prediction)
+
                     for jdx, pred in enumerate(prediction):
                         # person
                         xmin = int(max(pred[0] / width_ratio, 0))
@@ -513,10 +511,7 @@ def test(opt):
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
-                        value, index = b_logit[jdx].max(0)
 
-                        b_idx = index.cpu().numpy()
-                        b_pred = PBeHavCLS[b_idx]
                         text_size = cv2.getTextSize(
                             pred[5] + ' : %.2f' % pred[4],
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
@@ -530,60 +525,72 @@ def test(opt):
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
-                        cv2.putText(
-                            output_image, '+ behavior : ' + b_pred,
-                            (xmin, ymin + text_size[1] + 4 + 12),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
 
-                        # behavior
                         pred_cls = pred[5]
-                        pred_beh_cls = b_pred.replace(' ', '_')
-                        pred_beh_cls = pred_beh_cls.replace('/', '_')
                         cat_pred = '%s %s %s %s %s %s\n' % (
                             pred_cls,
                             str(pred[4]),
                             str(xmin), str(ymin), str(xmax), str(ymax))
-
-                        cat_pred_beh = '%s %s %s %s %s %s\n' % (
-                            pred_beh_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
-
-                        print("behavior_pred:{}".format(cat_pred_beh))
                         print("person_pred:{}".format(cat_pred))
 
-                        f.write(cat_pred)
-                        f_beh.write(cat_pred_beh)
+                        #**************************************************
+                        graph_info['persons']['person_id'].append(pred_cls)
+                        #**************************************************
+
+                        # behavior
+                        if False:
+                            value, index = b_logit[jdx].max(0)
+
+                            b_idx = index.cpu().numpy()
+                            b_pred = PBeHavCLS[b_idx]
+
+                            cv2.putText(
+                                output_image, '+ behavior : ' + b_pred,
+                                (xmin, ymin + text_size[1] + 4 + 12),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+                            pred_beh_cls = b_pred.replace(' ', '_')
+                            pred_beh_cls = pred_beh_cls.replace('/', '_')
+
+                            #******************************************************
+                            graph_info['persons']['person_id'].append(pred_beh_cls)
+                            #******************************************************
+
+                            cat_pred_beh = '%s %s %s %s %s %s\n' % (
+                                pred_beh_cls,
+                                str(pred[4]),
+                                str(xmin), str(ymin), str(xmax), str(ymax))
+
+                            print("behavior_pred:{}".format(cat_pred_beh))
 
                         # emotion
-                        fl = face_label[idx][jdx]
-                        face_x0, face_y0 = int(fl[0]/width_ratio), int(fl[1]/height_ratio)
-                        face_x1, face_y1 = int(fl[2]/width_ratio), int(fl[3]/height_ratio)
-                        emo_ij = F.softmax(emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
-                        emo_txt = EmoCLS[emo_ij]
-                        cv2.rectangle(output_image, (face_x0,face_y0),
-                                      (face_x1,face_y1), (255,255,0), 1)
-                        cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
-                                    cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
-                                    cv2.LINE_AA)
+                        if False:
+                            fl = face_label[idx][jdx]
+                            face_x0, face_y0 = int(fl[0]/width_ratio), int(fl[1]/height_ratio)
+                            face_x1, face_y1 = int(fl[2]/width_ratio), int(fl[3]/height_ratio)
+                            emo_ij = F.softmax(emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
+                            emo_txt = EmoCLS[emo_ij]
+                            cv2.rectangle(output_image, (face_x0,face_y0),
+                                          (face_x1,face_y1), (255,255,0), 1)
+                            cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
+                                        cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
+                                        cv2.LINE_AA)
 
+                            #******************************************************
+                            graph_info['persons']['emotion'].append(emo_txt)
+                            #******************************************************
 
                         if opt.display:
-                            print("detected {}".format(
-                                save_dir + "{}".format(f_file)))
+                            print("detected {}".format(save_dir + "{}".format(f_file)))
                     else:
                         if opt.display:
                             print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
-                        f.close()
-                        f_beh.close()
 
-
-                        # object
+                # object
                 if len(predictions_object) != 0:
-                    prediction_object = predictions_object[0]
 
+                    prediction_object = predictions_object[0]
                     num_preds = len(prediction)
                     for jdx, pred in enumerate(prediction_object):
                         xmin = int(max(pred[0] / width_ratio, 0))
@@ -616,9 +623,10 @@ def test(opt):
                             str(pred[4]),
                             str(xmin), str(ymin), str(xmax), str(ymax))
 
+                        #**************************************************
+                        graph_info['objects']['object_id'].append(pred_cls)
+                        #**************************************************
                         print("object_pred:{}".format(cat_pred))
-
-                        f_obj.write(cat_pred)
 
                         if opt.display:
                             print("detected {}".format(
@@ -627,11 +635,9 @@ def test(opt):
                         if opt.display:
                             print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
-                        f_obj.close()
 
                 # relation
-
-                if len(r_preds[idxx]) != 0:
+                if len(r_preds) != 0:
                     r_pred = r_preds[idx]
                     r_obj_pred = r_obj_preds[idx]
                     relation_prediction = relation_predictions[idx]
@@ -667,9 +673,7 @@ def test(opt):
                             ymax = int(min((float(obj_pred[3])) / height_ratio, height))
 
                             color = colors[ObjectCLS.index(obj_pred[5])]
-
-                            cv2.rectangle(output_image, (xmin, ymin),
-                                          (xmax, ymax), color, 2)
+                            cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), color, 2)
 
                             text_size = cv2.getTextSize(
                                 obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
@@ -685,6 +689,10 @@ def test(opt):
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 255, 255), 1)
 
+                            #*****************************************************
+                            graph_info['objects']['object_id'].append(obj_pred[5])
+                            #*****************************************************
+
                             value, ind = relation_prediction[kdx].max(1)
                             ind = int(ind.cpu().numpy())
                             rel_ind = P2ORelCLS[ind]
@@ -697,25 +705,28 @@ def test(opt):
                             pred_cls = rel_ind
                             cat_pred = '%s %s %s %s %s\n' % (
                                 pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
-                            f_rel.write(cat_pred)
                             print("relation_pred:{}".format(cat_pred))
 
-                        # place
+                            #*****************************************************
+                            graph_info['objects']['relation'].append(pred_cls)
+                            #*****************************************************
+
                 # place
                 if len(preds_place_txt) != 0:
                     cv2.putText(output_image, "place : " + preds_place_txt[idx],
                         (30, 30),
                         cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
-                    f_place_pred = open(save_pred_place_dir + mAP_file, mode='w+')
+
+                    #*****************************************
+                    graph_info['place'] = preds_place_txt[idx]
+                    #*****************************************
+
                     if opt.display:
                         print('place_pred :', preds_place_txt[idx])
-                    f_place_pred.write(preds_place_txt[idx])
-                    f_place_pred.close()
+
                 # face
                 if len(predictions_face) != 0:
-
                     prediction_face = predictions_face[idx]
-
                     for pred in prediction_face:
                         xmin = int(max(pred[0] / width_ratio, 0))
                         ymin = int(max(pred[1] / height_ratio, 0))
@@ -741,60 +752,35 @@ def test(opt):
 
                         # save detection results
                         pred_cls = pred[5]
-
                         cat_pred = '%s %s %s %s %s %s\n' % (
                             pred_cls,
                             str(pred[4]),
                             str(xmin), str(ymin), str(xmax), str(ymax))
 
                         print("face_pred:{}".format(cat_pred))
-
-                        f_face.write(cat_pred)
-
                         print("detected {}".format(
                             save_dir + "{}".format(f_file)))
-                    else:
-                        print("non-detected {}".format(
+                else:
+                    print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))
-                        f_face.close()
-
                 # save output image
                 cv2.imwrite(save_dir + "{}".format(f_file), output_image)
+                # save images
+                plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
+                plt.figure(figsize=(8,8))
+                plt.imshow(plt_output_image.astype('uint8'))
+                plt.show()
+                plt.close()
+
+                #*****************************************
+                frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode, scene, idx)
+                save_file = save_dir + frm_name
+                graph(episode, scene, idx, graph_info)
+                #*****************************************
             except:
-                f.close()
-                f_beh.close()
-                f_face.close()
-                f_obj.close()
-
                 continue
-            if gt_person_cnt == 0:
-                if os.path.exists(save_mAP_gt_dir + mAP_file):
-                    os.remove(save_mAP_gt_dir + mAP_file)
-                if os.path.exists(save_mAP_det_dir + mAP_file):
-                    os.remove(save_mAP_det_dir + mAP_file)
-                if os.path.exists(save_mAP_gt_beh_dir + mAP_file):
-                    os.remove(save_mAP_gt_beh_dir + mAP_file)
-                if os.path.exists(save_mAP_det_beh_dir + mAP_file):
-                    os.remove(save_mAP_det_beh_dir + mAP_file)
-                # remove the relation if not there
-                if os.path.exists(save_mAP_gt_rel_dir + mAP_file):
-                    os.remove(save_mAP_gt_rel_dir + mAP_file)
-                if os.path.exists(save_mAP_det_rel_dir + mAP_file):
-                    os.remove(save_mAP_det_rel_dir + mAP_file)
 
-            # face
-            if gt_face_cnt == 0:
-                if os.path.exists(save_mAP_gt_face_dir + mAP_file):
-                    os.remove(save_mAP_gt_face_dir + mAP_file)
-                if os.path.exists(save_mAP_det_face_dir + mAP_file):
-                    os.remove(save_mAP_det_face_dir + mAP_file)
 
-            # object
-            if gt_object_cnt == 0:
-                if os.path.exists(save_mAP_gt_obj_dir + mAP_file):
-                    os.remove(save_mAP_gt_obj_dir + mAP_file)
-                if os.path.exists(save_mAP_det_obj_dir + mAP_file):
-                    os.remove(save_mAP_det_obj_dir + mAP_file)
 
 
 if __name__ == "__main__":
