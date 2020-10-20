@@ -66,6 +66,8 @@ def get_args():
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
+    parser.add_argument("-use_gt", type=bool, default=True, action='store_true', 
+                        help='using gt boxes for object and person')
     args = parser.parse_args()
     return args
 

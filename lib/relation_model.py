@@ -39,6 +39,7 @@ class relation_model(nn.Module):
         self.num_persons = num_persons
         self.num_relations = num_relations
         self.num_objects = num_objects
+        self.use_gt = opt.use_gt
 
         # define convs
         self.person_conv = nn.Sequential(
@@ -231,7 +232,7 @@ class relation_model(nn.Module):
                     b_boxes.append(p_box)
 
                 boxes_gt.append(b_boxes)
-            if 1:
+            if self.use_gt:
                 boxes = boxes_gt
 
             object_boxes_gt = []
@@ -245,7 +246,7 @@ class relation_model(nn.Module):
                     object_b_boxes.append(p_box)
 
                 object_boxes_gt.append(object_b_boxes)
-            if 1:
+            if self.use_gt:
                 object_boxes = object_boxes_gt
 
 

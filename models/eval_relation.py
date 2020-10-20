@@ -52,6 +52,8 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="relation")
     parser.add_argument("-display", dest='display', action='store_true')
+    parser.add_argument("-use_gt", type=bool, default=True, action='store_true', 
+                        help='using gt boxes for object and person')
     args = parser.parse_args()
     return args
 
