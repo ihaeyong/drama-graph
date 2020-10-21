@@ -1,8 +1,0 @@
-// The Round Table
-digraph {
-	0 [label=Haeyoung1 fillcolor=gray style=filled]
-	1 [label="Performers_and_roles#1_0_0"]
-	2 [label=are]
-	1 -> 2 [label=lu]
-	1 -> 0 [label=Type]
-}

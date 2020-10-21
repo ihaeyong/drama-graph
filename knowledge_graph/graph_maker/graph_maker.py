@@ -335,6 +335,8 @@ class graph_maker:
                             t_name_to_i[obj] = str(len(t_name_to_i))
                             t_i_to_name[str(len(t_name_to_i))] = obj
                         if type == 'background':  # background
+                            if rel in ['son', 'brother', 'daughter', 'cousin', 'niece', 'sister', 'mother', 'father', 'husband', 'sister-in-law', 'wife', 'aunt', 'uncle']:
+                                rel = 'is ' + rel + ' of'
                             dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel,  _attributes={'fontcolor':'red','fillcolor':'red', 'style':'filled'})
                         else:
                             dot_triple.edge(t_name_to_i[char], t_name_to_i[obj], label=rel)

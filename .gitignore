@@ -5,9 +5,15 @@ checkpoint/
 work_space/log
 Yolo_v2_pytorch/trained_models/
 jupyter/.ipynb_checkpoints/
-swrc/data/stanford-corenlp-4.0.0
-swrc/data/tmp
-swrc/data/zip_files
+knowledge_graph/data/stanford-corenlp-4.0.0
+knowledge_graph/data/tmp
+knowledge_graph/data/zip_files
+knowledge_graph/data/input/AnotherMissOh_Scene_Subtitle
+knowledge_graph/data/input/edited_AnotherMissOh_Subtitle
+knowledge_graph/data/input/sample
+knowledge_graph/data/input/AnotherMissOh_ESST-list.json
+knowledge_graph/data/input/AnotherMissOh_ep01.json
+knowledge_graph/data/output/graphs
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
