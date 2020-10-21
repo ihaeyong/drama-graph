@@ -10,6 +10,8 @@ knowledge_graph/data/tmp
 knowledge_graph/data/zip_files
 knowledge_graph/data/input/AnotherMissOh_Scene_Subtitle
 knowledge_graph/data/input/edited_AnotherMissOh_Subtitle
+knowledge_graph/data/background.txt
+knowledge_graph/data/character.txt
 knowledge_graph/data/input/sample
 knowledge_graph/data/input/AnotherMissOh_ESST-list.json
 knowledge_graph/data/input/AnotherMissOh_ep01.json
