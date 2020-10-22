@@ -162,6 +162,13 @@ def SortFullRect(image, label, is_train=True):
 
             frame_id = label[0][frm]['frame_id']
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
+                
+                p_label = PersonCLS.index(p_id)
+                if p_label > 20:
+                    print("sort full rect index error{}".format(p_label))
+                full_rect = label[0][frm]['persons']['full_rect'][p]
+                behavior = label[0][frm]['persons']['behavior'][p]
+                behavior_label = PBeHavCLS.index(behavior)
 
                 # face label
                 face_label = FaceCLS.index(p_id)
@@ -170,6 +177,13 @@ def SortFullRect(image, label, is_train=True):
 
                 face_rect = label[0][frm]['persons']['face_rect'][p]
 
+                #scale:
+                xmin = max(full_rect[0] * width_ratio, 0)
+                ymin = max(full_rect[1] * height_ratio, 0)
+                xmax = min((full_rect[2]) * width_ratio, 448)
+                ymax = min((full_rect[3]) * height_ratio, 448)
+                full_rect = [xmin,ymin,xmax,ymax]
+
                 # face rcet scale
                 xmin = max(face_rect[0] * width_ratio, 0)
                 ymin = max(face_rect[1] * height_ratio, 0)
@@ -177,11 +191,14 @@ def SortFullRect(image, label, is_train=True):
                 ymax = min((face_rect[3]) * height_ratio, 448)
                 face_rect = [xmin, ymin, xmax, ymax]
 
+                temp_label = np.concatenate((full_rect, [p_label]), 0)
+
                 face_temp_label = np.concatenate((face_rect, [face_label]), 0)
                 face_list.append(face_temp_label)
 
                 emo_label = label[0][frm]['persons']['emotion'][p]
                 emo_list.append(emo_label)
+
         except:
             continue
 

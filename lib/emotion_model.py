@@ -87,12 +87,13 @@ def crop_face_emotion(image, face_label, emo_label, opt):
             # store
             face_crops.append(img_crop)
             # emotion labels
-            emo_text = emo_label[i][j]
-            el = emo_char_idx(emo_text.lower())
-            emo_gt.append(el)
+            if emo_label is not None:
+                emo_text = emo_label[i][j]
+                el = emo_char_idx(emo_text.lower())
+                emo_gt.append(el)
 
     face_crops = torch.stack(face_crops).permute(0,3,1,2) # [f,h,w,3]->[f,3,h,w]
-    emo_gt = torch.Tensor(emo_gt).long()
+    emo_gt = torch.Tensor(emo_gt).long() if emo_label is not None else None
 
     return face_crops, emo_gt
 

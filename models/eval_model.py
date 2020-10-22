@@ -404,14 +404,22 @@ def test(opt):
 
         # emotion
         if np.array(face_label).size > 0 and False:
-            face_label = [fl for fl in face_label if len(fl) > 0]
-            emo_label = [el for el in emo_label if len(el) > 0]
-            image_c = image.permute(0,2,3,1).cpu()
-            face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
-            face_crops, emo_gt = face_crops.cuda(device).contiguous(), emo_gt.cuda(device)
-            emo_logits = model_emo(face_crops)
-            num_img, num_face = np.array(face_label).shape[0:2]
-            emo_logits = emo_logits.view(num_img, num_face, 7)
+            if args.use_gt:
+                face_label = [fl for fl in face_label if len(fl) > 0]
+                emo_label = [el for el in emo_label if len(el) > 0]
+                image_c = image.permute(0,2,3,1).cpu()
+                face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
+                face_crops, emo_gt = face_crops.cuda(device).contiguous(), emo_gt.cuda(device)
+                emo_logits = model_emo(face_crops)
+                num_img, num_face = np.array(face_label).shape[0:2]
+                emo_logits = emo_logits.view(num_img, num_face, 7)
+            else:
+                image_c = image.permute(0,2,3,1).cpu()
+                face_crops, emo_gt = crop_face_emotion(image_c, predictions_face, None, opt)
+                face_crops = face_crops.cuda(device).contiguous()
+                emo_logits = model_emo(face_crops)
+                num_img, num_face = np.array(predictions_face).shape[0:2]
+                emo_logits = emo_logits.view(num_img, num_face, 7)
 
         # object
         if np.array(obj_label).size > 0 :
