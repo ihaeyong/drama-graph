@@ -12,7 +12,7 @@ Downloads [stanford-corenlp-4.0.0.zip](https://stanfordnlp.github.io/CoreNLP/his
 
 Downloads [this link](https://drive.google.com/drive/folders/1IhWn82lBD96vTj6nvjdsCQOdQabi255L) and unzip the downloaded file to `data/input`.
 
- Check if there are `data/input/edited_AnotherMissOh_Subtitle` and ``data/input/AnotherMissOh_ESST-list.json`. 
+ Check if there are `data/input/edited_AnotherMissOh_Subtitle` and `data/input/AnotherMissOh_ESST-list.json`. 
 
  Run the following command: 
 
