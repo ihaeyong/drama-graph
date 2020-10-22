@@ -1,1 +1,1 @@
-python data_preprocessor.py
+python data_preprocessor.py --subtitles_path data/input/edited_AnotherMissOh_Subtitle/ --timeinfo_path data/input/AnotherMissOh_ESST-list.json --output_path data/input/AnotherMissOh_Scene_Subtitle/

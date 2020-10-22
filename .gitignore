@@ -8,14 +8,10 @@ jupyter/.ipynb_checkpoints/
 knowledge_graph/data/stanford-corenlp-4.0.0
 knowledge_graph/data/tmp
 knowledge_graph/data/zip_files
-knowledge_graph/data/input/AnotherMissOh_Scene_Subtitle
-knowledge_graph/data/input/edited_AnotherMissOh_Subtitle
+knowledge_graph/data/input/*
 knowledge_graph/data/background.txt
 knowledge_graph/data/character.txt
-knowledge_graph/data/input/sample
-knowledge_graph/data/input/AnotherMissOh_ESST-list.json
-knowledge_graph/data/input/AnotherMissOh_ep01.json
-knowledge_graph/data/output/graphs
+knowledge_graph/data/input/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

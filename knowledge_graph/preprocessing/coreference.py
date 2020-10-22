@@ -44,8 +44,7 @@ class coreference:
                                 close.append(i)
 
                         if len(open) != len(close):
-                            print('error')
-                            print(u['utter'])
+                            print('Can\'t match Parentheses: {}'.format(u['utter']))
                             u['corefs'] = []
                             continue
 

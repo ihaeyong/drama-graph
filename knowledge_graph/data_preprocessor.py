@@ -1,7 +1,7 @@
 import datetime
 import glob
 import json
-import re
+import argparse
 import os
 
 remove_ext = '.mp4'
@@ -72,9 +72,9 @@ def ess_main(filename):
         json.dump(output, f, ensure_ascii=False, indent=4)
 
 
-def add_scene_num_subtitle(filename):
+def add_scene_num_subtitle(sub_path, filename):
     input_file = filename
-    en_sub = load_sub('data/input/edited_AnotherMissOh_Subtitle/')
+    en_sub = load_sub(sub_path) # 'data/input/edited_AnotherMissOh_Subtitle/'
     sub = [en_sub]
     sub_lang = ['eng']
     with open(input_file, 'r') as f:
@@ -84,7 +84,10 @@ def add_scene_num_subtitle(filename):
         output_item = {}
         for ep, scenes in d.items():
             print('working ' + sub_lang[i] + '-' + ep + '...')
-            scripts = item[ep]['script']
+            try:
+                scripts = item[ep]['script']
+            except:
+                continue
             for script in scripts:
                 st = datetime.datetime.strptime(script['st'], '%H:%M:%S.%f')
                 et = datetime.datetime.strptime(script['et'], '%H:%M:%S.%f')
@@ -185,10 +188,10 @@ def isSortedScript(ep, scripts):
     if not is_sorted:
         pass
 
-def add_time_subtitle():
-    sub_list = add_scene_num_subtitle('data/input/AnotherMissOh_ESST-list.json')
+def add_time_subtitle(input_path, timeinfo_path, output_path):
+    sub_list = add_scene_num_subtitle(input_path, timeinfo_path)  # 'data/input/AnotherMissOh_ESST-list.json'
     en_sub = sub_list[0]
-    dir_name = 'data/input/AnotherMissOh_Scene_Subtitle/'
+    dir_name = output_path  # 'data/input/AnotherMissOh_Scene_Subtitle/'
     try:
         os.mkdir(dir_name)
     except:
@@ -224,4 +227,12 @@ def load_sub(dirname):
 
 
 if __name__ == "__main__":
-    add_time_subtitle()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--subtitles_path', required=True, help='subtitles directory path')
+    parser.add_argument('--timeinfo_path', required=True, help='time info file path')
+    parser.add_argument('--output_path', required=True, help='output directory path')
+    args = parser.parse_args()
+    subtitles_path = args.subtitles_path
+    timeinfo_path = args.timeinfo_path
+    output_path = args.output_path
+    add_time_subtitle(subtitles_path, timeinfo_path, output_path)
