@@ -318,7 +318,7 @@ def train(opt):
 
         print("SAVE MODEL")
         if not os.path.exists(opt.saved_path):
-            os.makedirs(opt.saved_path + os.sep + "{}".format(opt_model))
+            os.makedirs(opt.saved_path + os.sep + "{}".format(opt.model))
             print('mkdir_{}'.format(opt.saved_path))
 
         # learning rate schedular
