@@ -103,7 +103,6 @@ class graph_maker:
         nlp = spacy.load('en_core_web_sm')
 
         for i, ep in enumerate(self.input):
-            ep_id = i+1
             for scene in ep:
                 graph = {}
                 s_id = scene['scene_number']
@@ -127,7 +126,10 @@ class graph_maker:
                 back_KB = []
                 for ch in exist_ch: # extract back KB
                     knowledges = virtuoso(ch)
-                    knowledges = knowledges[0]
+                    try:
+                        knowledges = knowledges[0]
+                    except:
+                        print()
                     for k in knowledges:
                         sbj = ch
                         rel = k['p'].split('/')[-1]
@@ -218,7 +220,7 @@ class graph_maker:
                 json['entity_background'] = wiki
                 json['triples'] = triples
                 json['frames'] = refined_frames
-                jsons['ep{}_scene{}'.format(ep_id, s_id)] = json
+                jsons['scene_{}'.format(s_id)] = json
 
         jsondump(jsons, self.config['graph']['json_path'])
 
@@ -230,7 +232,6 @@ class graph_maker:
 
         if self.config['mode'] == 'subtitle' or self.config['mode'] == 'demo':  # scene 당 그래프 1개.
             for i, ep in enumerate(self.input):
-                ep_id = i+1
                 for scene in ep:
                     graph = {}
                     s_id = scene['scene_number']
@@ -285,7 +286,7 @@ class graph_maker:
                             if v in self.char_names:
                                 whole_graph[v]['frame'].append(f)
                                 graph[v]['frame'].append(f)
-                    self.graphs.append(('ep{}_scene{}'.format(ep_id, s_id), graph))
+                    self.graphs.append(('scene_{}'.format(s_id), graph))
 
 
 

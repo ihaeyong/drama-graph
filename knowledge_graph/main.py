@@ -6,6 +6,14 @@ from knowledge_extraction.extractor import *
 from graph_maker.graph_maker import *
 from background_knowledge.background import *
 
+## define custom tag handler
+def join(loader, node):
+    seq = loader.construct_sequence(node)
+    return ''.join([str(i) for i in seq])
+
+## register the tag handler
+yaml.add_constructor('!join', join)
+
 def create_dir(path):
     try:
         if not os.path.exists(path):
@@ -15,7 +23,7 @@ def create_dir(path):
 
 
 with open(os.path.join('config', 'config.yaml'), 'r', encoding='utf8') as f:
-    config = yaml.load(f, Loader=yaml.FullLoader)
+    config = yaml.load(f, Loader=yaml.Loader)
 
 LOG_FORMAT = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s'
 logging.basicConfig(format=LOG_FORMAT, level=getattr(logging, 'INFO'))

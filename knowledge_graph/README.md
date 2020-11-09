@@ -10,7 +10,7 @@ Downloads [stanford-corenlp-4.0.0.zip](https://stanfordnlp.github.io/CoreNLP/his
 
 ### Setup
 
-Downloads [this link](https://drive.google.com/drive/folders/1IhWn82lBD96vTj6nvjdsCQOdQabi255L) and unzip the downloaded file to `data/input`.
+Downloads `input` directory from [this link](https://drive.google.com/drive/folders/1IhWn82lBD96vTj6nvjdsCQOdQabi255L) and unzip the downloaded file to `data/input`.
 
  Check if there are `data/input/edited_AnotherMissOh_Subtitle` and `data/input/AnotherMissOh_ESST-list.json`. 
 
@@ -20,6 +20,16 @@ Downloads [this link](https://drive.google.com/drive/folders/1IhWn82lBD96vTj6nvj
 > ./run_setup.sh
 ```
 
+ Check if there are `data/input/AnotherMissOh_Scene_Subtitle/AnotherMissOh_ep{01-18}.json`
+
+### Configuration
+
+`config/config.yaml` 파일을 통해 추출할 에피소드를 정할 수 있습니다.
+
+`config.yaml`의 1번째 줄 `ep: &ep "01"`은 그래프를 추출할 에피소드를 명시합니다. (01 ~ 18)
+
+예를 들어, 에피소드 13의 그래프를 출력을 원하신다면 1번째 줄을 `ep: &ep "13"`으로 설정하여야 합니다.
+
 ### Execute
 
 ```
@@ -28,9 +38,9 @@ Downloads [this link](https://drive.google.com/drive/folders/1IhWn82lBD96vTj6nvj
 
 ### Graph
 
-input path: `data/input/*.json`
+input path: `data/input/AnotherMissOh_Scene_Subtitle/AnotherMissOh_ep{01-18}.json`
 
-output path: `data/output/graph.json`
+output path: `data/output/ep{01-18}_graph.json`
 
 #### Example
 

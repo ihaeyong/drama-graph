@@ -27,8 +27,9 @@ class preprocessor:
 
     def subtitle_loader(self):
         subtitle_path = self.config['preprocessing']['substitle_file']
-        for path in diriter(subtitle_path):
-            self.input.append(jsonload(path))
+        # for path in diriter(subtitle_path):
+        #     self.input.append(jsonload(path))
+        self.input.append(jsonload(subtitle_path))
         return
 
     def save_output(self):

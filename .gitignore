@@ -9,9 +9,7 @@ knowledge_graph/data/stanford-corenlp-4.0.0
 knowledge_graph/data/tmp
 knowledge_graph/data/zip_files
 knowledge_graph/data/input/*
-knowledge_graph/data/background.txt
-knowledge_graph/data/character.txt
-knowledge_graph/data/input/*
+knowledge_graph/data/output/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
