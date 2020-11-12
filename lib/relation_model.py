@@ -39,7 +39,8 @@ class relation_model(nn.Module):
         self.num_persons = num_persons
         self.num_relations = num_relations
         self.num_objects = num_objects
-        self.use_gt = opt.use_gt
+        #self.use_gt = opt.use_gt # please check this flag
+        self.use_gt = 1
 
         # define convs
         self.person_conv = nn.Sequential(
@@ -190,7 +191,7 @@ class relation_model(nn.Module):
                                            (self.obj_fmap_size//4,
                                             self.obj_fmap_size//4))
 
-                        
+
                         obj_i_fmap = self.object_conv(obj_i_fmap)
 
                         rr_labels.append(int(obj_box[0][5]))

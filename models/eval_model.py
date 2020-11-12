@@ -66,8 +66,8 @@ def get_args():
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
-    parser.add_argument("-use_gt", type=bool, default=True, action='store_true', 
-                        help='using gt boxes for object and person')
+    #parser.add_argument("-use_gt", type=bool, default=True, action='store_true',
+    #                    help='using gt boxes for object and person')
     args = parser.parse_args()
     return args
 
@@ -87,7 +87,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-episode = 7
+episode = 7 # 8 checked 
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
@@ -98,9 +98,10 @@ model_path = "{}/anotherMissOh_{}.pth".format(
 def is_not_blank(s):
     return bool(s and s.strip())
 
-def graph(episode, scene, frm, info):
+def graph(episode, scene, frm, info, save_file=None):
+    if save_file is None:
+        save_file = 'temp_graph'
 
-    save_file = 'temp_graph'
     import string
     strseq = string.ascii_uppercase
 
@@ -206,6 +207,16 @@ def graph(episode, scene, frm, info):
             #dot.edge(predicate, robj_id)
         if is_not_blank(person_id) and is_not_blank(emotion):
             dot.edge(person_id, emotion)
+
+
+    # convert dot graph to json
+    if False:
+        dot_to_json =json.dumps(json_graph.node_link_data(dot))
+    else:
+        dot_to_json = json.dumps(info)
+
+    with open('{}.json'.format(save_file), 'w') as f:
+        json.dump(dot_to_json, f)
 
     # show in image
     dot.format = 'png'
@@ -471,6 +482,9 @@ def test(opt):
             f_info = frame[0].split('/')
             save_dir = './results/drama-graph/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
+
+            if not os.path.exists(save_dir):
+                os.makedirs(save_dir)
 
             f_file = f_info[7]
             mAP_file = "{}_{}_{}_{}".format(f_info[4],
@@ -783,9 +797,10 @@ def test(opt):
                 plt.close()
 
                 #*****************************************
-                frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode, scene, idx)
+                frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(
+                    episode, scene, idx)
                 save_file = save_dir + frm_name
-                graph(episode, scene, idx, graph_info)
+                graph(episode, scene, idx, graph_info, save_file)
                 #*****************************************
             except:
                 continue

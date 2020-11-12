@@ -62,13 +62,14 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].view(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
-    
+
 def place_buffer(images_norm, buffer_images):
     if len(buffer_images) == 0:
         buffer_images = images_norm
     if len(buffer_images) < 10:
         for idx in range(10-len(buffer_images)):
             buffer_images = images_norm[0] + images_norm
+
     assert len(buffer_images) == 10, 'Buffer failed'
 
     return buffer_images
