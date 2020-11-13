@@ -68,7 +68,7 @@ def place_buffer(images_norm, buffer_images):
         buffer_images = images_norm
     if len(buffer_images) < 10:
         for idx in range(10-len(buffer_images)):
-            buffer_images = [images_norm[0]] + images_norm
+            buffer_images = [images_norm[0]] + buffer_images
 
     assert len(buffer_images) == 10, 'Buffer failed'
 
