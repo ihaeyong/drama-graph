@@ -5,16 +5,24 @@ digraph G {
 	episode_07 [color=lightgrey style=filled]
 	scene_000 [color=lightgrey style=filled]
 	frame_0000 [color=lightgrey style=filled]
-	"['none']" [color=lightblue style=filled]
-	sound [color=lightblue style=filled]
+	kitchen [color=lightblue style=filled]
+	talking [color=lightblue style=filled]
 	episode_07 -> scene_000
 	scene_000 -> frame_0000
-	frame_0000 -> "['none']"
-	frame_0000 -> sound
-	Dokyung
-	none [color=green style=filled]
-	Neutral [color=blue style=filled]
-	frame_0000 -> Dokyung
-	Dokyung -> none
-	Dokyung -> Neutral
+	frame_0000 -> kitchen
+	frame_0000 -> talking
+	Haeyoung1
+	talking [color=green style=filled]
+	happy [color=blue style=filled]
+	frame_0000 -> Haeyoung1
+	Haeyoung1 -> talking
+	Haeyoung1 -> happy
+	Deogi
+	eating [color=green style=filled]
+	happy [color=blue style=filled]
+	frame_0000 -> Deogi
+	Deogi -> eating
+	Deogi -> happy
+	spoon [color=gold style=filled]
+	Deogi -> spoon [label=holding color=red]
 }

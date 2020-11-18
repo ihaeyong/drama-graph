@@ -98,10 +98,10 @@ model_path = "{}/anotherMissOh_{}.pth".format(
 def is_not_blank(s):
     return bool(s and s.strip())
 
-def graph(episode, scene, frm, info, save_file=None):
+def graph_to_json(episode, scene, frm, info, save_file=None):
+
     if save_file is None:
         save_file = 'temp_graph'
-
     import string
     strseq = string.ascii_uppercase
 
@@ -112,15 +112,15 @@ def graph(episode, scene, frm, info, save_file=None):
     dot.attr('edge', fontsize='6')
 
     place = "{}".format(info['place'])
-    sound = "{}".format('sound')
+    sound = "{}".format(info['sound'])
 
     if not is_not_blank(place):
         place = 'none'
     if not is_not_blank(sound):
         sound = 'none'
 
-    num_of_persons = len(info['persons']['person_id'])
-    num_of_objects = len(info['objects']['object_id'])
+    num_of_persons = len(info['persons'])
+    num_of_objects = len(info['objects'])
 
     frm_graph = 'episode_{}_scene_{}_frame_{}'.format(
         episode, scene, frm)
@@ -133,6 +133,7 @@ def graph(episode, scene, frm, info, save_file=None):
     dot.node(scene_node, style='filled', color='lightgrey')
     dot.node(frame_node, style='filled', color='lightgrey')
 
+    # backgrounds--------------------------------------------
     dot.node(place, style='filled', color='lightblue')
     dot.node(sound, style='filled', color='lightblue')
 
@@ -148,66 +149,53 @@ def graph(episode, scene, frm, info, save_file=None):
     if is_not_blank(frame_node) and is_not_blank(sound):
         dot.edge(frame_node, sound)
 
-    for p in range(num_of_objects):
-        try:
-            object_id = info['objects']['object_id'][p]
-        except:
-            object_id = 'none'
-
-        try:
-            predicate = info['objects']['relation'][p]
-        except:
-            predicate = 'none'
-
-        if is_not_blank(object_id) and object_id is not 'person':
-            dot.node(object_id, style='filled', color='gold')
-        if is_not_blank(predicate) and predicate is not 'person':
-            dot.node(predicate, style='filled', color='gold')
-        if is_not_blank(frame_node) and is_not_blank(object_id):
-            dot.edge(frame_node, object_id)
-
-    for p in range(num_of_persons):
-
-        try:
-            person_id = "{}".format(info['persons']['person_id'][p])
-        except:
-            person_id = 'none'
-        try:
-            behavior = "{}".format(info['persons']['behavior'][p])
-        except:
-            person_id = 'none'
-        try:
-            predicate = "{}".format(info['persons']['predicate'][p])
-        except:
-            person_id = 'none'
-        try:
-            emotion = "{}".format(info['persons']['emotion'][p])
-        except:
-            person_id = 'none'
-        try:
-            robj_id = "{}".format(info['persons']['related_object_id'][p])
-        except:
-            robj_id = ''
+    # person ------------------------------------------------
+    for person_id in info['persons'].keys():
 
         if is_not_blank(person_id):
             dot.node(person_id)
-        if is_not_blank(behavior):
-            dot.node(behavior, style='filled', color='green')
-        #if is_not_blank(predicate):
-        #    dot.node(predicate, style='filled', color='yellow')
-        if is_not_blank(emotion):
-            dot.node(emotion, style='filled', color='blue')
+
+        # behavior---
+        if 'behavior' in info['persons'][person_id].keys():
+            behavior_id = info['persons'][person_id]['behavior']
+        else:
+            behavior_id = 'none'
+        if is_not_blank(behavior_id):
+            dot.node(behavior_id, style='filled', color='green')
+
+        # emotion---
+        if 'emotion' in info['persons'][person_id].keys():
+            emotion_id = info['persons'][person_id]['emotion']
+        else:
+            emotion_id = 'none'
+        if is_not_blank(emotion_id):
+            dot.node(emotion_id, style='filled', color='blue')
 
         if is_not_blank(frame_node) and is_not_blank(person_id):
             dot.edge(frame_node, person_id)
-        if is_not_blank(person_id) and is_not_blank(behavior):
-            dot.edge(person_id, behavior)
-        if is_not_blank(person_id) and is_not_blank(predicate) and is_not_blank(robj_id):
-            dot.edge(person_id, robj_id, label=predicate, color='red')
-            #dot.edge(predicate, robj_id)
-        if is_not_blank(person_id) and is_not_blank(emotion):
-            dot.edge(person_id, emotion)
 
+        if is_not_blank(person_id) and is_not_blank(behavior_id):
+            dot.edge(person_id, behavior_id)
+
+        if is_not_blank(person_id) and is_not_blank(emotion_id):
+            dot.edge(person_id, emotion_id)
+
+    # relation ---------------------------------------------
+    for object_id in info['objects'].keys():
+        if is_not_blank(object_id):
+            dot.node(object_id, style='filled', color='gold')
+
+    for person_id in info['relations'].keys():
+        if person_id not in info['persons'].keys():
+            dot.node(person_id)
+            dot.edge(frame_node, person_id)
+
+        for object_id in info['relations'][person_id].keys() :
+            if object_id not in info['objects'].keys():
+                dot.node(object_id)
+                dot.edge(frame_node, object_id)
+            predicate = info['relations'][person_id][object_id]
+            dot.edge(person_id, object_id,label=predicate, color='red')
 
     # convert dot graph to json
     if False:
@@ -220,16 +208,17 @@ def graph(episode, scene, frm, info, save_file=None):
 
     # show in image
     dot.format = 'png'
-    dot.render('{}.gv'.format(save_file), view=True)
+    dot.render('{}.gv'.format(save_file), view=True) 
 
     graph = cv2.imread('{}.gv.png'.format(save_file))
     graph = cv2.resize(graph, dsize=(0, 0), fx=600.0/graph.shape[0], fy=600.0/graph.shape[0])
 
     if False:
-        plt.figure(figsize=(8,8))
+        plt.figure(figsize=(10,10))
         plt.imshow(graph)
         plt.show()
         plt.close()
+
 
 def test(opt):
     global colors
@@ -254,7 +243,7 @@ def test(opt):
     # get the trained models from
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
     # define person model
-    if True:
+    if False:
         # model path
         if False:
             model_path = "./checkpoint/person/anotherMissOh_only_params_{}".format(
@@ -285,26 +274,16 @@ def test(opt):
         model_p.eval()
 
     # person and behavior
-    if False :
-        print("-----------person---behavior-------model---------------")
-        model1 = behavior_model(num_persons, num_behaviors, opt, device)
-        trained_persons = './checkpoint/refined_models' + os.sep + "{}".format(
-        'anotherMissOh_only_params_integration.pth')
-        if optimistic_restore(model1, torch.load(trained_persons)):
-            #model1.load_state_dict(torch.load(trained_persons))
-            print("loaded with {}".format(trained_persons))
-
-    else:
+    if True :
         # pre-trained behavior model
         # step 1: person trained on voc 50 epoch
         # step 2: person feature based behavior sequence learning 100 epoch
-        model1 = behavior_model(num_persons, num_behaviors, opt, device)
-        trained_persons = './checkpoint/refined_models' + os.sep + "{}".format(
-            'anotherMissOh_only_params_integration.pth')
-        model1.load_state_dict(torch.load(trained_persons))
+        trained_persons = './checkpoint/behavior' + os.sep + "{}".format(
+            'anotherMissOh_voc_person_behavior_new.pth')
+        model_p = torch.load(trained_persons)
         print("loaded with person and behavior model {}".format(trained_persons))
-    model1.cuda(device)
-    model1.eval()
+    model_p.cuda(device)
+    model_p.eval()
 
     # face model
     if True:
@@ -390,20 +369,21 @@ def test(opt):
         # -----------------(2) inference -------------------------
         # person
         # logits : [1, 125, 14, 14]
-        p_logits, _ = model_p(image)
-        predictions_p = post_processing(p_logits,
-                                        opt.image_size,
-                                        PersonCLS,
-                                        model_p.detector.anchors,
-                                        opt.conf_threshold,
-                                        opt.nms_threshold)
+        if False:
+            p_logits, _ = model_p(image)
+            predictions_p = post_processing(p_logits,
+                                            opt.image_size,
+                                            PersonCLS,
+                                            model_p.detector.anchors,
+                                            opt.conf_threshold,
+                                            opt.nms_threshold)
 
         # logits : [1, 125, 14, 14]
         # behavior_logits : [1, 135, 14, 14]
-        if False:
-            predictions, b_logits = model1(image, label, behavior_label)
+        else:
+            predictions_p, b_logits = model_p(image, label, behavior_label)
 
-        # face
+        # face and emotion
         if np.array(face_label).size > 0 :
             face_logits = model_face(image)
             predictions_face = post_processing(face_logits,
@@ -413,18 +393,9 @@ def test(opt):
                                                opt.conf_threshold,
                                                opt.nms_threshold)
 
-        # emotion
-        if np.array(face_label).size > 0 and False:
-            if args.use_gt:
-                face_label = [fl for fl in face_label if len(fl) > 0]
-                emo_label = [el for el in emo_label if len(el) > 0]
-                image_c = image.permute(0,2,3,1).cpu()
-                face_crops, emo_gt = crop_face_emotion(image_c, face_label, emo_label, opt)
-                face_crops, emo_gt = face_crops.cuda(device).contiguous(), emo_gt.cuda(device)
-                emo_logits = model_emo(face_crops)
-                num_img, num_face = np.array(face_label).shape[0:2]
-                emo_logits = emo_logits.view(num_img, num_face, 7)
-            else:
+            # debugging please 2020.11.18
+            # Value Error : not enough values to unpack (expected 2, got 1)
+            if len(predictions_face) > 0 and False:
                 image_c = image.permute(0,2,3,1).cpu()
                 face_crops, emo_gt = crop_face_emotion(image_c, predictions_face, None, opt)
                 face_crops = face_crops.cuda(device).contiguous()
@@ -465,7 +436,8 @@ def test(opt):
         for plidx in range(len(images_norm)//10):
             batch_images = torch.stack(images_norm[plidx*10:(plidx+1)*10]).cuda(device).unsqueeze(0)
             output = model_place(batch_images)
-            output = torch.cat((output[:, :9], output[:, 10:]), 1) # None excluded. For None prediction, comment this line out.
+            output = torch.cat((output[:, :9], output[:, 10:]), 1)
+            # None excluded. For None prediction, comment this line out.
             preds = torch.argmax(output, -1).tolist() # (T, n_class) ->(T, )
             for idx in range(len(preds)):
                 if preds[idx] >= 9: preds[idx] += 1
@@ -478,6 +450,7 @@ def test(opt):
         target_place_txt = label_remapping(info_place)
 
         for idx, frame in enumerate(frame_id):
+
             # ---------------(3) mkdir for evaluations----------------------
             f_info = frame[0].split('/')
             save_dir = './results/drama-graph/{}/{}/{}/'.format(
@@ -492,6 +465,7 @@ def test(opt):
                                             f_info[6],
                                             f_info[7].replace("jpg", "txt"))
             if opt.display:
+                # AnotherMissOh07_002_0036_IMAGE_0000002672.txt
                 print("frame.__len__{}, mAP_file:{}".format(len(frame_id), mAP_file))
 
             # --------------(5) visualization of inferences ----------
@@ -506,249 +480,14 @@ def test(opt):
                 output_image = cv2.resize(output_image, (width, height))
 
                 #**************************************
-                graph_info['persons'] = {}
-                graph_info['persons']['person_id'] = []
-                graph_info['persons']['behavior'] = []
-                graph_info['persons']['emotion'] = []
-                #**************************************
-                graph_info['objects'] = {}
-                graph_info['objects']['object_id'] = []
-                graph_info['objects']['relation'] = []
+                graph_json = {}
+                graph_json['persons'] = {}
+                graph_json['objects'] = {}
+                graph_json['relations'] = {}
+                graph_json['sound'] = 'none'
                 #**************************************
 
-                if len(predictions_p) != 0 :
-                    prediction = predictions_p[idx]
-
-                    if False:
-                        b_logit = b_logits[idx]
-
-                    # person and behavior
-                    num_preds = len(prediction)
-
-                    for jdx, pred in enumerate(prediction):
-                        # person
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
-                        color = colors[PersonCLS.index(pred[5])]
-
-                        cv2.rectangle(output_image, (xmin, ymin),
-                                      (xmax, ymax), color, 2)
-
-                        text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
-                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                        cv2.rectangle(
-                            output_image,
-                            (xmin, ymin),
-                            (xmin + text_size[0] + 100,
-                             ymin + text_size[1] + 20), color, -1)
-                        cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
-                            (xmin, ymin + text_size[1] + 4),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
-
-                        pred_cls = pred[5]
-                        cat_pred = '%s %s %s %s %s %s\n' % (
-                            pred_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
-                        print("person_pred:{}".format(cat_pred))
-
-                        #**************************************************
-                        graph_info['persons']['person_id'].append(pred_cls)
-                        #**************************************************
-
-                        # behavior
-                        if False:
-                            value, index = b_logit[jdx].max(0)
-
-                            b_idx = index.cpu().numpy()
-                            b_pred = PBeHavCLS[b_idx]
-
-                            cv2.putText(
-                                output_image, '+ behavior : ' + b_pred,
-                                (xmin, ymin + text_size[1] + 4 + 12),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 255, 255), 1)
-                            pred_beh_cls = b_pred.replace(' ', '_')
-                            pred_beh_cls = pred_beh_cls.replace('/', '_')
-
-                            #******************************************************
-                            graph_info['persons']['person_id'].append(pred_beh_cls)
-                            #******************************************************
-
-                            cat_pred_beh = '%s %s %s %s %s %s\n' % (
-                                pred_beh_cls,
-                                str(pred[4]),
-                                str(xmin), str(ymin), str(xmax), str(ymax))
-
-                            print("behavior_pred:{}".format(cat_pred_beh))
-
-                        # emotion
-                        if False:
-                            fl = face_label[idx][jdx]
-                            face_x0, face_y0 = int(fl[0]/width_ratio), int(fl[1]/height_ratio)
-                            face_x1, face_y1 = int(fl[2]/width_ratio), int(fl[3]/height_ratio)
-                            emo_ij = F.softmax(emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
-                            emo_txt = EmoCLS[emo_ij]
-                            cv2.rectangle(output_image, (face_x0,face_y0),
-                                          (face_x1,face_y1), (255,255,0), 1)
-                            cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
-                                        cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
-                                        cv2.LINE_AA)
-
-                            #******************************************************
-                            graph_info['persons']['emotion'].append(emo_txt)
-                            #******************************************************
-
-                        if opt.display:
-                            print("detected {}".format(save_dir + "{}".format(f_file)))
-                    else:
-                        if opt.display:
-                            print("non-detected {}".format(
-                            save_dir + "{}".format(f_file)))
-
-                # object
-                if len(predictions_object) != 0:
-
-                    prediction_object = predictions_object[0]
-                    num_preds = len(prediction)
-                    for jdx, pred in enumerate(prediction_object):
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
-                        color = colors[ObjectCLS.index(pred[5])]
-
-                        cv2.rectangle(output_image, (xmin, ymin),
-                                      (xmax, ymax), color, 2)
-
-                        text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
-                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                        cv2.rectangle(
-                            output_image,
-                            (xmin, ymin),
-                            (xmin + text_size[0] + 100,
-                             ymin + text_size[1] + 20), color, -1)
-                        cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
-                            (xmin, ymin + text_size[1] + 4),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
-
-                        # save detection results
-                        pred_cls = pred[5]
-                        cat_pred = '%s %s %s %s %s %s\n' % (
-                            pred_cls,
-                            str(pred[4]),
-                            str(xmin), str(ymin), str(xmax), str(ymax))
-
-                        #**************************************************
-                        graph_info['objects']['object_id'].append(pred_cls)
-                        #**************************************************
-                        print("object_pred:{}".format(cat_pred))
-
-                        if opt.display:
-                            print("detected {}".format(
-                                save_dir + "{}".format(f_file)))
-                    else:
-                        if opt.display:
-                            print("non-detected {}".format(
-                            save_dir + "{}".format(f_file)))
-
-                # relation
-                if len(r_preds) != 0:
-                    r_pred = r_preds[idx]
-                    r_obj_pred = r_obj_preds[idx]
-                    relation_prediction = relation_predictions[idx]
-                    num_preds = len(r_pred)
-                    for jdx, pred in enumerate(r_pred):
-                        xmin = int(max(float(pred[0]) / width_ratio, 0))
-                        ymin = int(max(float(pred[1]) / height_ratio, 0))
-                        xmax = int(min((float(pred[2])) / width_ratio, width))
-                        ymax = int(min((float(pred[3])) / height_ratio, height))
-                        color = colors[PersonCLS.index(pred[5])]
-
-                        cv2.rectangle(output_image, (xmin, ymin),
-                                      (xmax, ymax), color, 2)
-
-                        text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % float(pred[4]),
-                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                        cv2.rectangle(
-                            output_image,
-                            (xmin, ymin),
-                            (xmin + text_size[0] + 100,
-                             ymin + text_size[1] + 20), color, -1)
-                        cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
-                            (xmin, ymin + text_size[1] + 4),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
-
-                        for kdx, obj_pred in enumerate(r_obj_pred):
-                            xmin = int(max(float(obj_pred[0]) / width_ratio, 0))
-                            ymin = int(max(float(obj_pred[1]) / height_ratio, 0))
-                            xmax = int(min((float(obj_pred[2])) / width_ratio, width))
-                            ymax = int(min((float(obj_pred[3])) / height_ratio, height))
-
-                            color = colors[ObjectCLS.index(obj_pred[5])]
-                            cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), color, 2)
-
-                            text_size = cv2.getTextSize(
-                                obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
-                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                            cv2.rectangle(
-                                output_image,
-                                (xmin, ymin),
-                                (xmin + text_size[0] + 100,
-                                 ymin + text_size[1] + 20), color, -1)
-                            cv2.putText(
-                                output_image, obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
-                                (xmin, ymin + text_size[1] + 4),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 255, 255), 1)
-
-                            #*****************************************************
-                            graph_info['objects']['object_id'].append(obj_pred[5])
-                            #*****************************************************
-
-                            value, ind = relation_prediction[kdx].max(1)
-                            ind = int(ind.cpu().numpy())
-                            rel_ind = P2ORelCLS[ind]
-                            cv2.putText(
-                                output_image, '+ relation : ' + rel_ind,
-                                (xmin, ymin + text_size[1] + 4 + 12),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 255, 255), 1)
-
-                            pred_cls = rel_ind
-                            cat_pred = '%s %s %s %s %s\n' % (
-                                pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
-                            print("relation_pred:{}".format(cat_pred))
-
-                            #*****************************************************
-                            graph_info['objects']['relation'].append(pred_cls)
-                            #*****************************************************
-
-                # place
-                if len(preds_place_txt) != 0:
-                    cv2.putText(output_image, "place : " + preds_place_txt[idx],
-                        (30, 30),
-                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
-
-                    #*****************************************
-                    graph_info['place'] = preds_place_txt[idx]
-                    #*****************************************
-
-                    if opt.display:
-                        print('place_pred :', preds_place_txt[idx])
-
-                # face
+                # face and emotion
                 if len(predictions_face) != 0:
                     prediction_face = predictions_face[idx]
                     for pred in prediction_face:
@@ -784,29 +523,265 @@ def test(opt):
                         print("face_pred:{}".format(cat_pred))
                         print("detected {}".format(
                             save_dir + "{}".format(f_file)))
-                else:
-                    print("non-detected {}".format(
-                            save_dir + "{}".format(f_file)))
-                # save output image
-                cv2.imwrite(save_dir + "{}".format(f_file), output_image)
-                # save images
-                plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
-                plt.figure(figsize=(8,8))
-                plt.imshow(plt_output_image.astype('uint8'))
-                plt.show()
-                plt.close()
 
-                #*****************************************
-                frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(
-                    episode, scene, idx)
-                save_file = save_dir + frm_name
-                graph(episode, scene, idx, graph_info, save_file)
-                #*****************************************
+                        #**************************************************
+                        graph_json['persons'][pred_cls] = {}
+                        #**************************************************
+
+                        # update emotion model and the prediction
+                        if False:
+                            emo_ij = F.softmax(
+                                emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
+                            emo_txt = EmoCLS[emo_ij]
+                            cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
+                                        cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
+                                        cv2.LINE_AA)
+
+                            #******************************************************
+                            graph_json['persons'][pred_cls]['emotion'] = emo_txt
+                            #******************************************************
+                    else:
+                        print("non-detected {}".format(
+                            save_dir + "{}".format(f_file)))
+
+                    if len(predictions_p) != 0 :
+                        prediction = predictions_p[idx]
+
+                        if True :
+                            b_logit = b_logits[idx]
+
+                        # person and behavior
+                        num_preds = len(prediction)
+
+                        for jdx, pred in enumerate(prediction):
+                            # person
+                            xmin = int(max(pred[0] / width_ratio, 0))
+                            ymin = int(max(pred[1] / height_ratio, 0))
+                            xmax = int(min((pred[2]) / width_ratio, width))
+                            ymax = int(min((pred[3]) / height_ratio, height))
+                            color = colors[PersonCLS.index(pred[5])]
+
+                            cv2.rectangle(output_image, (xmin, ymin),
+                                          (xmax, ymax), color, 2)
+
+                            text_size = cv2.getTextSize(
+                                pred[5] + ' : %.2f' % pred[4],
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                            cv2.rectangle(
+                                output_image,
+                                (xmin, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, pred[5] + ' : %.2f' % pred[4],
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            pred_cls = pred[5]
+                            cat_pred = '%s %s %s %s %s %s\n' % (
+                                pred_cls,
+                                str(pred[4]),
+                                str(xmin), str(ymin), str(xmax), str(ymax))
+                            print("person_pred:{}".format(cat_pred))
+
+                            #**************************************************
+                            if pred_cls not in graph_json['persons'].keys():
+                                graph_json['persons'][pred_cls] = {}
+                            #**************************************************
+
+                        # behavior
+                        if True :
+                            value, index = b_logit[jdx].max(0)
+
+                            b_idx = index.cpu().numpy()
+                            b_pred = PBeHavCLS[b_idx]
+
+                            cv2.putText(
+                                output_image, '+ behavior : ' + b_pred,
+                                (xmin, ymin + text_size[1] + 4 + 12),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+                            pred_beh_cls = b_pred.replace(' ', '_')
+                            pred_beh_cls = pred_beh_cls.replace('/', '_')
+
+                            #******************************************************
+                            graph_json['persons'][pred_cls]['behavior'] = pred_beh_cls
+                            #******************************************************
+
+                            cat_pred_beh = '%s %s %s %s %s %s\n' % (
+                                pred_beh_cls,
+                                str(pred[4]),
+                                str(xmin), str(ymin), str(xmax), str(ymax))
+
+                            print("behavior_pred:{}".format(cat_pred_beh))
+
+                            if opt.display:
+                                print("detected {}".format(save_dir + "{}".format(f_file)))
+                        else:
+                            if opt.display:
+                                print("non-detected {}".format(
+                                    save_dir + "{}".format(f_file)))
+
+                    # object
+                    if len(predictions_object) != 0:
+
+                        prediction_object = predictions_object[0]
+                        num_preds = len(prediction)
+                        for jdx, pred in enumerate(prediction_object):
+                            xmin = int(max(pred[0] / width_ratio, 0))
+                            ymin = int(max(pred[1] / height_ratio, 0))
+                            xmax = int(min((pred[2]) / width_ratio, width))
+                            ymax = int(min((pred[3]) / height_ratio, height))
+                            color = colors[ObjectCLS.index(pred[5])]
+
+                            cv2.rectangle(output_image, (xmin, ymin),
+                                          (xmax, ymax), color, 2)
+
+                            text_size = cv2.getTextSize(
+                                pred[5] + ' : %.2f' % pred[4],
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                            cv2.rectangle(
+                                output_image,
+                                (xmin, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, pred[5] + ' : %.2f' % pred[4],
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            # save detection results
+                            pred_obj_cls = pred[5]
+                            cat_pred = '%s %s %s %s %s %s\n' % (
+                                pred_obj_cls,
+                                str(pred[4]),
+                                str(xmin), str(ymin), str(xmax), str(ymax))
+
+                            #**************************************************
+                            graph_json['objects'][pred_obj_cls] = {}
+                            #**************************************************
+                            print("object_pred:{}".format(cat_pred))
+
+                            if opt.display:
+                                print("detected {}".format(
+                                    save_dir + "{}".format(f_file)))
+                        else:
+                            if opt.display:
+                                print("non-detected {}".format(
+                                    save_dir + "{}".format(f_file)))
+
+                    # relation
+                    if len(r_preds) != 0:
+                        r_pred = r_preds[idx]
+                        r_obj_pred = r_obj_preds[idx]
+                        relation_prediction = relation_predictions[idx]
+                        num_preds = len(r_pred)
+                        for jdx, pred in enumerate(r_pred):
+                            xmin = int(max(float(pred[0]) / width_ratio, 0))
+                            ymin = int(max(float(pred[1]) / height_ratio, 0))
+                            xmax = int(min((float(pred[2])) / width_ratio, width))
+                            ymax = int(min((float(pred[3])) / height_ratio, height))
+                            color = colors[PersonCLS.index(pred[5])]
+
+                            cv2.rectangle(output_image, (xmin, ymin),
+                                          (xmax, ymax), color, 2)
+
+                            pred_per_cls = pred[5]
+                            text_size = cv2.getTextSize(
+                                pred_per_cls + ' : %.2f' % float(pred[4]),
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                            cv2.rectangle(
+                                output_image,
+                                (xmin, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, pred[5] + ' : %.2f' % float(pred[4]),
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            #*****************************************************
+                            graph_json['relations'][pred_per_cls] = {}
+                            #*****************************************************
+
+                            for kdx, obj_pred in enumerate(r_obj_pred):
+                                xmin = int(max(float(obj_pred[0]) / width_ratio, 0))
+                                ymin = int(max(float(obj_pred[1]) / height_ratio, 0))
+                                xmax = int(min((float(obj_pred[2])) / width_ratio, width))
+                                ymax = int(min((float(obj_pred[3])) / height_ratio, height))
+
+                                color = colors[ObjectCLS.index(obj_pred[5])]
+                                cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), color, 2)
+
+                                pred_obj_cls = obj_pred[5]
+                                text_size = cv2.getTextSize(
+                                    pred_obj_cls + ' : %.2f' % float(obj_pred[4]),
+                                    cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                                cv2.rectangle(
+                                    output_image,
+                                    (xmin, ymin),
+                                    (xmin + text_size[0] + 100,
+                                     ymin + text_size[1] + 20), color, -1)
+                                cv2.putText(
+                                    output_image, obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
+                                    (xmin, ymin + text_size[1] + 4),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 255, 255), 1)
+
+                                value, ind = relation_prediction[kdx].max(1)
+                                ind = int(ind.cpu().numpy())
+                                rel_ind = P2ORelCLS[ind]
+                                cv2.putText(
+                                    output_image, '+ relation : ' + rel_ind,
+                                    (xmin, ymin + text_size[1] + 4 + 12),
+                                    cv2.FONT_HERSHEY_PLAIN, 1,
+                                    (255, 255, 255), 1)
+
+                                pred_pred_cls = rel_ind
+                                cat_pred = '%s %s %s %s %s\n' % (
+                                    pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
+                                print("relation_pred:{}".format(cat_pred))
+
+                                #*****************************************************
+                                graph_json['relations'][pred_per_cls][pred_obj_cls] = pred_pred_cls
+                                #*****************************************************
+
+                        # place
+                        if len(preds_place_txt) != 0:
+                            cv2.putText(output_image, "place : " + preds_place_txt[idx],
+                                        (30, 30),
+                                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
+
+                            #*****************************************
+                            graph_json['place'] = preds_place_txt[idx]
+                            #*****************************************
+
+                            if opt.display:
+                                print('place_pred :', preds_place_txt[idx])
+
+                        # save output image
+                        cv2.imwrite(save_dir + "{}".format(f_file), output_image)
+                        # save images
+                        plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
+                        if False:
+                            plt.figure(figsize=(8,8))
+                            plt.imshow(plt_output_image.astype('uint8'))
+                            plt.show()
+                            plt.close()
+
+                        #*****************************************
+                        frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode,
+                                                                                     scene,
+                                                                                     idx)
+                        save_file = save_dir + frm_name
+                        print(graph_json)
+                        graph_to_json(episode, scene, idx, graph_json, save_file)
+                        #*****************************************
             except:
                 continue
-
-
-
 
 if __name__ == "__main__":
     test(opt)

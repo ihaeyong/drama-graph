@@ -162,7 +162,7 @@ def SortFullRect(image, label, is_train=True):
 
             frame_id = label[0][frm]['frame_id']
             for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
-                
+
                 p_label = PersonCLS.index(p_id)
                 if p_label > 20:
                     print("sort full rect index error{}".format(p_label))
