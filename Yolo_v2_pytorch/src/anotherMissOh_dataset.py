@@ -367,12 +367,16 @@ class AnotherMissOh(Dataset):
                                 or object_bbox['min_x'] == "" 
                                 or object_bbox['max_x'] == ""):
                                 object_rect = []
+                                image_info['objects']['object_rect'].append(object_rect)
+                                image_info['objects']['relation'].append('N_P')
                                 continue
                             else:
                                 object_rect = [object_bbox['min_x'], object_bbox['min_y'], 
                                                object_bbox['max_x'], object_bbox['max_y']]
-                        image_info['objects']['object_rect'].append(object_rect)
-                        image_info['objects']['relation'].append('N_P')
+                                image_info['objects']['object_rect'].append(object_rect)
+                                image_info['objects']['relation'].append('N_P')
+
+                        
                     # objects
 
                     image_info['persons']['person_id'] = []
