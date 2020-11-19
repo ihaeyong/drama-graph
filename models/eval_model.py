@@ -87,7 +87,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-episode = 7 # 8 checked 
+episode = 8 # 7, checked 
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
@@ -400,13 +400,12 @@ def test(opt):
                 face_crops, _ = crop_face_emotion(image_c, predictions_face, None, opt)
                 face_crops = face_crops.cuda(device).contiguous()
                 emo_logits_raw = model_emo(face_crops)
-                
+
                 emo_logits, idx = [], 0
                 for pl in num_face_per_pred:
                     emo_logits.append(emo_logits_raw[idx:idx+pl])
                     idx = idx+pl
 
-                    
         # object
         if np.array(obj_label).size > 0 :
             object_logits, _ = model_object(image)
@@ -418,11 +417,11 @@ def test(opt):
                                                  opt.conf_threshold,
                                                  opt.nms_threshold)
 
-
-
         # relation
         if np.array(obj_label).size > 0 and np.array(label).size > 0:
-            r_preds, r_obj_preds, relation_predictions = model_relation(image, label, obj_label)
+            r_preds, r_obj_preds, relation_predictions = model_relation(image,
+                                                                        label,
+                                                                        obj_label)
 
 
         # place
