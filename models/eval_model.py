@@ -393,16 +393,20 @@ def test(opt):
                                                opt.conf_threshold,
                                                opt.nms_threshold)
 
-            # debugging please 2020.11.18
-            # Value Error : not enough values to unpack (expected 2, got 1)
-            if len(predictions_face) > 0 and False:
+            if len(predictions_face) != 0:
+                num_preds = len(predictions_face)
+                num_face_per_pred = [len(pred) for pred in predictions_face]
                 image_c = image.permute(0,2,3,1).cpu()
-                face_crops, emo_gt = crop_face_emotion(image_c, predictions_face, None, opt)
+                face_crops, _ = crop_face_emotion(image_c, predictions_face, None, opt)
                 face_crops = face_crops.cuda(device).contiguous()
-                emo_logits = model_emo(face_crops)
-                num_img, num_face = np.array(predictions_face).shape[0:2]
-                emo_logits = emo_logits.view(num_img, num_face, 7)
+                emo_logits_raw = model_emo(face_crops)
+                
+                emo_logits, idx = [], 0
+                for pl in num_face_per_pred:
+                    emo_logits.append(emo_logits_raw[idx:idx+pl])
+                    idx = idx+pl
 
+                    
         # object
         if np.array(obj_label).size > 0 :
             object_logits, _ = model_object(image)
@@ -490,6 +494,7 @@ def test(opt):
                 # face and emotion
                 if len(predictions_face) != 0:
                     prediction_face = predictions_face[idx]
+                    prediction_emo  = emo_logits[idx]
                     for pred in prediction_face:
                         xmin = int(max(pred[0] / width_ratio, 0))
                         ymin = int(max(pred[1] / height_ratio, 0))
@@ -529,17 +534,16 @@ def test(opt):
                         #**************************************************
 
                         # update emotion model and the prediction
-                        if False:
-                            emo_ij = F.softmax(
-                                emo_logits[idx,jdx,:], dim=0).argmax().detach().cpu().numpy()
-                            emo_txt = EmoCLS[emo_ij]
-                            cv2.putText(output_image, emo_txt, (face_x0, face_y0-5),
-                                        cv2.FONT_HERSHEY_PLAIN, 1, (255,255,0), 1,
-                                        cv2.LINE_AA)
+                        emo_ij = F.softmax(prediction_emo[pi], dim=0).argmax().detach().cpu().numpy()
+                        emo_txt = EmoCLS[emo_ij]
+                        print('txt:',emo_txt)
+                        cv2.putText(output_image, emo_txt, (xmin, ymin),
+                                    cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2,
+                                    cv2.LINE_AA)
 
-                            #******************************************************
-                            graph_json['persons'][pred_cls]['emotion'] = emo_txt
-                            #******************************************************
+                        #******************************************************
+                        graph_json['persons'][pred_cls]['emotion'] = emo_txt
+                        #******************************************************
                     else:
                         print("non-detected {}".format(
                             save_dir + "{}".format(f_file)))

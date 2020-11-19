@@ -78,12 +78,14 @@ def crop_face_emotion(image, face_label, emo_label, opt):
     emo_gt = list()
 
     for i,img in enumerate(image):
+        if len(face_label[i])==0:
+            continue
         for j in range(len(face_label[i])):
             # face corrdinates
             fl = face_label[i][j]
             face_x, face_y, face_w, face_h = float(fl[0]), float(fl[1]), float(fl[2])-float(fl[0]), float(fl[3])-float(fl[1])
             # crop face region, resize
-            img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x), int(face_y), int(face_w), int(face_h)).copy(), (opt.image_size, opt.image_size)) )
+            img_crop = torch.Tensor( cv2.resize(crop_img(img.numpy(), int(face_x), int(face_y), int(np.abs(face_w)), int(np.abs(face_h))).copy(), (opt.image_size, opt.image_size)) )
             # store
             face_crops.append(img_crop)
             # emotion labels
