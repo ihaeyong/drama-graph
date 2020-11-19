@@ -495,7 +495,7 @@ def test(opt):
                 if len(predictions_face) != 0:
                     prediction_face = predictions_face[idx]
                     prediction_emo  = emo_logits[idx]
-                    for pred in prediction_face:
+                    for pi,pred in enumerate(prediction_face):
                         xmin = int(max(pred[0] / width_ratio, 0))
                         ymin = int(max(pred[1] / height_ratio, 0))
                         xmax = int(min((pred[2]) / width_ratio, width))
