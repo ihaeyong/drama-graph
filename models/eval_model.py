@@ -535,7 +535,6 @@ def test(opt):
                         # update emotion model and the prediction
                         emo_ij = F.softmax(prediction_emo[pi], dim=0).argmax().detach().cpu().numpy()
                         emo_txt = EmoCLS[emo_ij]
-                        print('txt:',emo_txt)
                         cv2.putText(output_image, emo_txt, (xmin, ymin),
                                     cv2.FONT_HERSHEY_PLAIN, 2, (0,255,255), 2,
                                     cv2.LINE_AA)
