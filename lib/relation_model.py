@@ -277,6 +277,8 @@ class relation_model(nn.Module):
                     i_fmap += g_fmap
                     rr_logits = []
 
+                    if len(object_label) < len(boxes):
+                        continue
                     for jdx, obj_box in enumerate(object_label[idx]):
                         obj_num_box = 1
 
