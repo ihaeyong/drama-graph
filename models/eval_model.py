@@ -486,9 +486,10 @@ def test(opt):
             graph_json['place'] = 'none'
             #**************************************
 
-            frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode,
-                                                                         scene,
-                                                                         idx)
+            frm_name = "episode_{:02d}_{}_{}_{}".format(episode,
+                                                        f_info[5],
+                                                        f_info[6],
+                                                        f_info[7].replace(".jpg",""))
             save_file = save_dir + frm_name
 
             try:
