@@ -89,7 +89,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-episode = 10 # 7,8 checked 
+episode = 7 # 7,8 checked 
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
@@ -124,13 +124,13 @@ def graph_to_json(episode, scene, frm, info, save_file=None):
     num_of_persons = len(info['persons'])
     num_of_objects = len(info['objects'])
 
-    frm_graph = 'episode_{}_scene_{}_frame_{}'.format(
+    frm_graph = 'episode_{}_scene_{}_shot_{}'.format(
         episode, scene, frm)
 
     #dot.node(frm_graph, style='filled', color='lightgrey')
     episode_node = "episode_{:02d}".format(episode)
     scene_node = "scene_{:03d}".format(scene)
-    frame_node = "frame_{:04d}".format(frm)
+    frame_node = "shot_{:04d}".format(frm)
     dot.node(episode_node, style='filled', color='lightgrey')
     dot.node(scene_node, style='filled', color='lightgrey')
     dot.node(frame_node, style='filled', color='lightgrey')
@@ -358,7 +358,6 @@ def test(opt):
     # load test clips
     for iter, batch in enumerate(test_loader):
 
-        scene = iter
         image, info = batch
 
         # sort label info on fullrect
@@ -421,11 +420,18 @@ def test(opt):
                                                  opt.conf_threshold,
                                                  opt.nms_threshold)
 
+        else:
+            object_logits = None
+            predictions_object = None
+
         # relation
         if np.array(obj_label).size > 0 and np.array(label).size > 0:
             r_preds, r_obj_preds, relation_predictions = model_relation(image,
                                                                         label,
                                                                         obj_label)
+        else:
+            r_preds = None
+            r_obj_preds = None
 
 
         # place
@@ -492,6 +498,9 @@ def test(opt):
                                                         f_info[7].replace(".jpg",""))
             save_file = save_dir + frm_name
 
+            shot = int(f_info[6])
+            scene = int(f_info[5])
+
             try:
                 # for some empty video clips
                 img = image[idx]
@@ -503,6 +512,7 @@ def test(opt):
 
                 # face and emotion
                 if len(predictions_face) != 0:
+                    print("===== predictions_face: {}".format(predictions_face))
                     prediction_face = predictions_face[idx]
                     prediction_emo  = emo_logits[idx]
                     for pi,pred in enumerate(prediction_face):
@@ -553,11 +563,11 @@ def test(opt):
                         #******************************************************
                         graph_json['persons'][pred_cls]['emotion'] = emo_txt
                         #******************************************************
-                    else:
-                        print("non-detected {}".format(
-                            save_dir + "{}".format(f_file)))
+                else:
+                    print("===== None-predictions_face: {}".format(predictions_face))
 
                 if len(predictions_p) != 0 :
+                    print("===== predictions_p: {}".format(predictions_p))
                     prediction = predictions_p[idx]
 
                     if True :
@@ -629,17 +639,12 @@ def test(opt):
 
                             print("behavior_pred:{}".format(cat_pred_beh))
 
-                            if opt.display:
-                                print("detected {}".format(save_dir + "{}".format(f_file)))
-                        else:
-                            if opt.display:
-                                print("non-detected {}".format(
-                                    save_dir + "{}".format(f_file)))
+                else:
+                    print("===== None-predictions_p: {}".format(predictions_p))
 
                 # object
-                if len(predictions_object) != 0:
-
-                    prediction_object = predictions_object[0]
+                if predictions_object is not None and len(predictions_object) != 0:
+                    print("===== predictions_object: {}".format(predictions_object))
                     num_preds = len(prediction)
                     for jdx, pred in enumerate(prediction_object):
                         xmin = int(max(pred[0] / width_ratio, 0))
@@ -676,12 +681,12 @@ def test(opt):
                         graph_json['objects'][pred_obj_cls] = {}
                         #**************************************************
                         print("object_pred:{}".format(cat_pred))
+                else:
+                    print("===== None-predictions_object: {}".format(predictions_object))
 
-                        if opt.display:
-                            print("detected {}".format(
-                                save_dir + "{}".format(f_file)))
                 # relation
-                if len(r_preds) != 0:
+                if r_preds is not None and len(r_preds) != 0:
+                    print("===== r_preds: {}".format(r_preds))
                     r_pred = r_preds[idx]
                     r_obj_pred = r_obj_preds[idx]
                     relation_prediction = relation_predictions[idx]
@@ -756,9 +761,12 @@ def test(opt):
                             #*****************************************************
                             graph_json['relations'][pred_per_cls][pred_obj_cls] = pred_pred_cls
                             #*****************************************************
+                else:
+                    print("===== None-r_preds: {}".format(r_preds))
 
                 # place
                 if len(preds_place_txt) != 0:
+                    print("===== place_pred: {}".format(preds_place_txt))
                     cv2.putText(output_image, "place : " + preds_place_txt[idx],
                                 (30, 30),
                                 cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
@@ -766,9 +774,9 @@ def test(opt):
                     #*****************************************
                     graph_json['place'] = preds_place_txt[idx]
                     #*****************************************
+                else:
+                    print("===== None-place_pred: {}".format(preds_place_txt))
 
-                    if opt.display:
-                        print('place_pred :', preds_place_txt[idx])
 
                 # save output image
                 cv2.imwrite(save_dir + "{}".format(f_file), output_image)
@@ -785,13 +793,25 @@ def test(opt):
                     json.dump(dot_to_json, f)
                     print(graph_json)
 
-                graph_to_json(episode, scene, idx, graph_json, save_file)
+                graph_to_json(episode, scene, shot, graph_json, save_file)
             except:
+
+                # save output image
+                cv2.imwrite(save_dir + "{}".format(f_file), output_image)
+                # save images
+                plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
+                if False:
+                    plt.figure(figsize=(8,8))
+                    plt.imshow(plt_output_image.astype('uint8'))
+                    plt.show()
+                    plt.close()
+
                 dot_to_json = json.dumps(graph_json)
                 with open('{}.json'.format(save_file), 'w') as f:
                     json.dump(dot_to_json, f)
                     print(graph_json)
-                graph_to_json(episode, scene, idx, graph_json, save_file)
+
+                graph_to_json(episode, scene, shot, graph_json, save_file)
 
                 continue
 
