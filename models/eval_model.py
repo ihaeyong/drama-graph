@@ -62,9 +62,9 @@ def get_args():
                         default="./checkpoint/refined_models")
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images_ver5.0/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver5.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
@@ -277,6 +277,14 @@ def test(opt):
 
     # person and behavior
     if True :
+        print("-----------person---behavior-------model---------------")
+        model_p = behavior_model(num_persons, num_behaviors, opt, device)
+        trained_persons = './checkpoint/behavior' + os.sep + "{}".format(
+            'anotherMissOh_only_params_voc_person_behavior_new.pth')
+        if optimistic_restore(model_p, torch.load(trained_persons)):
+            #model1.load_state_dict(torch.load(trained_persons))
+            print("loaded with {}".format(trained_persons))
+    else :
         # pre-trained behavior model
         # step 1: person trained on voc 50 epoch
         # step 2: person feature based behavior sequence learning 100 epoch
@@ -512,20 +520,20 @@ def test(opt):
 
                 # face and emotion
                 if len(predictions_face) != 0:
-                    print("===== predictions_face: {}".format(predictions_face))
+                    print("[1]===== predictions_face: {}".format(predictions_face))
                     prediction_face = predictions_face[idx]
                     prediction_emo  = emo_logits[idx]
                     for pi,pred in enumerate(prediction_face):
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min(float(pred[2]) / width_ratio, width))
+                        ymax = int(min(float(pred[3]) / height_ratio, height))
                         color = colors[FaceCLS.index(pred[5])]
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
                         text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
+                            pred[5] + ' : %.2f' % float(pred[4]),
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
                         cv2.rectangle(
                             output_image,
@@ -533,7 +541,7 @@ def test(opt):
                             (xmin + text_size[0] + 100,
                              ymin + text_size[1] + 20), color, -1)
                         cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
@@ -564,10 +572,10 @@ def test(opt):
                         graph_json['persons'][pred_cls]['emotion'] = emo_txt
                         #******************************************************
                 else:
-                    print("===== None-predictions_face: {}".format(predictions_face))
+                    print("[1]===== None-predictions_face: {}".format(predictions_face))
 
                 if len(predictions_p) != 0 :
-                    print("===== predictions_p: {}".format(predictions_p))
+                    print("[2]===== predictions_p: {}".format(predictions_p))
                     prediction = predictions_p[idx]
 
                     if True :
@@ -578,17 +586,17 @@ def test(opt):
 
                     for jdx, pred in enumerate(prediction):
                         # person
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min(float(pred[2]) / width_ratio, width))
+                        ymax = int(min(float(pred[3]) / height_ratio, height))
                         color = colors[PersonCLS.index(pred[5])]
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
 
                         text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
+                            pred[5] + ' : %.2f' % float(pred[4]),
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
                         cv2.rectangle(
                             output_image,
@@ -596,7 +604,7 @@ def test(opt):
                             (xmin + text_size[0] + 100,
                              ymin + text_size[1] + 20), color, -1)
                         cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
@@ -640,24 +648,23 @@ def test(opt):
                             print("behavior_pred:{}".format(cat_pred_beh))
 
                 else:
-                    print("===== None-predictions_p: {}".format(predictions_p))
+                    print("[2]===== None-predictions_p: {}".format(predictions_p))
 
                 # object
                 if predictions_object is not None and len(predictions_object) != 0:
-                    print("===== predictions_object: {}".format(predictions_object))
+                    print("[3]===== predictions_object: {}".format(predictions_object))
                     num_preds = len(prediction)
                     for jdx, pred in enumerate(prediction_object):
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
-                        color = colors[ObjectCLS.index(pred[5])]
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min((float(pred[2])) / width_ratio, width))
+                        ymax = int(min((float(pred[3])) / height_ratio, height))
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
 
                         text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
+                            pred[5] + ' : %.2f' % float(pred[4]),
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
                         cv2.rectangle(
                             output_image,
@@ -665,7 +672,7 @@ def test(opt):
                             (xmin + text_size[0] + 100,
                              ymin + text_size[1] + 20), color, -1)
                         cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
@@ -682,11 +689,11 @@ def test(opt):
                         #**************************************************
                         print("object_pred:{}".format(cat_pred))
                 else:
-                    print("===== None-predictions_object: {}".format(predictions_object))
+                    print("[3]===== None-predictions_object: {}".format(predictions_object))
 
                 # relation
                 if r_preds is not None and len(r_preds) != 0:
-                    print("===== r_preds: {}".format(r_preds))
+                    print("[4]===== r_preds: {}".format(r_preds))
                     r_pred = r_preds[idx]
                     r_obj_pred = r_obj_preds[idx]
                     relation_prediction = relation_predictions[idx]
@@ -762,11 +769,11 @@ def test(opt):
                             graph_json['relations'][pred_per_cls][pred_obj_cls] = pred_pred_cls
                             #*****************************************************
                 else:
-                    print("===== None-r_preds: {}".format(r_preds))
+                    print("[4]===== None-r_preds: {}".format(r_preds))
 
                 # place
                 if len(preds_place_txt) != 0:
-                    print("===== place_pred: {}".format(preds_place_txt))
+                    print("[5]===== place_pred: {}".format(preds_place_txt))
                     cv2.putText(output_image, "place : " + preds_place_txt[idx],
                                 (30, 30),
                                 cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
@@ -775,7 +782,7 @@ def test(opt):
                     graph_json['place'] = preds_place_txt[idx]
                     #*****************************************
                 else:
-                    print("===== None-place_pred: {}".format(preds_place_txt))
+                    print("[5]===== None-place_pred: {}".format(preds_place_txt))
 
 
                 # save output image
