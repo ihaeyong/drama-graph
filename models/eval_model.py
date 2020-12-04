@@ -89,7 +89,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-episode = 7 # 7,8 checked 
+episode = 8 # 7,8 checked 
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
