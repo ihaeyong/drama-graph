@@ -61,6 +61,8 @@ def get_args():
     parser.add_argument("--saved_path", type=str,
                         default="./checkpoint/refined_models")
 
+    parser.add_argument("--episode", type=int, default=7, help="episode to evaluate")
+
     parser.add_argument("--img_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_images_ver5.0/")
     parser.add_argument("--json_path", type=str,
@@ -89,7 +91,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-episode = 8 # 7,8 checked 
+episode = opt.episode
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
