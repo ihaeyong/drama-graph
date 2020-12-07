@@ -701,29 +701,31 @@ def test(opt):
                     relation_prediction = relation_predictions[idx]
                     num_preds = len(r_pred)
                     for jdx, pred in enumerate(r_pred):
-                        xmin = int(max(float(pred[0]) / width_ratio, 0))
-                        ymin = int(max(float(pred[1]) / height_ratio, 0))
-                        xmax = int(min((float(pred[2])) / width_ratio, width))
-                        ymax = int(min((float(pred[3])) / height_ratio, height))
-                        color = colors[PersonCLS.index(pred[5])]
-
-                        cv2.rectangle(output_image, (xmin, ymin),
-                                      (xmax, ymax), color, 2)
-
                         pred_per_cls = pred[5]
-                        text_size = cv2.getTextSize(
-                            pred_per_cls + ' : %.2f' % float(pred[4]),
-                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                        cv2.rectangle(
-                            output_image,
-                            (xmin, ymin),
-                            (xmin + text_size[0] + 100,
-                             ymin + text_size[1] + 20), color, -1)
-                        cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
-                            (xmin, ymin + text_size[1] + 4),
-                            cv2.FONT_HERSHEY_PLAIN, 1,
-                            (255, 255, 255), 1)
+
+                        if False:
+                            xmin = int(max(float(pred[0]) / width_ratio, 0))
+                            ymin = int(max(float(pred[1]) / height_ratio, 0))
+                            xmax = int(min((float(pred[2])) / width_ratio, width))
+                            ymax = int(min((float(pred[3])) / height_ratio, height))
+                            color = colors[PersonCLS.index(pred[5])]
+
+                            cv2.rectangle(output_image, (xmin, ymin),
+                                          (xmax, ymax), color, 2)
+
+                            text_size = cv2.getTextSize(
+                                pred_per_cls + ' : %.2f' % float(pred[4]),
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                            cv2.rectangle(
+                                output_image,
+                                (xmin, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, pred[5] + ' : %.2f' % float(pred[4]),
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
 
                         #*****************************************************
                         graph_json['relations'][pred_per_cls] = {}
