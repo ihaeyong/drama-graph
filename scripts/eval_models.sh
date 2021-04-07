@@ -1,5 +1,5 @@
 # Train Object Detection Model (YOLO_V2)
-export PYTHONPATH=$HOME/workspace/drama-graph
+export PYTHONPATH=$HOME/workspaces/drama-graph
 export PYTHONIOENCODING=utf-8
 export CUDA_VISIBLE_DEVICES=$1
 

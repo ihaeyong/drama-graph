@@ -71,14 +71,17 @@ class CELossWithOutOneHot(nn.Module):
         super(CELossWithOutOneHot, self).__init__()
         weight = np.load('./lib/behavior.npy')
         self.reweight = True
-        self.weight = []
+        cls_num_list = []
         for i in range(len(weight)):
             if i in [2, 4, 6, 7, 8, 9, 12, 14, 15, 17, 19, 20, 21, 22, 23, 24]:
-                self.weight.append(weight[i])
-        self.weight = np.stack(self.weight)
+                cls_num_list.append(weight[i])
 
-        self.weight=torch.from_numpy(
-            self.weight/self.weight.sum()).to(device).float()
+        beta = 0.99
+        cls_num_list = np.stack(cls_num_list)
+        effect_num = 1.0 - np.power(beta, cls_num_list)
+        per_cls_weights = (1.0 - beta) / np.array(effect_num)
+        per_cls_weights = per_cls_weights / np.sum(per_cls_weights) * len(cls_num_list)
+        self.weight=torch.from_numpy(per_cls_weights).to(device).float()
 
         self.device = device
 

@@ -87,7 +87,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-episode = 6 # 7,8 checked 
+episode = 10 # 7,8 checked 
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
@@ -473,6 +473,15 @@ def test(opt):
 
             # --------------(5) visualization of inferences ----------
             # out of try : pdb.set_trace = lambda : None
+
+            #**************************************
+            graph_json = {}
+            graph_json['persons'] = {}
+            graph_json['objects'] = {}
+            graph_json['relations'] = {}
+            graph_json['sound'] = 'none'
+            #**************************************
+
             try:
                 # for some empty video clips
                 img = image[idx]
@@ -481,14 +490,6 @@ def test(opt):
                 np_img = np.transpose(np_img,(1,2,0)) * 255
                 output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                 output_image = cv2.resize(output_image, (width, height))
-
-                #**************************************
-                graph_json = {}
-                graph_json['persons'] = {}
-                graph_json['objects'] = {}
-                graph_json['relations'] = {}
-                graph_json['sound'] = 'none'
-                #**************************************
 
                 # face and emotion
                 if len(predictions_face) != 0:
@@ -783,6 +784,15 @@ def test(opt):
                         graph_to_json(episode, scene, idx, graph_json, save_file)
                         #*****************************************
             except:
+                #*****************************************
+                frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode,
+                                                                             scene,
+                                                                             idx)
+                save_file = save_dir + frm_name
+                print(graph_json)
+                graph_to_json(episode, scene, idx, graph_json, save_file)
+                #*****************************************
+
                 continue
 
 if __name__ == "__main__":
