@@ -141,7 +141,8 @@ class behavior_model(nn.Module):
                     b_boxes.append(p_box)
 
                 boxes_gt.append(b_boxes)
-            if 0:
+
+            if len(boxes) == 0 :
                 boxes = boxes_gt
 
             if len(boxes) > 0 :

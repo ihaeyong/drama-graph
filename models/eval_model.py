@@ -18,6 +18,8 @@ import networkx as nx
 from networkx.drawing.nx_pydot import read_dot
 #from networkx.drawing.nx_agraph import read_dot
 from networkx.readwrite import json_graph
+from graphviz import Digraph, Graph
+import json
 
 from lib.place_model import place_model, label_mapping, accuracy, label_remapping, place_buffer
 from lib.behavior_model import behavior_model
@@ -59,10 +61,12 @@ def get_args():
     parser.add_argument("--saved_path", type=str,
                         default="./checkpoint/refined_models")
 
+    parser.add_argument("--episode", type=int, default=7, help="episode to evaluate")
+
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images_ver5.0/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver5.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
@@ -87,7 +91,11 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
+<<<<<<< HEAD
 episode = 10 # 7,8 checked 
+=======
+episode = opt.episode
+>>>>>>> da2aaeb33cb16abb617598277daddb931a6bb707
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
@@ -122,13 +130,13 @@ def graph_to_json(episode, scene, frm, info, save_file=None):
     num_of_persons = len(info['persons'])
     num_of_objects = len(info['objects'])
 
-    frm_graph = 'episode_{}_scene_{}_frame_{}'.format(
+    frm_graph = 'episode_{}_scene_{}_shot_{}'.format(
         episode, scene, frm)
 
     #dot.node(frm_graph, style='filled', color='lightgrey')
     episode_node = "episode_{:02d}".format(episode)
     scene_node = "scene_{:03d}".format(scene)
-    frame_node = "frame_{:04d}".format(frm)
+    frame_node = "shot_{:04d}".format(frm)
     dot.node(episode_node, style='filled', color='lightgrey')
     dot.node(scene_node, style='filled', color='lightgrey')
     dot.node(frame_node, style='filled', color='lightgrey')
@@ -275,6 +283,14 @@ def test(opt):
 
     # person and behavior
     if True :
+        print("-----------person---behavior-------model---------------")
+        model_p = behavior_model(num_persons, num_behaviors, opt, device)
+        trained_persons = './checkpoint/behavior' + os.sep + "{}".format(
+            'anotherMissOh_only_params_voc_person_behavior_new.pth')
+        if optimistic_restore(model_p, torch.load(trained_persons)):
+            #model1.load_state_dict(torch.load(trained_persons))
+            print("loaded with {}".format(trained_persons))
+    else :
         # pre-trained behavior model
         # step 1: person trained on voc 50 epoch
         # step 2: person feature based behavior sequence learning 100 epoch
@@ -355,6 +371,7 @@ def test(opt):
     graph_info = {}
     # load test clips
     for iter, batch in enumerate(test_loader):
+
         image, info = batch
 
         # sort label info on fullrect
@@ -384,27 +401,27 @@ def test(opt):
             predictions_p, b_logits = model_p(image, label, behavior_label)
 
         # face and emotion
-        if np.array(face_label).size > 0 :
-            face_logits = model_face(image)
-            predictions_face = post_processing(face_logits,
-                                               opt.image_size,
-                                               FaceCLS,
-                                               model_face.detector.anchors,
-                                               opt.conf_threshold,
-                                               opt.nms_threshold)
+        #if np.array(face_label).size > 0 :
+        face_logits = model_face(image)
+        predictions_face = post_processing(face_logits,
+                                           opt.image_size,
+                                           FaceCLS,
+                                           model_face.detector.anchors,
+                                           opt.conf_threshold,
+                                           opt.nms_threshold)
 
-            if len(predictions_face) != 0:
-                num_preds = len(predictions_face)
-                num_face_per_pred = [len(pred) for pred in predictions_face]
-                image_c = image.permute(0,2,3,1).cpu()
-                face_crops, _ = crop_face_emotion(image_c, predictions_face, None, opt)
-                face_crops = face_crops.cuda(device).contiguous()
-                emo_logits_raw = model_emo(face_crops)
+        if len(predictions_face) != 0:
+            num_preds = len(predictions_face)
+            num_face_per_pred = [len(pred) for pred in predictions_face]
+            image_c = image.permute(0,2,3,1).cpu()
+            face_crops, _ = crop_face_emotion(image_c, predictions_face, None, opt)
+            face_crops = face_crops.cuda(device).contiguous()
+            emo_logits_raw = model_emo(face_crops)
 
-                emo_logits, idx = [], 0
-                for pl in num_face_per_pred:
-                    emo_logits.append(emo_logits_raw[idx:idx+pl])
-                    idx = idx+pl
+            emo_logits, idx = [], 0
+            for pl in num_face_per_pred:
+                emo_logits.append(emo_logits_raw[idx:idx+pl])
+                idx = idx+pl
 
         # object
         if np.array(obj_label).size > 0 :
@@ -417,11 +434,18 @@ def test(opt):
                                                  opt.conf_threshold,
                                                  opt.nms_threshold)
 
+        else:
+            object_logits = None
+            predictions_object = None
+
         # relation
         if np.array(obj_label).size > 0 and np.array(label).size > 0:
             r_preds, r_obj_preds, relation_predictions = model_relation(image,
                                                                         label,
                                                                         obj_label)
+        else:
+            r_preds = None
+            r_obj_preds = None
 
 
         # place
@@ -473,14 +497,23 @@ def test(opt):
 
             # --------------(5) visualization of inferences ----------
             # out of try : pdb.set_trace = lambda : None
-
             #**************************************
             graph_json = {}
             graph_json['persons'] = {}
             graph_json['objects'] = {}
             graph_json['relations'] = {}
             graph_json['sound'] = 'none'
+            graph_json['place'] = 'none'
             #**************************************
+
+            frm_name = "episode_{:02d}_{}_{}_{}".format(episode,
+                                                        f_info[5],
+                                                        f_info[6],
+                                                        f_info[7].replace(".jpg",""))
+            save_file = save_dir + frm_name
+
+            shot = int(f_info[6])
+            scene = int(f_info[5])
 
             try:
                 # for some empty video clips
@@ -493,19 +526,20 @@ def test(opt):
 
                 # face and emotion
                 if len(predictions_face) != 0:
+                    print("[1]===== predictions_face: {}".format(predictions_face))
                     prediction_face = predictions_face[idx]
                     prediction_emo  = emo_logits[idx]
                     for pi,pred in enumerate(prediction_face):
-                        xmin = int(max(pred[0] / width_ratio, 0))
-                        ymin = int(max(pred[1] / height_ratio, 0))
-                        xmax = int(min((pred[2]) / width_ratio, width))
-                        ymax = int(min((pred[3]) / height_ratio, height))
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min(float(pred[2]) / width_ratio, width))
+                        ymax = int(min(float(pred[3]) / height_ratio, height))
                         color = colors[FaceCLS.index(pred[5])]
 
                         cv2.rectangle(output_image, (xmin, ymin),
                                       (xmax, ymax), color, 2)
                         text_size = cv2.getTextSize(
-                            pred[5] + ' : %.2f' % pred[4],
+                            pred[5] + ' : %.2f' % float(pred[4]),
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
                         cv2.rectangle(
                             output_image,
@@ -513,7 +547,7 @@ def test(opt):
                             (xmin + text_size[0] + 100,
                              ymin + text_size[1] + 20), color, -1)
                         cv2.putText(
-                            output_image, pred[5] + ' : %.2f' % pred[4],
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
                             (xmin, ymin + text_size[1] + 4),
                             cv2.FONT_HERSHEY_PLAIN, 1,
                             (255, 255, 255), 1)
@@ -543,55 +577,55 @@ def test(opt):
                         #******************************************************
                         graph_json['persons'][pred_cls]['emotion'] = emo_txt
                         #******************************************************
-                    else:
-                        print("non-detected {}".format(
-                            save_dir + "{}".format(f_file)))
+                else:
+                    print("[1]===== None-predictions_face: {}".format(predictions_face))
 
-                    if len(predictions_p) != 0 :
-                        prediction = predictions_p[idx]
+                if len(predictions_p) != 0 :
+                    print("[2]===== predictions_p: {}".format(predictions_p))
+                    prediction = predictions_p[idx]
 
-                        if True :
-                            b_logit = b_logits[idx]
+                    if True :
+                        b_logit = b_logits[idx]
 
-                        # person and behavior
-                        num_preds = len(prediction)
+                    # person and behavior
+                    num_preds = len(prediction)
 
-                        for jdx, pred in enumerate(prediction):
-                            # person
-                            xmin = int(max(pred[0] / width_ratio, 0))
-                            ymin = int(max(pred[1] / height_ratio, 0))
-                            xmax = int(min((pred[2]) / width_ratio, width))
-                            ymax = int(min((pred[3]) / height_ratio, height))
-                            color = colors[PersonCLS.index(pred[5])]
+                    for jdx, pred in enumerate(prediction):
+                        # person
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min(float(pred[2]) / width_ratio, width))
+                        ymax = int(min(float(pred[3]) / height_ratio, height))
+                        color = colors[PersonCLS.index(pred[5])]
 
-                            cv2.rectangle(output_image, (xmin, ymin),
-                                          (xmax, ymax), color, 2)
+                        cv2.rectangle(output_image, (xmin, ymin),
+                                      (xmax, ymax), color, 2)
 
-                            text_size = cv2.getTextSize(
-                                pred[5] + ' : %.2f' % pred[4],
-                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                            cv2.rectangle(
-                                output_image,
-                                (xmin, ymin),
-                                (xmin + text_size[0] + 100,
-                                 ymin + text_size[1] + 20), color, -1)
-                            cv2.putText(
-                                output_image, pred[5] + ' : %.2f' % pred[4],
-                                (xmin, ymin + text_size[1] + 4),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 255, 255), 1)
+                        text_size = cv2.getTextSize(
+                            pred[5] + ' : %.2f' % float(pred[4]),
+                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                        cv2.rectangle(
+                            output_image,
+                            (xmin, ymin),
+                            (xmin + text_size[0] + 100,
+                             ymin + text_size[1] + 20), color, -1)
+                        cv2.putText(
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
+                            (xmin, ymin + text_size[1] + 4),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 255, 255), 1)
 
-                            pred_cls = pred[5]
-                            cat_pred = '%s %s %s %s %s %s\n' % (
-                                pred_cls,
-                                str(pred[4]),
-                                str(xmin), str(ymin), str(xmax), str(ymax))
-                            print("person_pred:{}".format(cat_pred))
+                        pred_cls = pred[5]
+                        cat_pred = '%s %s %s %s %s %s\n' % (
+                            pred_cls,
+                            str(pred[4]),
+                            str(xmin), str(ymin), str(xmax), str(ymax))
+                        print("person_pred:{}".format(cat_pred))
 
-                            #**************************************************
-                            if pred_cls not in graph_json['persons'].keys():
-                                graph_json['persons'][pred_cls] = {}
-                            #**************************************************
+                        #**************************************************
+                        if pred_cls not in graph_json['persons'].keys():
+                            graph_json['persons'][pred_cls] = {}
+                        #**************************************************
 
                         # behavior
                         if True :
@@ -619,69 +653,61 @@ def test(opt):
 
                             print("behavior_pred:{}".format(cat_pred_beh))
 
-                            if opt.display:
-                                print("detected {}".format(save_dir + "{}".format(f_file)))
-                        else:
-                            if opt.display:
-                                print("non-detected {}".format(
-                                    save_dir + "{}".format(f_file)))
+                else:
+                    print("[2]===== None-predictions_p: {}".format(predictions_p))
 
-                    # object
-                    if len(predictions_object) != 0:
+                # object
+                if predictions_object is not None and len(predictions_object) != 0:
+                    print("[3]===== predictions_object: {}".format(predictions_object))
+                    num_preds = len(prediction)
+                    for jdx, pred in enumerate(prediction_object):
+                        xmin = int(max(float(pred[0]) / width_ratio, 0))
+                        ymin = int(max(float(pred[1]) / height_ratio, 0))
+                        xmax = int(min((float(pred[2])) / width_ratio, width))
+                        ymax = int(min((float(pred[3])) / height_ratio, height))
 
-                        prediction_object = predictions_object[0]
-                        num_preds = len(prediction)
-                        for jdx, pred in enumerate(prediction_object):
-                            xmin = int(max(pred[0] / width_ratio, 0))
-                            ymin = int(max(pred[1] / height_ratio, 0))
-                            xmax = int(min((pred[2]) / width_ratio, width))
-                            ymax = int(min((pred[3]) / height_ratio, height))
-                            color = colors[ObjectCLS.index(pred[5])]
+                        cv2.rectangle(output_image, (xmin, ymin),
+                                      (xmax, ymax), color, 2)
 
-                            cv2.rectangle(output_image, (xmin, ymin),
-                                          (xmax, ymax), color, 2)
+                        text_size = cv2.getTextSize(
+                            pred[5] + ' : %.2f' % float(pred[4]),
+                            cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                        cv2.rectangle(
+                            output_image,
+                            (xmin, ymin),
+                            (xmin + text_size[0] + 100,
+                             ymin + text_size[1] + 20), color, -1)
+                        cv2.putText(
+                            output_image, pred[5] + ' : %.2f' % float(pred[4]),
+                            (xmin, ymin + text_size[1] + 4),
+                            cv2.FONT_HERSHEY_PLAIN, 1,
+                            (255, 255, 255), 1)
 
-                            text_size = cv2.getTextSize(
-                                pred[5] + ' : %.2f' % pred[4],
-                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                            cv2.rectangle(
-                                output_image,
-                                (xmin, ymin),
-                                (xmin + text_size[0] + 100,
-                                 ymin + text_size[1] + 20), color, -1)
-                            cv2.putText(
-                                output_image, pred[5] + ' : %.2f' % pred[4],
-                                (xmin, ymin + text_size[1] + 4),
-                                cv2.FONT_HERSHEY_PLAIN, 1,
-                                (255, 255, 255), 1)
+                        # save detection results
+                        pred_obj_cls = pred[5]
+                        cat_pred = '%s %s %s %s %s %s\n' % (
+                            pred_obj_cls,
+                            str(pred[4]),
+                            str(xmin), str(ymin), str(xmax), str(ymax))
 
-                            # save detection results
-                            pred_obj_cls = pred[5]
-                            cat_pred = '%s %s %s %s %s %s\n' % (
-                                pred_obj_cls,
-                                str(pred[4]),
-                                str(xmin), str(ymin), str(xmax), str(ymax))
+                        #**************************************************
+                        graph_json['objects'][pred_obj_cls] = {}
+                        #**************************************************
+                        print("object_pred:{}".format(cat_pred))
+                else:
+                    print("[3]===== None-predictions_object: {}".format(predictions_object))
 
-                            #**************************************************
-                            graph_json['objects'][pred_obj_cls] = {}
-                            #**************************************************
-                            print("object_pred:{}".format(cat_pred))
+                # relation
+                if r_preds is not None and len(r_preds) != 0:
+                    print("[4]===== r_preds: {}".format(r_preds))
+                    r_pred = r_preds[idx]
+                    r_obj_pred = r_obj_preds[idx]
+                    relation_prediction = relation_predictions[idx]
+                    num_preds = len(r_pred)
+                    for jdx, pred in enumerate(r_pred):
+                        pred_per_cls = pred[5]
 
-                            if opt.display:
-                                print("detected {}".format(
-                                    save_dir + "{}".format(f_file)))
-                        else:
-                            if opt.display:
-                                print("non-detected {}".format(
-                                    save_dir + "{}".format(f_file)))
-
-                    # relation
-                    if len(r_preds) != 0:
-                        r_pred = r_preds[idx]
-                        r_obj_pred = r_obj_preds[idx]
-                        relation_prediction = relation_predictions[idx]
-                        num_preds = len(r_pred)
-                        for jdx, pred in enumerate(r_pred):
+                        if False:
                             xmin = int(max(float(pred[0]) / width_ratio, 0))
                             ymin = int(max(float(pred[1]) / height_ratio, 0))
                             xmax = int(min((float(pred[2])) / width_ratio, width))
@@ -691,7 +717,6 @@ def test(opt):
                             cv2.rectangle(output_image, (xmin, ymin),
                                           (xmax, ymax), color, 2)
 
-                            pred_per_cls = pred[5]
                             text_size = cv2.getTextSize(
                                 pred_per_cls + ' : %.2f' % float(pred[4]),
                                 cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
@@ -706,92 +731,101 @@ def test(opt):
                                 cv2.FONT_HERSHEY_PLAIN, 1,
                                 (255, 255, 255), 1)
 
+                        #*****************************************************
+                        graph_json['relations'][pred_per_cls] = {}
+                        #*****************************************************
+
+                        for kdx, obj_pred in enumerate(r_obj_pred):
+                            xmin = int(max(float(obj_pred[0]) / width_ratio, 0))
+                            ymin = int(max(float(obj_pred[1]) / height_ratio, 0))
+                            xmax = int(min((float(obj_pred[2])) / width_ratio, width))
+                            ymax = int(min((float(obj_pred[3])) / height_ratio, height))
+
+                            color = colors[ObjectCLS.index(obj_pred[5])]
+                            cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), color, 2)
+
+                            pred_obj_cls = obj_pred[5]
+                            text_size = cv2.getTextSize(
+                                pred_obj_cls + ' : %.2f' % float(obj_pred[4]),
+                                cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
+                            cv2.rectangle(
+                                output_image,
+                                (xmin, ymin),
+                                (xmin + text_size[0] + 100,
+                                 ymin + text_size[1] + 20), color, -1)
+                            cv2.putText(
+                                output_image, obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
+                                (xmin, ymin + text_size[1] + 4),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            value, ind = relation_prediction[kdx].max(1)
+                            ind = int(ind.cpu().numpy())
+                            rel_ind = P2ORelCLS[ind]
+                            cv2.putText(
+                                output_image, '+ relation : ' + rel_ind,
+                                (xmin, ymin + text_size[1] + 4 + 12),
+                                cv2.FONT_HERSHEY_PLAIN, 1,
+                                (255, 255, 255), 1)
+
+                            pred_pred_cls = rel_ind
+                            cat_pred = '%s %s %s %s %s\n' % (
+                                pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
+                            print("relation_pred:{}".format(cat_pred))
+
                             #*****************************************************
-                            graph_json['relations'][pred_per_cls] = {}
+                            graph_json['relations'][pred_per_cls][pred_obj_cls] = pred_pred_cls
                             #*****************************************************
+                else:
+                    print("[4]===== None-r_preds: {}".format(r_preds))
 
-                            for kdx, obj_pred in enumerate(r_obj_pred):
-                                xmin = int(max(float(obj_pred[0]) / width_ratio, 0))
-                                ymin = int(max(float(obj_pred[1]) / height_ratio, 0))
-                                xmax = int(min((float(obj_pred[2])) / width_ratio, width))
-                                ymax = int(min((float(obj_pred[3])) / height_ratio, height))
+                # place
+                if len(preds_place_txt) != 0:
+                    print("[5]===== place_pred: {}".format(preds_place_txt))
+                    cv2.putText(output_image, "place : " + preds_place_txt[idx],
+                                (30, 30),
+                                cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
 
-                                color = colors[ObjectCLS.index(obj_pred[5])]
-                                cv2.rectangle(output_image, (xmin, ymin), (xmax, ymax), color, 2)
+                    #*****************************************
+                    graph_json['place'] = preds_place_txt[idx]
+                    #*****************************************
+                else:
+                    print("[5]===== None-place_pred: {}".format(preds_place_txt))
 
-                                pred_obj_cls = obj_pred[5]
-                                text_size = cv2.getTextSize(
-                                    pred_obj_cls + ' : %.2f' % float(obj_pred[4]),
-                                    cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]
-                                cv2.rectangle(
-                                    output_image,
-                                    (xmin, ymin),
-                                    (xmin + text_size[0] + 100,
-                                     ymin + text_size[1] + 20), color, -1)
-                                cv2.putText(
-                                    output_image, obj_pred[5] + ' : %.2f' % float(obj_pred[4]),
-                                    (xmin, ymin + text_size[1] + 4),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 255, 255), 1)
 
-                                value, ind = relation_prediction[kdx].max(1)
-                                ind = int(ind.cpu().numpy())
-                                rel_ind = P2ORelCLS[ind]
-                                cv2.putText(
-                                    output_image, '+ relation : ' + rel_ind,
-                                    (xmin, ymin + text_size[1] + 4 + 12),
-                                    cv2.FONT_HERSHEY_PLAIN, 1,
-                                    (255, 255, 255), 1)
+                # save output image
+                cv2.imwrite(save_dir + "{}".format(f_file), output_image)
+                # save images
+                plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
+                if False:
+                    plt.figure(figsize=(8,8))
+                    plt.imshow(plt_output_image.astype('uint8'))
+                    plt.show()
+                    plt.close()
 
-                                pred_pred_cls = rel_ind
-                                cat_pred = '%s %s %s %s %s\n' % (
-                                    pred_cls, str(xmin), str(ymin), str(xmax), str(ymax))
-                                print("relation_pred:{}".format(cat_pred))
+                dot_to_json = json.dumps(graph_json)
+                with open('{}.json'.format(save_file), 'w') as f:
+                    json.dump(dot_to_json, f)
+                    print(graph_json)
 
-                                #*****************************************************
-                                graph_json['relations'][pred_per_cls][pred_obj_cls] = pred_pred_cls
-                                #*****************************************************
-
-                        # place
-                        if len(preds_place_txt) != 0:
-                            cv2.putText(output_image, "place : " + preds_place_txt[idx],
-                                        (30, 30),
-                                        cv2.FONT_HERSHEY_PLAIN, 2, (255, 255, 255), 2)
-
-                            #*****************************************
-                            graph_json['place'] = preds_place_txt[idx]
-                            #*****************************************
-
-                            if opt.display:
-                                print('place_pred :', preds_place_txt[idx])
-
-                        # save output image
-                        cv2.imwrite(save_dir + "{}".format(f_file), output_image)
-                        # save images
-                        plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
-                        if False:
-                            plt.figure(figsize=(8,8))
-                            plt.imshow(plt_output_image.astype('uint8'))
-                            plt.show()
-                            plt.close()
-
-                        #*****************************************
-                        frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode,
-                                                                                     scene,
-                                                                                     idx)
-                        save_file = save_dir + frm_name
-                        print(graph_json)
-                        graph_to_json(episode, scene, idx, graph_json, save_file)
-                        #*****************************************
+                graph_to_json(episode, scene, shot, graph_json, save_file)
             except:
-                #*****************************************
-                frm_name = "episode_{:02d}_scene_{:03d}_frame_{:04d}".format(episode,
-                                                                             scene,
-                                                                             idx)
-                save_file = save_dir + frm_name
-                print(graph_json)
-                graph_to_json(episode, scene, idx, graph_json, save_file)
-                #*****************************************
+                # save output image
+                cv2.imwrite(save_dir + "{}".format(f_file), output_image)
+                # save images
+                plt_output_image = cv2.cvtColor(output_image, cv2.COLOR_BGR2RGB)
+                if False:
+                    plt.figure(figsize=(8,8))
+                    plt.imshow(plt_output_image.astype('uint8'))
+                    plt.show()
+                    plt.close()
+
+                dot_to_json = json.dumps(graph_json)
+                with open('{}.json'.format(save_file), 'w') as f:
+                    json.dump(dot_to_json, f)
+                    print(graph_json)
+
+                graph_to_json(episode, scene, shot, graph_json, save_file)
 
                 continue
 

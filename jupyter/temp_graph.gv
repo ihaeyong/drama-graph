@@ -4,23 +4,23 @@ digraph G {
 	edge [fontsize=6]
 	episode_07 [color=lightgrey style=filled]
 	scene_000 [color=lightgrey style=filled]
-	frame_0000 [color=lightgrey style=filled]
+	shot_0000 [color=lightgrey style=filled]
 	kitchen [color=lightblue style=filled]
 	talking [color=lightblue style=filled]
 	episode_07 -> scene_000
-	scene_000 -> frame_0000
-	frame_0000 -> kitchen
-	frame_0000 -> talking
+	scene_000 -> shot_0000
+	shot_0000 -> kitchen
+	shot_0000 -> talking
 	Haeyoung1
 	talking [color=green style=filled]
 	happy [color=blue style=filled]
-	frame_0000 -> Haeyoung1
+	shot_0000 -> Haeyoung1
 	Haeyoung1 -> talking
 	Haeyoung1 -> happy
 	Deogi
 	eating [color=green style=filled]
 	happy [color=blue style=filled]
-	frame_0000 -> Deogi
+	shot_0000 -> Deogi
 	Deogi -> eating
 	Deogi -> happy
 	spoon [color=gold style=filled]
