@@ -20,6 +20,8 @@ from lib.pytorch_misc import optimistic_restore, de_chunkize, clip_grad_norm, fl
 from lib.focal_loss import FocalLossWithOneHot, FocalLossWithOutOneHot, CELossWithOutOneHot
 from lib.hyper_yolo import anchors
 
+import pdb
+
 '''
 ----------------------------------------------
 --------sgd learning on 4 gpus----------------
@@ -70,9 +72,13 @@ def get_args():
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_Visual_v5.0/")
+    #parser.add_argument("--img_path", type=str,
+    #                    default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+    #parser.add_argument("--json_path", type=str,
+    #                    default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
     parser.add_argument("-clip", dest='clip', type=float, default=10.0)
@@ -84,6 +90,7 @@ def get_args():
 
     args = parser.parse_args()
     return args
+
 
 # get args.
 opt = get_args()
@@ -124,7 +131,6 @@ def train(opt):
                    "collate_fn": custom_collate_fn}
 
     train_loader = DataLoader(train_set, **training_params)
-
     # define behavior-model
     model = person_model(num_persons, device)
     if False :

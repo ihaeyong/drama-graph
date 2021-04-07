@@ -43,9 +43,13 @@ def get_args():
                         default="./checkpoint/person") # saved training path
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_Visual_v5.0/")
+    #parser.add_argument("--img_path", type=str,
+    #                    default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+    #parser.add_argument("--json_path", type=str,
+    #                    default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     args = parser.parse_args()

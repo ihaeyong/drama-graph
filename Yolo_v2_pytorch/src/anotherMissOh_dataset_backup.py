@@ -82,7 +82,8 @@ def Splits(num_episodes):
     split the total number of episodes into three : train, val, test
     '''
     train = [1,2,3,4,5,6,7,8,9,10,11,12]
-    val = [13,14,15]
+    val = [13,14,15] #num_episodes-3
+    #test = range(num_episodes-2, num_episodes)
     test = [16,17,18]
 
     return train, val, test
@@ -128,9 +129,8 @@ def SortFullRect(image, label, is_train=True):
 
                 full_rect = label[0][frm]['persons']['full_rect'][p]
 
-                ## behavior label
+                # behavior label
                 behavior = label[0][frm]['persons']['behavior'][p]
-                pdb.set_trace()
                 behavior_label = PBeHavCLS.index(behavior)
 
                 #scale:
@@ -156,6 +156,92 @@ def SortFullRect(image, label, is_train=True):
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
 
+    # ------------- for face and emotion ----------------------
+    for frm in range(s_frm, e_frm):
+        try:
+            face_list = []
+            emo_list = []
+
+            frame_id = label[0][frm]['frame_id']
+            for p, p_id in enumerate(label[0][frm]['persons']['person_id']):
+
+                p_label = PersonCLS.index(p_id)
+                if p_label > 20:
+                    print("sort full rect index error{}".format(p_label))
+                full_rect = label[0][frm]['persons']['full_rect'][p]
+                behavior = label[0][frm]['persons']['behavior'][p]
+                behavior_label = PBeHavCLS.index(behavior)
+
+                # face label
+                face_label = FaceCLS.index(p_id)
+                if face_label > 20:
+                    print("sort face rect index error{}".format(face_label))
+
+                face_rect = label[0][frm]['persons']['face_rect'][p]
+
+                #scale:
+                xmin = max(full_rect[0] * width_ratio, 0)
+                ymin = max(full_rect[1] * height_ratio, 0)
+                xmax = min((full_rect[2]) * width_ratio, 448)
+                ymax = min((full_rect[3]) * height_ratio, 448)
+                full_rect = [xmin,ymin,xmax,ymax]
+
+                # face rcet scale
+                xmin = max(face_rect[0] * width_ratio, 0)
+                ymin = max(face_rect[1] * height_ratio, 0)
+                xmax = min((face_rect[2]) * width_ratio, 448)
+                ymax = min((face_rect[3]) * height_ratio, 448)
+                face_rect = [xmin, ymin, xmax, ymax]
+
+                temp_label = np.concatenate((full_rect, [p_label]), 0)
+
+                face_temp_label = np.concatenate((face_rect, [face_label]), 0)
+                face_list.append(face_temp_label)
+
+                emo_label = label[0][frm]['persons']['emotion'][p]
+                emo_list.append(emo_label)
+
+        except:
+            continue
+
+        if len(face_list) > 0 and is_train:
+            facerect_list.append(face_list)
+            fullemo_list.append(emo_list)
+        else: # for test
+            facerect_list.append(face_list)
+            fullemo_list.append(emo_list)
+
+    # ------------- for object ----------------------
+    for frm in range(s_frm, e_frm):
+        try:
+            object_list = []
+            for p, p_id in enumerate(label[0][frm]['objects']['object_id']):
+                # we need to account for 'person' and remove person from the list
+                if p_id == 'person':
+                    continue
+                p_label = ObjectCLS.index(p_id)
+                r_label = P2ORelCLS.index(label[0][frm]['objects']['relation'][p])
+                if p_label > 47:
+                    print("sort full rect index error{}".format(p_label))
+                # object labels
+                object_rect = label[0][frm]['objects']['object_rect'][p]
+
+                #scale:
+                xmin = max(object_rect[0] * width_ratio, 0)
+                ymin = max(object_rect[1] * height_ratio, 0)
+                xmax = min((object_rect[2]) * width_ratio, 448)
+                ymax = min((object_rect[3]) * height_ratio, 448)
+                object_rect = [xmin,ymin,xmax,ymax]
+
+                temp_label = np.concatenate((object_rect, [p_label], [r_label]), 0)
+                object_list.append(temp_label)
+        except:
+            continue
+
+        if len(fullobj_list) > 0 and is_train:
+            fullobj_list.append(object_list)
+        else: # for test
+            fullobj_list.append(object_list)
 
     if is_train:
         return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, fullemo_list

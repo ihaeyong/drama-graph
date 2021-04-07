@@ -20,6 +20,8 @@ from lib.person_model import person_model
 
 import numpy as np
 
+import pdb
+
 class behavior_model(nn.Module):
     def __init__(self, num_persons, num_behaviors, opt, device):
         super(behavior_model, self).__init__()
@@ -54,6 +56,22 @@ class behavior_model(nn.Module):
             nn.Conv1d(2304, 2304, 3, stride=1, padding=1),
             nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
         )
+
+
+        self.Q_fc = nn.Sequential(
+            nn.Linear(2304, 4608),
+            nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
+            nn.Linear(4608, 2304))
+
+        self.K_fc = nn.Sequential(
+            nn.Linear(2304, 4608),
+            nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
+            nn.Linear(4608, 2304))
+
+        self.V_fc = nn.Sequential(
+            nn.Linear(2304, 4608),
+            nn.LeakyReLU(0.1, inplace=True),nn.Dropout(0.1),
+            nn.Linear(4608, 2304))
 
         self.num_behaviors = num_behaviors
         self.img_size = opt.image_size
@@ -101,6 +119,23 @@ class behavior_model(nn.Module):
 
         return g_fmap
 
+    def f_behavior_attn(self, behavior_tensor):
+        attn_out = torch.zeros_like(behavior_tensor)
+
+        q_feat = self.Q_fc(behavior_tensor)
+        k_feat = self.K_fc(behavior_tensor)
+        v_feat = self.V_fc(behavior_tensor)
+
+        for i in range(q_feat.shape[1]):
+            tmp = torch.matmul(q_feat[:,i,:], k_feat[:,i,:].transpose(1,0)).sum(dim=1)
+            tmp = tmp/(tmp.sum())
+            w_p = (torch.nn.functional.softmax(torch.exp(tmp*3))*q_feat.shape[0]).view(-1,1)
+            attn_out[:,i,:] = w_p*v_feat[:,i,:]
+
+        return attn_out
+
+
+
 
     def forward(self, image, label, behavior_label):
 
@@ -109,6 +144,7 @@ class behavior_model(nn.Module):
         batch = logits.size(0)
 
         fmap = fmap.detach()
+
 
         # fmap [b, 1024, 14, 14]
         self.fmap_size = fmap.size(2)
@@ -212,12 +248,14 @@ class behavior_model(nn.Module):
 
                 # local feature
                 i_fmap = self.behavior_conv(i_fmap)
-
                 for jdx, p_box in enumerate(box):
                     behavior_tensor[idx, int(p_box[4])] += i_fmap[jdx].view(-1)
 
                 if len(behavior_label[idx]) > 0:
                     b_labels.append(behavior_label[idx])
+
+
+            #behavior_tensor = self.f_behavior_attn(behavior_tensor)
 
             for idx, box in enumerate(label):
                 for jdx, p_box in enumerate(box):

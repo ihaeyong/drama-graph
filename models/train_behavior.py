@@ -44,7 +44,7 @@ def get_args():
     parser.add_argument("--momentum", type=float, default=0.9)
     parser.add_argument("--decay", type=float, default=0.0005)
     parser.add_argument("--dropout", type=float, default=0.5)
-    parser.add_argument("--num_epoches", type=int, default=100)
+    parser.add_argument("--num_epoches", type=int, default=200)
     parser.add_argument("--test_interval", type=int, default=1,
                         help="Number of epoches between testing phases")
     parser.add_argument("--object_scale", type=float, default=1.0)
@@ -69,9 +69,9 @@ def get_args():
     parser.add_argument("--nms_threshold", type=float, default=0.5)
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_Visual_v5.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-lr", dest='lr', type=float, default=1e-5)
     parser.add_argument("-clip", dest='clip', type=float, default=10.0)
@@ -131,12 +131,12 @@ def train(opt):
     # define behavior-model
     model = behavior_model(num_persons, num_behaviors, opt, device)
     trained_persons = opt.trained_model_path + os.sep + "{}".format(
-        'anotherMissOh_only_params_voc_person_sgd.pth')
+        'anotherMissOh_only_params_voc_person_group_1gpu_210402.pth')
 
     ckpt = torch.load(trained_persons)
 
     # in case of multi-gpu training
-    if True:
+    if False:
         from collections import OrderedDict
         ckpt_state_dict = OrderedDict()
         for k,v in ckpt.items():
