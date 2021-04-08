@@ -125,7 +125,7 @@ def predict(args):
     for sample in tqdm.tqdm(labeled_wav):
         if len(sample[0]) < 1000:
             continue
-        features = extract_features(X, sr)
+        features = extract_features(sample[0], sr)
         X_test = np.expand_dims(np.array(features), axis=0)
         x_testcnn = np.expand_dims(X_test, axis=2)
         y_pred = model(torch.from_numpy(x_testcnn).float()).detach().numpy()
