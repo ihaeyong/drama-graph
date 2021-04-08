@@ -52,7 +52,7 @@ To inference or evaluate with a single audio file:
 sed_vis folder should be in the directory from which you run the file(`./`), so here the directory is (`drama-graph/sed_vis/`).
 
 This script will display a window by matplotlib as the following figure:
-![alt text](./figures/prediction_visualization.png "Visualization")
+![alt text](./figures/prediction_demo_visualization.png "Visualization")
 
 ## Result folder: predictions
 Example of the result format 
