@@ -97,7 +97,16 @@ so here the directory is (`drama-graph/sed_vis/`).
 >> ./scripts/inference_sound_event.sh
 
 ```
-
+#### Performances
+| model            | trainset | validation | test |
+|------------------|----------|------------|------|
+| person detection |          |            |      |
+| face detection   |          |            |      |
+| emotion          |          |            |      |
+| behavior         |          |            |      |
+| object detection |          |            |      |
+| predicate        |          |            |      |
+| place            |          |            |      |
 
 #### Acknowledgements
 
