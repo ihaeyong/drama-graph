@@ -102,7 +102,7 @@ so here the directory is (`drama-graph/sed_vis/`).
 |------------------|----------|------------|------|
 | person detection |   54%    |     50%    |  47% |
 | face detection   |          |            |      |
-| emotion          |          |            |      |
+| emotion          |  80.7%   |    86.3%   | 85.0%|
 | behavior         |          |            |      |
 | object detection |          |            |      |
 | predicate        |          |            |      |
