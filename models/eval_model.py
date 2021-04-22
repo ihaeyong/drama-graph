@@ -64,9 +64,9 @@ def get_args():
     parser.add_argument("--episode", type=int, default=7, help="episode to evaluate")
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver5.0/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images_v5.0/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver5.0/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_v5.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
@@ -91,11 +91,7 @@ transf = Compose(tform)
 train, val, test = Splits(num_episodes=18)
 
 # load datasets
-<<<<<<< HEAD
-episode = 10 # 7,8 checked 
-=======
 episode = opt.episode
->>>>>>> da2aaeb33cb16abb617598277daddb931a6bb707
 infer = [episode]
 infer_set = AnotherMissOh(infer, opt.img_path, opt.json_path, False)
 
