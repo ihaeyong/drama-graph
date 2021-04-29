@@ -1,0 +1,9 @@
+certifi==2019.9.11
+chardet==3.0.4
+colorama==0.4.1
+ConfigArgParse==0.15.1
+idna==2.8
+inflection==0.3.1
+pyLanguagetool==0.8.4
+requests==2.22.0
+urllib3==1.25.7
