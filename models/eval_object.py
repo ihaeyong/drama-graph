@@ -4,6 +4,8 @@ import argparse
 import pickle
 import cv2
 import numpy as np
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 from Yolo_v2_pytorch.src.utils import *
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
@@ -30,7 +32,7 @@ def get_args():
     parser.add_argument("--conf_threshold",
                         type=float, default=0.35)
     parser.add_argument("--nms_threshold",
-                        type=float, default=0.5)
+                        type=float, default=0.2)
     parser.add_argument("--pre_trained_model_type",
                         type=str, choices=["model", "params"],
                         default="model")
@@ -74,7 +76,7 @@ test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 # model path
 model_path = "{}/anotherMissOh_only_params_{}.pth".format(
     opt.saved_path, opt.model)
-
+#model_path = "{}/anotherMissOh_object15-the real 15th after this consider minus one.pth".format(opt.saved_path)
 def test(opt):
 
     # load the color map for detection results
@@ -121,6 +123,7 @@ def test(opt):
 
     # load test clips
     for iter, batch in enumerate(test_loader):
+        print('{}/{}'.format(iter,len(test_loader)))
         image, info = batch
 
         # sort label info on fullrect
@@ -199,9 +202,10 @@ def test(opt):
                                               anchors,
                                               opt.conf_threshold,
                                               opt.nms_threshold)
-
+                
                 if len(predictions) != 0:
                     prediction = predictions[0]
+                    
                     output_image = cv2.cvtColor(np_img,cv2.COLOR_RGB2BGR)
                     output_image = cv2.resize(output_image, (width, height))
 
