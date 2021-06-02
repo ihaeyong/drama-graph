@@ -45,5 +45,5 @@ torch==1.0.1.post2
 torchvision==0.2.2
 tornado==6.0.4
 tqdm
-urllib3==1.25.9
+urllib3==1.26.5
 validators==0.17.1
