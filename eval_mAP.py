@@ -11,8 +11,6 @@ import math
 
 import numpy as np
 
-import pdb
-
 MINOVERLAP = 0.5 # default value (defined in the PASCAL VOC2012 challenge)
 
 parser = argparse.ArgumentParser()

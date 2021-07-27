@@ -82,7 +82,7 @@ def test(opt):
                    "collate_fn": custom_collate_fn}
 
     # set test loader
-    test_loader = DataLoader(val_set, **test_params)
+    test_loader = DataLoader(test_set, **test_params)
 
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
