@@ -6,7 +6,7 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS, PBeHavCLS_21
 from Yolo_v2_pytorch.src.utils import *
 from Yolo_v2_pytorch.src.loss import YoloLoss
 import shutil
@@ -97,7 +97,7 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 num_persons = len(PersonCLS)
-num_behaviors = len(PBeHavCLS)
+num_behaviors = len(PBeHavCLS_21)
 
 # logger path
 logger_path = 'logs/{}'.format(opt.model)
