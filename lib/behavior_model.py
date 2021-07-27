@@ -14,7 +14,7 @@ from Yolo_v2_pytorch.src.yolo_net import Yolo
 from Yolo_v2_pytorch.src.yolo_tunning import YoloD
 
 from Yolo_v2_pytorch.src.rois_utils import anchorboxes
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import PersonCLS, PBeHavCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import PersonCLS, PBeHavCLS_21
 
 from lib.person_model import person_model
 

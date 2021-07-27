@@ -14,29 +14,53 @@ PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
              'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
 
 # define behavior
-PBeHavCLS = ["stand up","sit down","walk","hold","hug",
+#PBeHavCLS = ["stand up","sit down","walk","hold","hug",
+#             "look at/back on",
+#             "drink","eat",
+#             "point out","dance", "look for","watch",
+#             "push away", "wave hands",
+#             "cook", "sing", "play instruments",
+#             "call", "destroy",
+#             "put arms around each other's shoulder",
+#             "open", "shake hands", "wave hands",
+#             "kiss", "high-five", "write", "none", '']
+#
+PBeHavCLS_21_none = ["stand up","sit down","walk","hold","hug",
              "look at/back on",
              "drink","eat",
-             "point out","dance", "look for","watch",
-             "push away", "wave hands",
-             "cook", "sing", "play instruments",
-             "call", "destroy",
+             "point out","dance", 
+             "wave hands",
+             "cook", "sing",
+             "call", 
              "put arms around each other's shoulder",
-             "open", "shake hands", "wave hands",
-             "kiss", "high-five", "write", "none", '']
+             "open", "shake hands", 
+             "kiss", "none"]
+
+
+
+PBeHavCLS_21 = ["stand up","sit down","walk","hold","hug",
+             "look at/back on",
+             "drink","eat",
+             "point out","dance", 
+             "wave hands",
+             "cook", "sing",
+             "call", 
+             "put arms around each other's shoulder",
+             "open", "shake hands", 
+             "kiss"]
 
 # Subset of behavior
 # ignore set : {0, 1, 3, 5, 10, 11, 15, 17, 24, 25, 26, 27, 28}
-PBeHavCLSddd = ["walk","hug",
-             "drink","eat",
-             "point out","dance",
-             "push away",
-             "cook", "sing",
-             "call",
-             "put arms around each other's shoulder",
-             "open", "shake hands", "wave hands",
-             "kiss", "high-five","look at/back on","stand up"]
-
+#PBeHavCLSddd = ["walk","hug",
+#             "drink","eat",
+#             "point out","dance",
+#             "push away",
+#             "cook", "sing",
+#             "call",
+#             "put arms around each other's shoulder",
+#             "open", "shake hands", "wave hands",
+#             "kiss", "high-five","look at/back on","stand up"]
+#
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
 
@@ -130,7 +154,7 @@ def SortFullRect(image, label, is_train=True):
 
                 # behavior label
                 behavior = label[0][frm]['persons']['behavior'][p]
-                behavior_label = PBeHavCLS.index(behavior)
+                behavior_label = PBeHavCLS_21.index(behavior)
 
                 #scale:
                 xmin = max(full_rect[0] * width_ratio, 0)
@@ -315,7 +339,7 @@ class AnotherMissOh(Dataset):
 
         for episode in dataset:
             img_dir = img_path + 'AnotherMissOh{:02}/'.format(episode)
-            json_dir = json_path + 'AnotherMissOh{:02}_ver3.2.json'.format(episode)
+            json_dir = json_path + 'AnotherMissOh{:02}_v5.0.json'.format(episode)
             if self.display_log:
                 print('imag_dir:{}'.format(img_dir))
                 print('json_dir:{}'.format(json_dir))

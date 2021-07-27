@@ -11,6 +11,8 @@ import math
 
 import numpy as np
 
+import pdb
+
 MINOVERLAP = 0.5 # default value (defined in the PASCAL VOC2012 challenge)
 
 parser = argparse.ArgumentParser()
@@ -573,8 +575,8 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
     count_true_positives = {}
     
     for class_index, class_name in enumerate(gt_classes):
-        if not(class_name in used_ObjectCLS) :
-            continue
+        #if not(class_name in used_ObjectCLS) :
+        #    continue
         count_true_positives[class_name] = 0
         """
          Load detection-results of that class
