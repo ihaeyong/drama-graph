@@ -339,7 +339,7 @@ class AnotherMissOh(Dataset):
 
         for episode in dataset:
             img_dir = img_path + 'AnotherMissOh{:02}/'.format(episode)
-            json_dir = json_path + 'AnotherMissOh{:02}_v5.0.json'.format(episode)
+            json_dir = json_path + 'AnotherMissOh{:02}_v3.0.json'.format(episode)
             if self.display_log:
                 print('imag_dir:{}'.format(img_dir))
                 print('json_dir:{}'.format(json_dir))

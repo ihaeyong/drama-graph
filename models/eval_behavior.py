@@ -42,7 +42,7 @@ def get_args():
     parser.add_argument("--img_path", type=str,
                         default="./data/AnotherMissOh_201029/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh_201029/AnotherMissOh_Visual_v5.0/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_Visual_v6.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     args = parser.parse_args()
@@ -82,7 +82,7 @@ def test(opt):
                    "collate_fn": custom_collate_fn}
 
     # set test loader
-    test_loader = DataLoader(test_set, **test_params)
+    test_loader = DataLoader(val_set, **test_params)
 
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":

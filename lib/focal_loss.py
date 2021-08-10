@@ -73,7 +73,7 @@ class CELossWithOutOneHot(nn.Module):
         self.reweight = True
         cls_num_list = []
         for i in range(len(weight)):
-            if i in [2, 4, 6, 7, 8, 9, 12, 14, 15, 17, 19, 20, 21, 22, 23, 24]:
+            if i in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 13, 14, 15, 17, 19, 20, 21, 23]:
                 cls_num_list.append(weight[i])
 
         beta = 0.99
