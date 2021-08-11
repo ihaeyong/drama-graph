@@ -7,14 +7,14 @@ import numpy as np
 from Yolo_v2_pytorch.src.utils import *
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS_21
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
 import time
 
 num_persons = len(PersonCLS)
-num_behaviors = len(PBeHavCLS)
+num_behaviors = len(PBeHavCLS_21)
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -40,9 +40,9 @@ def get_args():
                         default="./checkpoint/behavior") # saved training path
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_images/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh_201029/AnotherMissOh_Visual_v6.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     args = parser.parse_args()
@@ -82,7 +82,7 @@ def test(opt):
                    "collate_fn": custom_collate_fn}
 
     # set test loader
-    test_loader = DataLoader(test_set, **test_params)
+    test_loader = DataLoader(val_set, **test_params)
 
     if torch.cuda.is_available():
         if opt.pre_trained_model_type == "model":
@@ -183,7 +183,7 @@ def test(opt):
                 #b_behavior_label = behavior_label[i]
                 f = open(save_mAP_gt_beh_dir + mAP_file, mode='w+')
                 for j, det in enumerate(label[idx]):
-                    cls = PBeHavCLS[int(behavior_label[idx][j])].replace(' ', '_')
+                    cls = PBeHavCLS_21[int(behavior_label[idx][j])].replace(' ', '_')
                     if cls == 'none':
                         continue
 
@@ -232,7 +232,7 @@ def test(opt):
                         value, index = b_logit[jdx].max(0)
 
                         b_idx = index.cpu().numpy()
-                        b_pred = PBeHavCLS[b_idx]
+                        b_pred = PBeHavCLS_21[b_idx]
                         text_size = cv2.getTextSize(
                             pred[5] + ' : %.2f' % pred[4],
                             cv2.FONT_HERSHEY_PLAIN, 1, 1)[0]

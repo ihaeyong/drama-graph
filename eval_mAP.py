@@ -73,9 +73,9 @@ elif args.rtype == 'behave':
                            'results/input_person', 'detection-behave')
 elif args.rtype == 'object':
     GT_PATH = os.path.join(os.getcwd(),
-                           'results/input_person', 'ground-truth-object')
+                           'results/input_object', 'ground-truth')
     DR_PATH = os.path.join(os.getcwd(),
-                           'results/input_person', 'detection-object')
+                           'results/input_object', 'detection')
 elif args.rtype == 'relation':
     GT_PATH = os.path.join(os.getcwd(),
                            'results/input_person', 'ground-truth-relation')
@@ -567,10 +567,14 @@ sum_AP = 0.0
 ap_dictionary = {}
 lamr_dictionary = {}
 # open file to store the output
+used_ObjectCLS = ["tie", "bottle", "chair(stool)", "phone", "glass", "bowl", "table", "book", "car"]
 with open(output_files_path + "/output.txt", 'w') as output_file:
     output_file.write("# AP and precision/recall per class\n")
     count_true_positives = {}
+    
     for class_index, class_name in enumerate(gt_classes):
+        #if not(class_name in used_ObjectCLS) :
+        #    continue
         count_true_positives[class_name] = 0
         """
          Load detection-results of that class
@@ -817,6 +821,7 @@ with open(output_files_path + "/output.txt", 'w') as output_file:
         cv2.destroyAllWindows()
 
     output_file.write("\n# mAP of all classes\n")
+    n_classes = 9
     mAP = sum_AP / n_classes
     text = "mAP = {0:.2f}%".format(mAP*100)
     output_file.write(text + "\n")

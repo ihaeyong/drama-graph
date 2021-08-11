@@ -27,7 +27,7 @@ class relation_model(nn.Module):
         super(relation_model, self).__init__()
 
         # just for reference (anchor information)
-        num_objects = 47
+        num_objects = 9
         num_relations = 13
         num_persons = 20
 
@@ -142,6 +142,35 @@ class relation_model(nn.Module):
 
         # training
         if len(label) > 0 and self.training:
+            boxes_gt = []
+
+            for idx, box in enumerate(label):
+                b_boxes = []
+                for jdx, p_box in enumerate(box):
+                    p_box_ = p_box[0:4].tolist()
+                    p_conf_ = [1.0]
+                    p_cls_ = [PersonCLS[int(p_box[4])]]
+                    p_box = np.concatenate([p_box_, p_conf_, p_cls_])
+                    b_boxes.append(p_box)
+
+                boxes_gt.append(b_boxes)
+            if self.use_gt:
+                label = boxes_gt
+
+            object_boxes_gt = []
+            for idx, box in enumerate(object_label):
+                object_b_boxes = []
+                for jdx, p_box in enumerate(box):
+                    p_box_ = p_box[0:4].tolist()
+                    p_conf_ = [1.0]
+                    p_cls_ = [ObjectCLS[int(p_box[4])]]
+                    p_box = np.concatenate([p_box_, p_conf_, p_cls_])
+                    object_b_boxes.append(p_box)
+
+                object_boxes_gt.append(object_b_boxes)
+            if self.use_gt:
+                object_label = object_boxes_gt
+                
             if len(object_label) > 0:
                 for idx, box in enumerate(label):
                     num_box = len(box)
@@ -209,7 +238,7 @@ class relation_model(nn.Module):
 
             return r_logits, r_labels
 
-
+        
         if not self.training:
             boxes = post_processing(logits, self.img_size, PersonCLS,
                                     self.person_detector.anchors,
@@ -233,14 +262,14 @@ class relation_model(nn.Module):
                     b_boxes.append(p_box)
 
                 boxes_gt.append(b_boxes)
-            if self.use_gt:
-                boxes = boxes_gt
+            #if self.use_gt:
+            #    boxes = boxes_gt
 
             object_boxes_gt = []
             for idx, box in enumerate(object_label):
                 object_b_boxes = []
                 for jdx, p_box in enumerate(box):
-                    p_box_ = p_box[0:4].tolist()
+                    p_box_ = p_box[0:4]#.tolist()
                     p_conf_ = [1.0]
                     p_cls_ = [ObjectCLS[int(p_box[4])]]
                     p_box = np.concatenate([p_box_, p_conf_, p_cls_])
@@ -249,8 +278,6 @@ class relation_model(nn.Module):
                 object_boxes_gt.append(object_b_boxes)
             if self.use_gt:
                 object_boxes = object_boxes_gt
-
-
             if len(boxes) > 0:
                 for idx, box in enumerate(boxes):
                     num_box = len(box)
@@ -277,9 +304,16 @@ class relation_model(nn.Module):
                     i_fmap += g_fmap
                     rr_logits = []
 
-                    if len(object_label) < len(boxes):
+                    if len(object_boxes) != 0:
+                        if len(object_boxes[0]) == 0:
+                            nonetensor = torch.zeros(13)
+                            nonetensor[0] = 1
+                            rr_logits.append(nonetensor.cuda())
+                            r_logits.append(rr_logits)
+                            continue
+                    else:
                         continue
-                    for jdx, obj_box in enumerate(object_label[idx]):
+                    for jdx, obj_box in enumerate(object_boxes[idx]):
                         obj_num_box = 1
 
                         obj_g_fmap = self.ex_global_feat_object(obj_fmap[idx])
@@ -307,10 +341,23 @@ class relation_model(nn.Module):
 
                         r_feat = torch.cat((p_feat, o_feat), 0).transpose(1,0)
                         r_logit = self.relation_fc(r_feat)
+                        if len(r_logit) == 0:
+                            nonetensor = torch.zeros(13)
+                            nonetensor[0] = 1
+                            r_logit.append(nonetensor.cuda())
                         rr_logits.append(r_logit)
-
                     r_logits.append(rr_logits)
-
+            else :
+                print('No objects')
+                '''
+                    if [tensor([[-3.0795,  3.2820, -2.1098,  1.9641, -1.8602,  9.7554, -3.6525,  0.5878,
+         -4.8014, -4.5370, -2.3128, 10.9614, -4.8626]], device='cuda:0',
+       grad_fn=<AddmmBackward>)]
+                '''
+            if len(r_logits) == 0:
+                nonetensor = torch.zeros(13)
+                nonetensor[0] = 1
+                r_logits.append([nonetensor.cuda()])
             return boxes, object_boxes, r_logits
 
 

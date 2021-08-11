@@ -14,29 +14,53 @@ PersonCLS = ['Dokyung', 'Haeyoung1', 'Haeyoung2', 'Sukyung', 'Jinsang',
              'Sungjin', 'Gitae', 'Sangseok', 'Yijoon', 'Seohee', 'none']
 
 # define behavior
-PBeHavCLS_ORG = ["stand up","sit down","walk","hold","hug",
+#PBeHavCLS = ["stand up","sit down","walk","hold","hug",
+#             "look at/back on",
+#             "drink","eat",
+#             "point out","dance", "look for","watch",
+#             "push away", "wave hands",
+#             "cook", "sing", "play instruments",
+#             "call", "destroy",
+#             "put arms around each other's shoulder",
+#             "open", "shake hands", "wave hands",
+#             "kiss", "high-five", "write", "none", '']
+#
+PBeHavCLS_21_none = ["stand up","sit down","walk","hold","hug",
              "look at/back on",
              "drink","eat",
-             "point out","dance", "look for","watch",
-             "push away", "wave hands",
-             "cook", "sing", "play instruments",
-             "call", "destroy",
+             "point out","dance", 
+             "wave hands",
+             "cook", "sing",
+             "call", 
              "put arms around each other's shoulder",
-             "open", "shake hands", "wave hands",
-             "kiss", "high-five", "write", "none"]
+             "open", "shake hands", 
+             "kiss", "none"]
+
+
+
+PBeHavCLS_21 = ["stand up","sit down","walk","hold","hug",
+             "look at/back on",
+             "drink","eat",
+             "point out","dance", 
+             "wave hands",
+             "cook", "sing",
+             "call", 
+             "put arms around each other's shoulder",
+             "open", "shake hands", 
+             "kiss"]
 
 # Subset of behavior
 # ignore set : {0, 1, 3, 5, 10, 11, 15, 17, 24, 25, 26, 27, 28}
-PBeHavCLS = ["walk","hug",
-             "drink","eat",
-             "point out","dance",
-             "push away",
-             "cook", "sing",
-             "call",
-             "put arms around each other's shoulder",
-             "open", "shake hands", "wave hands",
-             "kiss", "high-five"]
-
+#PBeHavCLSddd = ["walk","hug",
+#             "drink","eat",
+#             "point out","dance",
+#             "push away",
+#             "cook", "sing",
+#             "call",
+#             "put arms around each other's shoulder",
+#             "open", "shake hands", "wave hands",
+#             "kiss", "high-five","look at/back on","stand up"]
+#
 # define person to person relations
 P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
 
@@ -60,12 +84,14 @@ P2PRelCLS = ['Friendly', 'Unfriendly', 'none']
 #             "skateboard", "perfume", "elephant", "axe", "hamburger"]
 
 # this is what we decided to use because there is too many. 47 classes
+'''
 ObjectCLS = ["bag", "bed", "beer_bottle", "bicycle", "book", "bookshelf", "bottle", "bowl", "box", "bus", "can_beer", 
             "car", "chair(stool)", "computer", "couch", "desk", "door", "flower", "food", "frame", "glass", "glasses", 
             "handbag", "hat", "lamp", "laptop", "microphone", "paper(report)", "phone", "plant", "plate", "pot", 
             "potted_plant", "refrigerator", "shoes", "sofa", "spoon", "table", "tie", "traffic_light", "tree", "TV", 
             "umbrella", "vase", "watch", "window", "wine_glass"]
-
+'''
+ObjectCLS = ["tie", "bottle", "chair(stool)", "phone", "glass", "bowl", "table", "book", "car"]
 
 P2ORelCLS = ['none', 'wearing', 'on', 'with', 'in front of', 'has', 'in', 'near', 'attached to', 'under', 'at', 'N_P', 'N_O']
 
@@ -79,15 +105,14 @@ def Splits(num_episodes):
     '''
     split the total number of episodes into three : train, val, test
     '''
-    train = [*range(1, 6), *range(9,num_episodes)]
-    val = [] #num_episodes-3
+    train = [1,2,3,4,5,6,7,8,9,10,11,12]
+    val = [13,14,15] #num_episodes-3
     #test = range(num_episodes-2, num_episodes)
-    test = [7,8]
+    test = [16,17,18]
 
     return train, val, test
 
 def SortFullRect(image, label, is_train=True):
-
     width, height = (1024, 768)
     width_ratio = 448 / width
     height_ratio = 448 / height
@@ -98,8 +123,8 @@ def SortFullRect(image, label, is_train=True):
     fullrelation_list = []
     facerect_list = []
     fullemo_list = []
-    num_batch = len(label[0]) # per 1 video clip
-
+    num_batch = len(label) # per 1 video clip ### len(label[0]) -> len(label)
+    
     # set sequence length
     s_frm = 0
     e_frm = num_batch
@@ -129,7 +154,7 @@ def SortFullRect(image, label, is_train=True):
 
                 # behavior label
                 behavior = label[0][frm]['persons']['behavior'][p]
-                behavior_label = PBeHavCLS.index(behavior)
+                behavior_label = PBeHavCLS_21.index(behavior)
 
                 #scale:
                 xmin = max(full_rect[0] * width_ratio, 0)
@@ -144,12 +169,11 @@ def SortFullRect(image, label, is_train=True):
 
         except:
             continue
-
         if len(label_list) > 0 and is_train:
             fullrect_list.append(label_list)
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
-        else: # for test
+        elif is_train == False: # for test
             fullrect_list.append(label_list)
             fullbehav_list.append(behavior_list)
             image_list.append(image[frm])
@@ -210,16 +234,23 @@ def SortFullRect(image, label, is_train=True):
             fullemo_list.append(emo_list)
 
     # ------------- for object ----------------------
+    #import pdb;pdb.set_trace()
     for frm in range(s_frm, e_frm):
         try:
             object_list = []
             for p, p_id in enumerate(label[0][frm]['objects']['object_id']):
                 # we need to account for 'person' and remove person from the list
-                if p_id == 'person':
-                    continue
+                #if p_id == 'person':
+                #    continue
+                #import pdb;pdb.set_trace()
                 p_label = ObjectCLS.index(p_id)
                 r_label = P2ORelCLS.index(label[0][frm]['objects']['relation'][p])
-                if p_label > 47:
+                if r_label == 11:
+                    r_label = 0
+                if r_label == 12:
+                    r_label = 0
+                #print(label[0][frm]['objects']['object_id'],P2ORelCLS[0])
+                if p_label > 9:
                     print("sort full rect index error{}".format(p_label))
                 # object labels
                 object_rect = label[0][frm]['objects']['object_rect'][p]
@@ -230,8 +261,11 @@ def SortFullRect(image, label, is_train=True):
                 xmax = min((object_rect[2]) * width_ratio, 448)
                 ymax = min((object_rect[3]) * height_ratio, 448)
                 object_rect = [xmin,ymin,xmax,ymax]
-
+                
                 temp_label = np.concatenate((object_rect, [p_label], [r_label]), 0)
+                object_list.append(temp_label)
+            if len(p_id) == 0 :
+                temp_label = np.concatenate(([], [], [12]), 0)
                 object_list.append(temp_label)
         except:
             continue
@@ -240,7 +274,10 @@ def SortFullRect(image, label, is_train=True):
             fullobj_list.append(object_list)
         else: # for test
             fullobj_list.append(object_list)
-
+    #if len(image_list) != 0:
+    #    print('imls',len(image_list))
+    #    print(len(image_list[0]),len(image_list[0][0]))
+    #    print(len(image_list[0][0][0]))
     if is_train:
         return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, fullemo_list
     return image_list, fullrect_list, fullbehav_list, fullobj_list, facerect_list, fullemo_list, frame_id_list
@@ -302,8 +339,7 @@ class AnotherMissOh(Dataset):
 
         for episode in dataset:
             img_dir = img_path + 'AnotherMissOh{:02}/'.format(episode)
-            #json_dir = json_path + 'AnotherMissOh{:02}_ver3.2.json'.format(episode)
-            json_dir = json_path + 'AnotherMissOh{:02}_v5.0.json'.format(episode)
+            json_dir = json_path + 'AnotherMissOh{:02}_v3.0.json'.format(episode)
             if self.display_log:
                 print('imag_dir:{}'.format(img_dir))
                 print('json_dir:{}'.format(json_dir))
@@ -455,6 +491,7 @@ class AnotherMissOh(Dataset):
 
         img_list = []
         for it, frame in enumerate(image_info):
+            #import pdb;pdb.set_trace()
             img = Image.open(frame['frame_id'][0]).convert('RGB')
             img = self.transformations(img)
             img_list.append(img)

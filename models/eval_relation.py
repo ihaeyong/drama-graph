@@ -1,6 +1,8 @@
 import os
 import glob
 import argparse
+import sys
+sys.path.append(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))
 import pickle
 import cv2
 import numpy as np
@@ -52,7 +54,9 @@ def get_args():
                         default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
     parser.add_argument("-model", dest='model', type=str, default="relation")
     parser.add_argument("-display", dest='display', action='store_true')
-    parser.add_argument("-use_gt", type=bool, default=True, action='store_true', 
+    #parser.add_argument("-use_gt", type=bool, default=True, action='store_true', 
+    #                    help='using gt boxes for object and person')
+    parser.add_argument("-use_gt", default=True, action='store_true', 
                         help='using gt boxes for object and person')
     args = parser.parse_args()
     return args
@@ -84,7 +88,7 @@ model_path = "{}/anotherMissOh_only_params_{}.pth".format(
 def test(opt):
     global colors
     colors = pickle.load(open("./Yolo_v2_pytorch/src/pallete", "rb"))
-
+    
     device = torch.device('cuda' if torch.cuda.is_available() else "cpu")
     torch.cuda.manual_seed(123)
     
@@ -95,11 +99,13 @@ def test(opt):
                    "collate_fn": custom_collate_fn}
 
     # set test loader
-    test_loader = DataLoader(test_set, **test_params)
-
+    test_loader = DataLoader(train_set, **test_params)
+    
     model1 = relation_model(num_persons, num_objects, num_relations, opt, device)
-
+    
     ckpt = torch.load(model_path)
+    
+    model1.object_model.load_state_dict(torch.load("{}/anotherMissOh_only_params_{}.pth".format(opt.saved_path,'object')))
 
     ckpt_state_dict = ckpt
 
@@ -116,7 +122,9 @@ def test(opt):
     height_ratio = float(opt.image_size) / height
 
     # load test clips
+    correct = 0
     for iter, batch in enumerate(test_loader):
+        print('{}/{}'.format(iter,len(test_loader)))
         image, info = batch
 
         # sort label info on fullrect
@@ -127,9 +135,17 @@ def test(opt):
             image = torch.cat(image,0).cuda()
         except:
             continue
-
+        
         predictions, object_predictions, relation_predictions = model1(image, label, obj_label)
-
+        #if len(relation_predictions) != 0 :#len(object_predictions) != 0 and len(object_predictions[0]) != 0:
+        #    print(obj_label,relation_predictions)
+        if obj_label == [[]] or obj_label == [] :
+            if 0 in relation_predictions[0][0].topk(1).indices :
+                correct = correct+1
+        elif obj_label[0][0][5] in relation_predictions[0][0].topk(1).indices :
+            correct = correct+1
+        
+            #import pdb;pdb.set_trace()
         for idx, frame in enumerate(frame_id):
             if idx == len(predictions):
                 continue
@@ -138,19 +154,19 @@ def test(opt):
                     continue
                 if len(object_predictions[idx]) == 0:
                     continue
-
+            
             except:
                 continue
-
+            
             f_info = frame[0].split('/')
             save_dir = './results/relations/{}/{}/{}/'.format(
                 f_info[4], f_info[5], f_info[6])
-
+            
             save_mAP_gt_dir = './results/input_person/ground-truth/'
             save_mAP_det_dir = './results/input_person/detection/'
-
+            
             save_mAP_img_dir = './results/input_person/image/'
-
+            
             # visualize predictions
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
@@ -295,6 +311,7 @@ def test(opt):
                     os.remove(save_mAP_gt_dir + mAP_file)
                 if os.path.exists(save_mAP_det_dir + mAP_file):
                     os.remove(save_mAP_det_dir + mAP_file)
+    print("top k recall : {}".format(correct/iter))
 
 if __name__ == "__main__":
     test(opt)
