@@ -35,6 +35,18 @@ Install Python dependencies.
 
 ### Generate the sentences
 
+#### Generate scripts from person knowledge graph
+
+Provide the processed graph data in JSON Lines format using input files to the `generate_person_caption.py` script.
+
+The processed graph data should be in the format of the output of `process_person_graph.py`.
+Provide the person knowledge graph data to the `process_person_graph.py` script.
+
+```bash
+(env)graph_caption$ python process_person_graph.py --input_file ep01_graph.json --output_file ep01.jsonl
+(env)graph_caption$ python generate_person_caption.py --input_file ep01.jsonl --output_file ep01_caption.jsonl
+```
+
 #### Run main script
 
 Provide the graph data in JSON Lines format via standard input to the `generate.py` script.
