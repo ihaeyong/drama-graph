@@ -101,7 +101,7 @@ so here the directory is (`drama-graph/sed_vis/`).
 | model            | trainset | validation | test |
 |------------------|----------|------------|------|
 | person detection |   54.2%  |    50.6%   | 47.3%|
-| face detection   |   62.4%  |    38.2%   | 36.2%|
+| face detection   |   43.9%  |    25.83   | 26.6%|
 | emotion          |  80.7%   |    86.3%   | 85.0%|
 | behavior         |  17.43%  |    3.9%    | 4.89%|
 | object detection |  6.29%   |    2.36%   | 2.32%|
