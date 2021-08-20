@@ -106,7 +106,7 @@ so here the directory is (`drama-graph/sed_vis/`).
 | behavior         |  17.43%  |    3.9%    | 4.89%|
 | object detection |  2.18%   |    1.17%   | 1.33%|
 | predicate        |  88.1%   |    88.8%   | 85.9%|
-| place            |  95.3%   |    68.2%   | 63.4%|
+| place            |  61.0%   |    36.1%   | 31.4%|
 | sound event      |  89.6%   |    69.0%   | 62.5%|
 
 #### Acknowledgements
