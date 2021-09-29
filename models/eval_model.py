@@ -1,3 +1,18 @@
+
+"""Copyright (c) Inc. and its affiliates.
+All rights reserved.
+
+This source code is licensed under the license found in the
+LICENSE file in the root directory of this source tree.
+
+Portions of the source code are from the VTT projects which
+notice below and in LICENSE in the root directory of
+this source tree.
+
+Copyright (c) 2021, Haeyong.Kang
+All rights reserved.
+"""
+
 import os
 import glob
 import argparse
@@ -8,7 +23,7 @@ from Yolo_v2_pytorch.src.utils import *
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from Yolo_v2_pytorch.src.yolo_net import Yolo
-from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS, FaceCLS, ObjectCLS, P2ORelCLS
+from Yolo_v2_pytorch.src.anotherMissOh_dataset import AnotherMissOh, Splits, SortFullRect, PersonCLS,PBeHavCLS_21, FaceCLS, ObjectCLS, P2ORelCLS
 from torchvision.transforms import Compose, Resize, ToTensor
 from PIL import Image
 import matplotlib.pyplot as plt
@@ -16,7 +31,6 @@ import time
 
 import networkx as nx
 from networkx.drawing.nx_pydot import read_dot
-#from networkx.drawing.nx_agraph import read_dot
 from networkx.readwrite import json_graph
 from graphviz import Digraph, Graph
 import json
@@ -31,6 +45,8 @@ from lib.object_model import object_model
 from lib.relation_model import relation_model
 from lib.emotion_model import emotion_model, crop_face_emotion, EmoCLS
 
+
+PBeHavCLS = PBeHavCLS_21
 num_persons = len(PersonCLS)
 num_behaviors = len(PBeHavCLS)
 num_faces = len(FaceCLS)
@@ -41,37 +57,24 @@ num_emos = len(EmoCLS)
 def get_args():
     parser = argparse.ArgumentParser(
         "You Only Look Once: Unified, Real-Time Object Detection")
-    parser.add_argument("--image_size",
-                        type=int, default=448,
+    parser.add_argument("--image_size", type=int, default=448,
                         help="The common width and height for all images")
-    parser.add_argument("--batch_size", type=int, default=1,
-                        help="The number of images per batch")
-    parser.add_argument("--conf_threshold",
-                        type=float, default=0.35)
-    parser.add_argument("--nms_threshold",
-                        type=float, default=0.5)
-    parser.add_argument("--pre_trained_model_type",
-                        type=str, choices=["model", "params"],
-                        default="model")
-    parser.add_argument("--data_path_test",
-                        type=str,
-                        default="./Yolo_v2_pytorch/missoh_test/",
+    parser.add_argument("--batch_size", type=int, default=1, help="The number of images per batch")
+    parser.add_argument("--conf_threshold", type=float, default=0.35)
+    parser.add_argument("--nms_threshold", type=float, default=0.5)
+    parser.add_argument("--pre_trained_model_type", type=str, choices=["model", "params"], default="model")
+    parser.add_argument("--data_path_test", type=str, default="./Yolo_v2_pytorch/missoh_test/",
                         help="the root folder of dataset")
-
-    parser.add_argument("--saved_path", type=str,
-                        default="./checkpoint/refined_models")
-
+    parser.add_argument("--saved_path", type=str, default="./checkpoint/refined_models")
     parser.add_argument("--episode", type=int, default=7, help="episode to evaluate")
-
     parser.add_argument("--img_path", type=str,
                         default="./data/AnotherMissOh/AnotherMissOh_images_v5.0/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_v5.0/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_v3.0/")
     parser.add_argument("-model", dest='model', type=str, default="baseline")
     parser.add_argument("-display", dest='display', action='store_true')
     parser.add_argument("-emo_net_ch", dest='emo_net_ch',type=int, default=64)
-    #parser.add_argument("-use_gt", type=bool, default=True, action='store_true',
-    #                    help='using gt boxes for object and person')
+
     args = parser.parse_args()
     return args
 
@@ -244,114 +247,76 @@ def test(opt):
     test_loader = DataLoader(infer_set, **test_params)
 
     # ---------------(1) load refined models --------------------
-    # get the trained models from
+    # download the all models from the following google drive link
     # https://drive.google.com/drive/folders/1WXzP8nfXU4l0cNOtSPX9O1qxYH2m6LIp
-    # define person model
-    if False:
-        # model path
-        if False:
-            model_path = "./checkpoint/person/anotherMissOh_only_params_{}".format(
-                'voc_person_group_1gpu_init_none.pth')
-        else:
-            model_path = "./checkpoint/person/anotherMissOh_{}".format(
-                'voc_person_group_1gpu_init_none.pth')
 
-        model_p = person_model(num_persons, device)
-        ckpt = torch.load(model_path)
-
-        # in case of multi-gpu training
-        if False:
-            from collections import OrderedDict
-            ckpt_state_dict = OrderedDict()
-            for k,v in ckpt.items():
-                name = k[7:] # remove 'module'
-                ckpt_state_dict[name] = v
-
-            print("--- loading {} model---".format(model_path))
-            if optimistic_restore(model_p, ckpt_state_dict):
-                print("loaded with {}".format(model_path))
-        else:
-            model_p = ckpt
-            print("loaded with {}".format(model_path))
-
-        model_p.to(device)
-        model_p.eval()
-
-    # person and behavior
-    if True :
-        print("-----------person---behavior-------model---------------")
-        model_p = behavior_model(num_persons, num_behaviors, opt, device)
-        trained_persons = './checkpoint/behavior' + os.sep + "{}".format(
-            'anotherMissOh_only_params_voc_person_behavior_new.pth')
-        if optimistic_restore(model_p, torch.load(trained_persons)):
-            #model1.load_state_dict(torch.load(trained_persons))
-            print("loaded with {}".format(trained_persons))
-    else :
-        # pre-trained behavior model
-        # step 1: person trained on voc 50 epoch
-        # step 2: person feature based behavior sequence learning 100 epoch
-        trained_persons = './checkpoint/behavior' + os.sep + "{}".format(
-            'anotherMissOh_voc_person_behavior_new.pth')
-        model_p = torch.load(trained_persons)
-        print("loaded with person and behavior model {}".format(trained_persons))
+    # --- person and behavior model ---
+    trained_persons = './checkpoint/behavior' + os.sep + "{}".format(
+        'anotherMissOh_voc_person_behavior.pth')
+    model_p = torch.load(trained_persons)
+    print("loaded person and behavior model {}".format(trained_persons))
     model_p.cuda(device)
     model_p.eval()
 
-    # face model
-    if True:
-        model_face = face_model(num_persons, num_faces, device)
-        trained_face = './checkpoint/refined_models' + os.sep + "{}".format(
+    # --- face model ---
+    model_face = face_model(num_persons, num_faces, device)
+    trained_face = './checkpoint/face' + os.sep + "{}".format(
         'anotherMissOh_only_params_face.pth')
-        model_face.load_state_dict(torch.load(trained_face))
-        print("loaded with {}".format(trained_face))
+    ckpt_face = torch.load(trained_face)
+    if optimistic_restore(model_face, ckpt_face):
+        print("loaded trained face model sucessfully.")
+
     model_face.cuda(device)
     model_face.eval()
 
-    # emotion model
-    if True:
-        model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
-        trained_emotion = './checkpoint/refined_models' + os.sep + "{}".format(
-        'anotherMissOh_only_params_emotion_integration.pth')
-        model_emo.load_state_dict(torch.load(trained_emotion))
-        print("loaded with {}".format(trained_emotion))
+    # --- emotion model ---
+    model_emo = emotion_model(opt.emo_net_ch, num_persons, device)
+    trained_emotion = './checkpoint/emotion' + os.sep + "{}".format(
+        'anotherMissOh_only_params_emotion.pth')
+
+    print("loaded with {}".format(trained_emotion))
+
+    ckpt_emotion = torch.load(trained_emotion)
+    if optimistic_restore(model_emo, ckpt_emotion):
+        print("loaded trained emotion model sucessfully.")
+
     model_emo.cuda(device)
     model_emo.eval()
 
-    # object model
-    if True:
-        # add model
-        model_object = object_model(num_objects)
-        trained_object = './checkpoint/refined_models' + os.sep + "{}".format(
-        'anotherMissOh_only_params_object_integration.pth')
-        # model load
-        print("loaded with {}".format(trained_object))
-        model_object.load_state_dict(torch.load(trained_object))
+    # --- object model ---
+    model_object = object_model(num_objects)
+    trained_object = './checkpoint/object' + os.sep + "{}".format(
+        'anotherMissOh_only_params_object.pth')
+    # model load
+    print("loaded with {}".format(trained_object))
+
+    ckpt_object = torch.load(trained_object)
+    if optimistic_restore(model_object, ckpt_object):
+        print("loaded trained object model sucessfully.")
 
     model_object.cuda(device)
     model_object.eval()
 
+    # --- relation model ---
+    model_relation = relation_model(num_persons, num_objects, num_relations, opt, device)
+    trained_relation = './checkpoint/relation' + os.sep + "{}".format(
+        'anotherMissOh_only_params_relation.pth')
+    # model load
+    print("loaded with {}".format(trained_relation))
+    ckpt_relation = torch.load(trained_relation)
+    if optimistic_restore(model_relation, ckpt_relation):
+        print("loaded trained relation model sucessfully.")
 
-    # relation model
-    if True:
-        # add model
-        model_relation = relation_model(num_persons, num_objects, num_relations, opt, device)
-        trained_relation = './checkpoint/refined_models' + os.sep + "{}".format(
-        'anotherMissOh_only_params_relation_integration.pth')
-        # model load
-        print("loaded with {}".format(trained_relation))
-        model_relation.load_state_dict(torch.load(trained_relation))
     model_relation.cuda(device)
     model_relation.eval()
 
-    # place model
-    if True:
-        model_place = place_model(num_persons, num_behaviors, device)
-        # add model
-        trained_place = './checkpoint/refined_models' + os.sep + "{}".format(
-            'anotherMissOh_only_params_place_integration.pth')
-        # model load
-        print("loaded with {}".format(trained_place))
-        model_place.load_state_dict(torch.load(trained_place)['model'])
+    # --- place model ---
+    model_place = place_model(num_persons, num_behaviors, device)
+    # add model
+    trained_place = './checkpoint/place' + os.sep + "{}".format(
+        'anotherMissOh_only_params_place_integration.pth')
+
+    model_place.load_state_dict(torch.load(trained_place)['model'])
     model_place.cuda(device)
     model_place.eval()
 
@@ -380,21 +345,9 @@ def test(opt):
             continue
 
         # -----------------(2) inference -------------------------
-        # person
-        # logits : [1, 125, 14, 14]
-        if False:
-            p_logits, _ = model_p(image)
-            predictions_p = post_processing(p_logits,
-                                            opt.image_size,
-                                            PersonCLS,
-                                            model_p.detector.anchors,
-                                            opt.conf_threshold,
-                                            opt.nms_threshold)
-
         # logits : [1, 125, 14, 14]
         # behavior_logits : [1, 135, 14, 14]
-        else:
-            predictions_p, b_logits = model_p(image, label, behavior_label)
+        predictions_p, b_logits = model_p(image, label, behavior_label)
 
         # face and emotion
         #if np.array(face_label).size > 0 :

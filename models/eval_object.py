@@ -32,7 +32,7 @@ def get_args():
     parser.add_argument("--conf_threshold",
                         type=float, default=0.35)
     parser.add_argument("--nms_threshold",
-                        type=float, default=0.2)
+                        type=float, default=0.5)
     parser.add_argument("--pre_trained_model_type",
                         type=str, choices=["model", "params"],
                         default="model")
@@ -45,9 +45,9 @@ def get_args():
                         default="./checkpoint") # saved training path
 
     parser.add_argument("--img_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_images_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_images_v5.0/")
     parser.add_argument("--json_path", type=str,
-                        default="./data/AnotherMissOh/AnotherMissOh_Visual_ver3.2/")
+                        default="./data/AnotherMissOh/AnotherMissOh_Visual_v3.0/")
     parser.add_argument("-model", dest='model', type=str, default="object")
     parser.add_argument("-display", dest='display', action='store_true')
     args = parser.parse_args()
@@ -74,7 +74,7 @@ val_set = AnotherMissOh(val, opt.img_path, opt.json_path, False)
 test_set = AnotherMissOh(test, opt.img_path, opt.json_path, False)
 
 # model path
-model_path = "{}/anotherMissOh_only_params_{}.pth".format(
+model_path = "{}/object/anotherMissOh_only_params_{}.pth".format(
     opt.saved_path, opt.model)
 #model_path = "{}/anotherMissOh_object15-the real 15th after this consider minus one.pth".format(opt.saved_path)
 def test(opt):
@@ -109,7 +109,7 @@ def test(opt):
     #     ckpt_state_dict = ckpt
 
     ckpt_state_dict = ckpt
-    
+
     print("--- loading {} model---".format(model_path))
     if optimistic_restore(model1, ckpt_state_dict):
         print("loaded trained model sucessfully.")

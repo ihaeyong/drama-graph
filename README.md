@@ -35,7 +35,7 @@ json_dir = './data/AnotherMissOh/AnotherMissOh_Visual/AnotherMissOh01_visual.jso
 
 We mainly use [YOLOv2-pytorch](https://github.com/uvipen/Yolo-v2-pytorch). 
 
-You could find all trained models in [this link](https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM?usp=sharing) and make 'pre_model' folder and put the models. 
+You could find all trained models in [this link](https://drive.google.com/drive/folders/185sGBHO8v4SAVPaMnNJzDF8AOMhILjwM?usp=sharing). 
 
 We finetuned YOLOv2 w.r.t 20 persons for about 50 epoches as follows:
 
@@ -48,7 +48,7 @@ For place recognition, make 'pre_model' folder and put [places365 pre-trained mo
 >> ./scripts/train_models.sh #gpu
 ```
 
-train sound event model from scratch
+train sound event model from scratch.
 
 ```
 >> ./scripts/train_sound_event.sh #gpu
@@ -56,12 +56,11 @@ train sound event model from scratch
 The trained model is saved in `./sound_event_detection/checkpoint/torch_model.pt`
 
 
-### Test model:
-test the integrated model on testset
+### Test(drama graph generation) model:
+drama graph generation on the all episodes.
 ```
 >> ./scripts/eval_models.sh #gpu
 ```
-
 
 #### Evaluation
 mAP for person
@@ -89,7 +88,7 @@ mAP for object
 >> python eval_mAP.py -rtype object
 ```
 
-accuracy for sound event and its visualization.
+Accuracy for sound event and its visualization.
 sed_vis folder should be in the directory from which you run the file(`./`), 
 so here the directory is (`drama-graph/sed_vis/`).
 ```
@@ -100,8 +99,8 @@ so here the directory is (`drama-graph/sed_vis/`).
 #### Performances
 | model            | trainset | validation | test |
 |------------------|----------|------------|------|
-| person detection |   54.2%  |    50.6%   | 47.3%|
-| face detection   |   43.9%  |    25.83   | 26.6%|
+| person detection |  54.2%  |    50.6%   | 47.3%|
+| face detection   |  43.9%  |    25.83   | 26.6%|
 | emotion          |  72.6%   |    80.6%   | 66.9%|
 | behavior         |  17.43%  |    3.9%    | 4.89%|
 | object detection |  2.18%   |    1.17%   | 1.33%|
