@@ -19,7 +19,7 @@ mkl-random==1.1.1
 mkl-service==2.3.0
 moviepy==1.0.3
 numba==0.48.0
-numpy==1.18.1
+numpy==1.22.0
 olefile==0.46
 pandas==1.0.5
 Pillow==7.1.2
