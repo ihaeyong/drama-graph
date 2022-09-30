@@ -9,7 +9,7 @@ future==0.18.2
 idna==2.9
 imageio==2.8.0
 imageio-ffmpeg==0.4.2
-joblib==0.15.1
+joblib==1.2.0
 kiwisolver==1.2.0
 librosa==0.7.2
 llvmlite==0.31.0
