@@ -22,7 +22,7 @@ numba==0.48.0
 numpy==1.18.1
 olefile==0.46
 pandas==1.0.5
-Pillow==7.1.2
+Pillow==9.3.0
 proglog==0.1.9
 PyAudio==0.2.11
 pycparser==2.20
